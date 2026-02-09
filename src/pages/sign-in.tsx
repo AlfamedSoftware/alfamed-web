@@ -1,0 +1,120 @@
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
+import { auth } from "@/lib/auth"
+import { Button } from "@/components/ui/button"
+import {
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from "@/components/ui/form"
+import { Input } from "@/components/ui/input"
+import { useState } from "react"
+import { Loader2 } from "lucide-react"
+import loginLogo from "@/assets/auth/login.svg"
+
+const signInSchema = z.object({
+    email: z.string(),
+    password: z.string(),
+})
+
+type signInSchemaType = z.infer<typeof signInSchema>
+
+export function SignIn() {
+    const [isLoading, setIsLoading] = useState(false)
+
+    const form = useForm<signInSchemaType>({
+        resolver: zodResolver(signInSchema),
+        defaultValues: {
+            email: "",
+            password: "",
+        },
+    })
+
+    async function onSubmit({ email, password }: signInSchemaType) {
+        setIsLoading(true)
+        try {
+            await auth.signIn.email({
+                email,
+                password,
+                callbackURL: "/",
+            })
+        } catch (error) {
+            console.error("Erro ao fazer login:", error)
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    return (
+        <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">
+            <div className="flex items-center justify-center py-12">
+                <div className="mx-auto grid w-[420px] gap-6">
+                    <div className="grid gap-2">
+                        <h1 className="text-2xl font-bold text-primary">Bem-vindo ao Alfamed</h1>
+                        <p className="text-balance text-muted-foreground">
+                            Use seu e-mail e senha para acessar sua conta
+                        </p>
+                    </div>
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 ">
+                            <FormField
+                                control={form.control}
+                                name="email"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>E-mail</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="m@example.com" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="password"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Senha</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="********" type="password" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <Button type="submit" className="w-full cursor-pointer" disabled={isLoading}>
+                                {isLoading ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Entrando...
+                                    </>
+                                ) : (
+                                    "Entrar"
+                                )}
+                            </Button>
+                        </form>
+                    </Form>
+                    <div className="text-center">
+                        <Button variant="link" className="text-primary cursor-pointer text-base">
+                            Esqueceu sua senha?
+                        </Button>
+                    </div>
+                </div>
+            </div>
+            <div className="hidden lg:flex items-center justify-start pl-20 h-full">
+                <div className="w-full max-w-[600px] pb-24">
+                    <img
+                        src={loginLogo}
+                        alt="Image"
+                        className="h-full w-full object-contain dark:brightness-[0.2] dark:grayscale"
+                    />
+                </div>
+            </div>
+        </div>
+    )
+}

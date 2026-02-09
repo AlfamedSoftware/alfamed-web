@@ -1,10 +1,14 @@
-import { Button } from "@/components/ui/button"
+import { SignIn } from "@/pages/sign-in"
+import { DefaultLayout } from "@/layouts/default-layout"
+import { Routes, Route } from "react-router"
 
 export function App() {
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center">
-      <Button>Click me</Button>
-    </div>
+    <DefaultLayout>
+      <Routes>
+        <Route path="/login" element={<SignIn />} />
+      </Routes>
+    </DefaultLayout>
   )
 }
 
