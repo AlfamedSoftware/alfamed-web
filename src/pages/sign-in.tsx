@@ -68,7 +68,7 @@ export function SignIn() {
                                     <FormItem>
                                         <FormLabel>E-mail</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="m@example.com" {...field} />
+                                            <Input placeholder="insira seu e-mail" {...field} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -81,7 +81,7 @@ export function SignIn() {
                                     <FormItem>
                                         <FormLabel>Senha</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="********" type="password" {...field} />
+                                            <Input placeholder="insira sua senha" type="password" {...field} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
