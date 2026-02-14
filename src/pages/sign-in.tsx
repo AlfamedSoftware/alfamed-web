@@ -37,13 +37,23 @@ export function SignIn() {
     async function onSubmit({ email, password }: signInSchemaType) {
         setIsLoading(true)
         try {
-            await auth.signIn.email({
+            const response = await auth.signIn.email({
                 email,
                 password,
-                callbackURL: "/",
+                callbackURL: "/home",
             })
+
+            if (response?.error) {
+                if (response.error.status === 401 || response.error.status === 400) {
+                    form.setError("root", {
+                        message: "Email ou senha inválidos",
+                    })
+                }
+            }
         } catch (error) {
-            console.error("Erro ao fazer login:", error)
+            form.setError("root", {
+                message: "Ocorreu um erro inesperado. Tente novamente.",
+            })
         } finally {
             setIsLoading(false)
         }
@@ -87,6 +97,11 @@ export function SignIn() {
                                     </FormItem>
                                 )}
                             />
+                            <div className="min-h-[24px]">
+                                <div className={`text-sm font-medium text-destructive`}>
+                                    {form.formState.errors.root?.message}
+                                </div>
+                            </div>
                             <Button type="submit" className="w-full cursor-pointer" disabled={isLoading}>
                                 {isLoading ? (
                                     <>
