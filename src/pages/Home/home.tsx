@@ -5,7 +5,7 @@ export function Home() {
         <>
             <PageHeader title="Dashboard" />
             <div className="flex flex-1 flex-col p-4">
-                {/* Conteúdo da página aqui */}
+                <p className="text-muted-foreground">Conteúdo de Dashboard em breve.</p>
             </div>
         </>
     )
