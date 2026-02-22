@@ -1,11 +1,11 @@
 import { PageHeader } from "@/components/page-header"
 
-export function Home() {
+export function Perfil() {
     return (
         <>
-            <PageHeader title="Dashboard" />
+            <PageHeader title="Perfil" />
             <div className="flex flex-1 flex-col p-4">
-                {/* Conteúdo da página aqui */}
+                <p className="text-muted-foreground">Conteúdo do perfil em breve.</p>
             </div>
         </>
     )

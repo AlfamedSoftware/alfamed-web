@@ -1,11 +1,11 @@
 import { PageHeader } from "@/components/page-header"
 
-export function Home() {
+export function Prontuarios() {
     return (
         <>
-            <PageHeader title="Dashboard" />
+            <PageHeader title="Prontuários" />
             <div className="flex flex-1 flex-col p-4">
-                {/* Conteúdo da página aqui */}
+                <p className="text-muted-foreground">Conteúdo de Prontuários em breve.</p>
             </div>
         </>
     )
