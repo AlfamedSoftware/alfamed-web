@@ -61,8 +61,11 @@ export function SignIn() {
             }
 
             console.log("✅ Login bem-sucedido, redirecionando...")
+            console.log("⏳ Aguardando 2 segundos antes de redirecionar para você conferir o console...")
             alert("✅ Login ok! Veja o console para detalhes. Pressione OK para continuar.")
-            navigate("/home", { replace: true })
+            setTimeout(() => {
+                navigate("/home", { replace: true })
+            }, 2000)
         } catch (error) {
             console.error("💥 Erro ao tentar fazer login:", error)
             form.setError("root", {
