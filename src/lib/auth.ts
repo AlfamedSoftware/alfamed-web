@@ -11,4 +11,7 @@ export const authBaseUrl = (import.meta.env.VITE_API_URL ?? defaultAuthBaseUrl).
 export const auth = createAuthClient({
     baseURL: authBaseUrl,
     plugins: [twoFactorClient()],
+    fetchOptions: {
+        credentials: "include",
+    },
 })
