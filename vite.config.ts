@@ -8,23 +8,7 @@ export default defineConfig(({ mode }) => {
   const proxyTarget = env.VITE_API_PROXY_TARGET || "https://alfamed-api-dev.vercel.app"
 
   return {
-    plugins: [
-      react(),
-      tailwindcss(),
-      {
-        name: "spa-fallback",
-        configResolved() {},
-        apply: "serve",
-        middlewares: [
-          (req: any, _res: any, next: any) => {
-            if (req.method === "GET" && !req.url.includes(".") && req.url !== "/") {
-              req.url = "/index.html"
-            }
-            next()
-          },
-        ],
-      },
-    ],
+    plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
