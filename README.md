@@ -1,73 +1,63 @@
-# React + TypeScript + Vite
+# Alfamed Web
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Frontend da aplicação Alfamed construído com React + TypeScript + Vite.
 
-Currently, two official plugins are available:
+## Requisitos
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Node.js 20+
+- npm 10+
 
-## React Compiler
+## Instalação
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Configuração de ambiente
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+1. Crie o arquivo `.env` na raiz do projeto.
+2. Configure a URL base da API:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```env
+VITE_API_URL=http://localhost:3333
 ```
+
+Você pode usar a referência em `.env.example` e ajustar para seu ambiente (dev/homolog/prod).
+
+## Executando em desenvolvimento
+
+```bash
+npm run dev
+```
+
+O Vite irá exibir a URL local (normalmente `http://localhost:5173`).
+
+## Build de produção
+
+```bash
+npm run build
+```
+
+## Preview da build
+
+```bash
+npm run preview
+```
+
+## Scripts disponíveis
+
+- `npm run dev`: sobe o frontend em modo desenvolvimento
+- `npm run build`: executa type-check e gera build de produção
+- `npm run preview`: serve localmente a build gerada
+- `npm run lint`: roda o ESLint
+
+## Conexão com API
+
+A conexão de autenticação é configurada em `src/lib/auth.ts` via `createAuthClient`, usando a variável `VITE_API_URL`.
+
+Se `VITE_API_URL` não estiver definida, o fallback é `http://localhost:3333`.
+
+## Observações
+
+- O backend deve estar ativo e aceitar CORS da origem do frontend em desenvolvimento.
+- O arquivo `.env` está ignorado no Git por segurança.
