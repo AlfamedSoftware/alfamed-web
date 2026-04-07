@@ -10,7 +10,6 @@ export function useSession() {
         const fetchSession = async () => {
             try {
                 const { data } = await auth.getSession()
-                console.log(data)
                 setSession(data?.session || null)
                 setUser(data?.user || null)
             } catch (error) {
