@@ -61,11 +61,10 @@ export function SignIn() {
             }
 
             console.log("✅ Login bem-sucedido, redirecionando...")
-            console.log("⏳ Aguardando 2 segundos antes de redirecionar para você conferir o console...")
-            alert("✅ Login ok! Veja o console para detalhes. Pressione OK para continuar.")
-            setTimeout(() => {
-                navigate("/home", { replace: true })
-            }, 2000)
+            console.log("🍪 Cookies atuais:", document.cookie)
+            console.log("💾 LocalStorage:", localStorage)
+            alert("✅ Login ok! Veja o console para detalhes e clique OK para continuar.")
+            navigate("/home", { replace: true })
         } catch (error) {
             console.error("💥 Erro ao tentar fazer login:", error)
             form.setError("root", {
