@@ -16,7 +16,7 @@ export default defineConfig(({ mode }) => {
         configResolved() {},
         apply: "serve",
         middlewares: [
-          (req, res, next) => {
+          (req: any, _res: any, next: any) => {
             if (req.method === "GET" && !req.url.includes(".") && req.url !== "/") {
               req.url = "/index.html"
             }
