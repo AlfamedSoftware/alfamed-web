@@ -9,12 +9,15 @@ export function useSession() {
     useEffect(() => {
         const fetchSession = async () => {
             try {
+                console.log("🔄 Buscando sessão...")
                 const { data } = await auth.getSession()
-                console.log(data)
+                console.log("📢 Resposta completa de getSession():", { data })
+                console.log("📢 session:", data?.session)
+                console.log("📢 user:", data?.user)
                 setSession(data?.session || null)
                 setUser(data?.user || null)
             } catch (error) {
-                console.error("Error fetching session:", error)
+                console.error("❌ Erro ao buscar sessão:", error)
                 setSession(null)
                 setUser(null)
             } finally {

@@ -39,13 +39,19 @@ export function SignIn() {
     async function onSubmit({ email, password }: signInSchemaType) {
         setIsLoading(true)
         try {
+            console.log("🔍 Iniciando login com:", { email, callbackURL: `${window.location.origin}/home` })
             const response = await auth.signIn.email({
                 email,
                 password,
                 callbackURL: `${window.location.origin}/home`,
             })
 
+            console.log("📡 Resposta do login:", response)
+            console.log("📡 Resposta completa (data):", response?.data)
+            console.log("📡 Resposta completa (error):", response?.error)
+
             if (response?.error) {
+                console.log("❌ Erro no login:", response.error)
                 if (response.error.status === 401 || response.error.status === 400) {
                     form.setError("root", {
                         message: "Email ou senha inválidos",
@@ -54,8 +60,10 @@ export function SignIn() {
                 return
             }
 
+            console.log("✅ Login bem-sucedido, redirecionando...")
             navigate("/home", { replace: true })
         } catch (error) {
+            console.error("💥 Erro ao tentar fazer login:", error)
             form.setError("root", {
                 message: "Ocorreu um erro inesperado. Tente novamente.",
             })
