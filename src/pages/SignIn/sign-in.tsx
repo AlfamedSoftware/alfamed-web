@@ -61,6 +61,7 @@ export function SignIn() {
             }
 
             console.log("✅ Login bem-sucedido, redirecionando...")
+            alert("✅ Login ok! Veja o console para detalhes. Pressione OK para continuar.")
             navigate("/home", { replace: true })
         } catch (error) {
             console.error("💥 Erro ao tentar fazer login:", error)
