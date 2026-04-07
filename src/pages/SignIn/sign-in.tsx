@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input"
 import { useState } from "react"
 import { Loader2 } from "lucide-react"
 import loginLogo from "@/assets/auth/login.svg"
+import { useNavigate } from "react-router"
 
 const signInSchema = z.object({
     email: z.string(),
@@ -25,6 +26,7 @@ type signInSchemaType = z.infer<typeof signInSchema>
 
 export function SignIn() {
     const [isLoading, setIsLoading] = useState(false)
+    const navigate = useNavigate()
 
     const form = useForm<signInSchemaType>({
         resolver: zodResolver(signInSchema),
@@ -40,7 +42,7 @@ export function SignIn() {
             const response = await auth.signIn.email({
                 email,
                 password,
-                callbackURL: "/home",
+                callbackURL: `${window.location.origin}/home`,
             })
 
             if (response?.error) {
@@ -49,7 +51,10 @@ export function SignIn() {
                         message: "Email ou senha inválidos",
                     })
                 }
+                return
             }
+
+            navigate("/home", { replace: true })
         } catch (error) {
             form.setError("root", {
                 message: "Ocorreu um erro inesperado. Tente novamente.",
