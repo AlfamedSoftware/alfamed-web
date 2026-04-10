@@ -10,6 +10,7 @@ import { Agendamentos } from "@/pages/Agendamentos/agendamentos"
 import { Prontuarios } from "@/pages/Prontuarios/prontuarios"
 import { Configuracoes } from "@/pages/Configuracoes/configuracoes"
 import { Perfil } from "@/pages/Perfil/perfil"
+import { CadastroProfissionais } from "@/pages/Profissionais/Cadastro/cadastro-profissionais"
 
 export function App() {
   return (
@@ -27,6 +28,7 @@ export function App() {
           <Route index element={<Navigate to="/home" replace />} />
           <Route path="home" element={<Home />} />
           <Route path="profissionais" element={<Profissionais />} />
+          <Route path="cadastro-profissionais" element={<CadastroProfissionais />} />
           <Route path="pacientes" element={<Pacientes />} />
           <Route path="agendamentos" element={<Agendamentos />} />
           <Route path="prontuarios" element={<Prontuarios />} />
