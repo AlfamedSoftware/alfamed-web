@@ -42,7 +42,7 @@ export function SignIn() {
             const response = await auth.signIn.email({
                 email,
                 password,
-                callbackURL: `${window.location.origin}/home`,
+                callbackURL: `${window.location.origin}/session`,
             })
 
             if (response?.error) {
@@ -54,7 +54,7 @@ export function SignIn() {
                 return
             }
 
-            navigate("/home", { replace: true })
+            navigate("/session", { replace: true })
         } catch (error) {
             form.setError("root", {
                 message: "Ocorreu um erro inesperado. Tente novamente.",

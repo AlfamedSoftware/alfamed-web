@@ -88,6 +88,62 @@ Além disso, na inicialização (`src/main.tsx`), a aplicação chama `GET /heal
 - `API online` quando retornar `{ "status": "ok" }`
 - `API offline` em falha de rede, status HTTP inválido ou resposta diferente
 
+## How It Works (Login -> Home)
+
+Este é o fluxo atual de autenticação e seleção de unidade até chegar na Home.
+
+### 1. Login (`/login`)
+
+- Arquivo: `src/pages/SignIn/sign-in.tsx`
+- Ao enviar e-mail/senha, o frontend chama `auth.signIn.email(...)`.
+- Em sucesso, redireciona para `/session`.
+- Em falha `400/401`, exibe `Email ou senha inválidos`.
+
+### 2. Validação de sessão (guard global)
+
+- Arquivo: `src/components/ProtectRoute/protected-route.tsx`
+- Rotas protegidas só renderizam com sessão válida (`useSession`).
+- Se não houver sessão, redireciona para `/login`.
+
+### 3. Seleção de unidade (`/session`)
+
+- Arquivo: `src/pages/SelecaoUnidade/selecao-unidade.tsx`
+- Busca unidades em `GET {VITE_API_URL}/units/by-user` com:
+	- `Authorization: Bearer <token da sessão>`
+	- `credentials: include`
+
+Tratamento de retorno:
+
+- `200`: renderiza lista de unidades no select.
+- `401`: mostra mensagem de não autenticado.
+- `500`: mostra mensagem de erro interno.
+- sem unidades: mostra mensagem de que o usuário não tem vínculo.
+
+Regras de navegação nesta etapa:
+
+- Se vier **apenas 1 unidade**, ela é selecionada automaticamente, salva e o usuário é redirecionado para `/home`.
+- Se vier **mais de 1 unidade**, o usuário escolhe no select e clica em `Ir para Home`.
+- Há botão `Sair` para encerrar sessão e voltar para `/login`.
+
+### 4. Persistência da unidade ativa
+
+- Arquivo: `src/lib/selected-unit.ts`
+- A unidade escolhida é salva no `localStorage` por usuário:
+	- chave: `alfamed:selected-unit:<userId>`
+	- valor: `{ id, name }`
+
+### 5. Acesso à Home e rotas filhas
+
+- Arquivo: `src/components/ProtectRoute/unit-protected-route.tsx`
+- Além de sessão válida, exige unidade ativa salva para acessar `/home` e demais rotas internas.
+- Se não houver unidade selecionada, redireciona para `/session`.
+
+### 6. Resumo de exceções de redirecionamento
+
+- Sem sessão: qualquer rota protegida -> `/login`
+- Com sessão, sem unidade ativa: rotas internas (`/home` e filhas) -> `/session`
+- Com sessão e unidade ativa: acesso normal às páginas internas
+
 ## Deploy (Vercel)
 
 Para frontend e backend em domínios diferentes, configure CORS no backend.
