@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -6,6 +6,7 @@ import { Check, Loader2 } from "lucide-react"
 
 import { PageHeader } from "@/components/page-header"
 import { authBaseUrl } from "@/lib/auth"
+import { useSession } from "@/hooks/use-session"
 import { Button } from "@/components/ui/button"
 import {
     Form,
@@ -37,6 +38,165 @@ const cadastroProfissionalSchema = z.object({
 })
 
 type CadastroProfissionalSchemaType = z.infer<typeof cadastroProfissionalSchema>
+
+type ProfessionalOption = {
+    id: number
+    name: string
+    socialName: string | null
+}
+
+function getStringField(record: Record<string, unknown>, field: string): string | null {
+    const value = record[field]
+
+    if (typeof value === "string") {
+        const trimmed = value.trim()
+        return trimmed.length > 0 ? trimmed : null
+    }
+
+    if (typeof value === "number" && Number.isFinite(value)) {
+        return String(value)
+    }
+
+    return null
+}
+
+function getNumericId(value: unknown): number | null {
+    if (typeof value === "number" && Number.isFinite(value)) {
+        return value
+    }
+
+    if (typeof value === "string") {
+        const parsed = Number(value)
+        if (Number.isFinite(parsed)) {
+            return parsed
+        }
+    }
+
+    return null
+}
+
+function extractCurrentUnitIdentifier(session: unknown, user: unknown): string | null {
+    const sessionRecord =
+        session && typeof session === "object" ? (session as Record<string, unknown>) : null
+    const userRecord = user && typeof user === "object" ? (user as Record<string, unknown>) : null
+
+    const candidateKeys = [
+        "unitId",
+        "currentUnitId",
+        "unidadeId",
+        "currentUnidadeId",
+        "unitKey",
+        "currentUnitKey",
+        "unidadeKey",
+        "currentUnidadeKey",
+        "organizationKey",
+        "tenantKey",
+    ]
+
+    for (const key of candidateKeys) {
+        const sessionValue = sessionRecord ? getStringField(sessionRecord, key) : null
+        if (sessionValue) {
+            return sessionValue
+        }
+
+        const userValue = userRecord ? getStringField(userRecord, key) : null
+        if (userValue) {
+            return userValue
+        }
+    }
+
+    if (sessionRecord?.activeUnit && typeof sessionRecord.activeUnit === "object") {
+        const activeUnitRecord = sessionRecord.activeUnit as Record<string, unknown>
+        const activeUnitIdentifier =
+            getStringField(activeUnitRecord, "id") ?? getStringField(activeUnitRecord, "key")
+        if (activeUnitIdentifier) {
+            return activeUnitIdentifier
+        }
+    }
+
+    if (userRecord?.activeUnit && typeof userRecord.activeUnit === "object") {
+        const activeUnitRecord = userRecord.activeUnit as Record<string, unknown>
+        const activeUnitIdentifier =
+            getStringField(activeUnitRecord, "id") ?? getStringField(activeUnitRecord, "key")
+        if (activeUnitIdentifier) {
+            return activeUnitIdentifier
+        }
+    }
+
+    if (sessionRecord?.unit && typeof sessionRecord.unit === "object") {
+        const unitRecord = sessionRecord.unit as Record<string, unknown>
+        const unitIdentifier = getStringField(unitRecord, "id") ?? getStringField(unitRecord, "key")
+        if (unitIdentifier) {
+            return unitIdentifier
+        }
+    }
+
+    if (sessionRecord?.units && typeof sessionRecord.units === "object") {
+        const unitsRecord = sessionRecord.units as Record<string, unknown>
+        const unitIdentifier = getStringField(unitsRecord, "id") ?? getStringField(unitsRecord, "key")
+        if (unitIdentifier) {
+            return unitIdentifier
+        }
+    }
+
+    return null
+}
+
+function extractProfessionalOptions(payload: unknown): ProfessionalOption[] {
+    const root = payload && typeof payload === "object" ? (payload as Record<string, unknown>) : null
+
+    const candidates = [
+        payload,
+        root?.data,
+        root?.professionals,
+        root?.items,
+        root?.results,
+    ]
+
+    const source = candidates.find((candidate) => Array.isArray(candidate))
+    if (!Array.isArray(source)) {
+        return []
+    }
+
+    const options: ProfessionalOption[] = []
+
+    for (const item of source) {
+        if (!item || typeof item !== "object") {
+            continue
+        }
+
+        const record = item as Record<string, unknown>
+        const professionalsNode =
+            record.professionals && typeof record.professionals === "object"
+                ? (record.professionals as Record<string, unknown>)
+                : null
+        const usersNode =
+            record.users && typeof record.users === "object"
+                ? (record.users as Record<string, unknown>)
+                : null
+
+        const id = getNumericId(professionalsNode?.id ?? record.id)
+        const idFromFlatKey = getNumericId(record["professionals.id"])
+        const name =
+            getStringField(usersNode ?? record, "name") ??
+            getStringField(record, "users.name")
+        const socialName = getStringField(record, "socialName")
+
+        const resolvedId = id ?? idFromFlatKey
+
+        if (resolvedId === null || !name) {
+            continue
+        }
+
+        options.push({
+            id: resolvedId,
+            name,
+            socialName,
+        })
+    }
+
+    return options.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"))
+}
 
 function extractCreatedUserId(data: unknown): string | null {
     if (!data || typeof data !== "object") {
@@ -77,8 +237,85 @@ function extractCreatedUserId(data: unknown): string | null {
 }
 
 export function CadastroProfissionais() {
+    const { session, user, isLoading: isLoadingSession } = useSession()
     const [isLoading, setIsLoading] = useState(false)
     const [successMessage, setSuccessMessage] = useState("")
+    const [isLoadingProfessionals, setIsLoadingProfessionals] = useState(false)
+    const [professionalsErrorMessage, setProfessionalsErrorMessage] = useState("")
+    const [selectedProfessionalId, setSelectedProfessionalId] = useState(0)
+    const [professionalOptions, setProfessionalOptions] = useState<ProfessionalOption[]>([])
+    const isEditingProfessional = selectedProfessionalId !== 0
+
+    useEffect(() => {
+        if (!successMessage) {
+            return
+        }
+
+        const timeoutId = window.setTimeout(() => {
+            setSuccessMessage("")
+        }, 4000)
+
+        return () => {
+            window.clearTimeout(timeoutId)
+        }
+    }, [successMessage])
+
+    useEffect(() => {
+        if (isLoadingSession) {
+            return
+        }
+
+        const unitIdentifier = extractCurrentUnitIdentifier(session, user)
+        if (!unitIdentifier) {
+            setProfessionalOptions([])
+            setProfessionalsErrorMessage("Não foi possível identificar a unidade atual.")
+            return
+        }
+
+        const abortController = new AbortController()
+
+        const fetchProfessionals = async () => {
+            setIsLoadingProfessionals(true)
+            setProfessionalsErrorMessage("")
+
+            try {
+                const queryParams = new URLSearchParams({
+                    unitId: unitIdentifier,
+                    unitKey: unitIdentifier,
+                })
+
+                const response = await fetch(
+                    `${authBaseUrl}/professionals/by-unit?${queryParams.toString()}`,
+                    {
+                        credentials: "include",
+                        signal: abortController.signal,
+                    },
+                )
+
+                if (!response.ok) {
+                    throw new Error("Não foi possível carregar os profissionais da unidade.")
+                }
+
+                const data: unknown = await response.json()
+                setProfessionalOptions(extractProfessionalOptions(data))
+            } catch (error) {
+                if (error instanceof DOMException && error.name === "AbortError") {
+                    return
+                }
+
+                setProfessionalOptions([])
+                setProfessionalsErrorMessage("Não foi possível carregar os profissionais da unidade.")
+            } finally {
+                setIsLoadingProfessionals(false)
+            }
+        }
+
+        void fetchProfessionals()
+
+        return () => {
+            abortController.abort()
+        }
+    }, [isLoadingSession, session, user])
 
     const form = useForm<CadastroProfissionalSchemaType>({
         resolver: zodResolver(cadastroProfissionalSchema),
@@ -251,6 +488,38 @@ export function CadastroProfissionais() {
 
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-5">
+                            <div className="grid gap-2">
+                                <label
+                                    htmlFor="professional-selector"
+                                    className="text-sm font-medium leading-none"
+                                >
+                                    Profissional
+                                </label>
+                                <select
+                                    id="professional-selector"
+                                    value={selectedProfessionalId}
+                                    onChange={(event) =>
+                                        setSelectedProfessionalId(Number(event.target.value))
+                                    }
+                                    className="border-input bg-background h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[1px]"
+                                    disabled={isLoadingProfessionals}
+                                >
+                                    <option value={0}>Adicionar novo profissional</option>
+                                    {professionalOptions.map((professional) => (
+                                        <option key={professional.id} value={professional.id}>
+                                            {professional.socialName
+                                                ? `${professional.name} (${professional.socialName})`
+                                                : professional.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                <p className="min-h-[20px] text-sm text-muted-foreground">
+                                    {isLoadingProfessionals
+                                        ? "Carregando profissionais..."
+                                        : professionalsErrorMessage}
+                                </p>
+                            </div>
+
                             <div className="grid gap-4 md:grid-cols-2">
                                 <FormField
                                     control={form.control}
@@ -465,12 +734,14 @@ export function CadastroProfissionais() {
                                     {isLoading ? (
                                         <>
                                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            Salvando...
+                                            {isEditingProfessional ? "Salvando alterações..." : "Cadastrando..."}
                                         </>
                                     ) : (
                                         <>
                                             <Check className="mr-2 h-4 w-4" />
-                                            Cadastrar profissional
+                                            {isEditingProfessional
+                                                ? "Salvar alterações"
+                                                : "Cadastrar profissional"}
                                         </>
                                     )}
                                 </Button>
