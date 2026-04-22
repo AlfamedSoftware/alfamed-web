@@ -11,6 +11,8 @@ import { Prontuarios } from "@/pages/Prontuarios/prontuarios"
 import { Configuracoes } from "@/pages/Configuracoes/configuracoes"
 import { Perfil } from "@/pages/Perfil/perfil"
 import { CadastroProfissionais } from "@/pages/Profissionais/Cadastro/cadastro-profissionais"
+import { SelecaoUnidade } from "@/pages/SelecaoUnidade/selecao-unidade"
+import { UnitProtectedRoute } from "@/components/ProtectRoute/unit-protected-route"
 
 export function App() {
   return (
@@ -18,10 +20,20 @@ export function App() {
       <Routes>
         <Route path="/login" element={<SignIn />} />
         <Route
+          path="/session"
+          element={
+            <ProtectedRoute>
+              <SelecaoUnidade />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/"
           element={
             <ProtectedRoute>
-              <SidebarLayout />
+              <UnitProtectedRoute>
+                <SidebarLayout />
+              </UnitProtectedRoute>
             </ProtectedRoute>
           }
         >
