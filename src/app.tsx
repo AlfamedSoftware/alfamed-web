@@ -14,6 +14,7 @@ import { Perfil } from "@/pages/Perfil/perfil"
 import { AdminSignIn } from "@/pages/SignIn/admin-sign-in"
 import { ServiceDeskUnitsList } from "@/pages/ServiceDesk/units-list"
 import { ServiceDeskUnitDetails } from "@/pages/ServiceDesk/unit-details"
+import { CadastroProfissionais } from "@/pages/Profissionais/Cadastro/cadastro-profissionais"
 
 export function App() {
   return (
@@ -32,6 +33,7 @@ export function App() {
           <Route index element={<Navigate to="/home" replace />} />
           <Route path="home" element={<Home />} />
           <Route path="profissionais" element={<Profissionais />} />
+          <Route path="cadastro-profissionais" element={<CadastroProfissionais />} />
           <Route path="pacientes" element={<Pacientes />} />
           <Route path="agendamentos" element={<Agendamentos />} />
           <Route path="prontuarios" element={<Prontuarios />} />
