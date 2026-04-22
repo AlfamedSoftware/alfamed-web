@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react"
 import { auth } from "@/lib/auth"
 
+export function isInternalAlfamedEmail(email?: string | null) {
+    return !!email?.toLowerCase().endsWith("@alfamed.com")
+}
+
 export function useSession() {
     const [session, setSession] = useState<any>(null)
     const [user, setUser] = useState<any>(null)
@@ -28,5 +32,6 @@ export function useSession() {
         session,
         user,
         isLoading,
+        isInternalUser: isInternalAlfamedEmail(user?.email),
     }
 }
