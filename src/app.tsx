@@ -15,6 +15,8 @@ import { AdminSignIn } from "@/pages/SignIn/admin-sign-in"
 import { ServiceDeskUnitsList } from "@/pages/ServiceDesk/units-list"
 import { ServiceDeskUnitDetails } from "@/pages/ServiceDesk/unit-details"
 import { CadastroProfissionais } from "@/pages/Profissionais/Cadastro/cadastro-profissionais"
+import { SelecaoUnidade } from "@/pages/SelecaoUnidade/selecao-unidade"
+import { UnitProtectedRoute } from "@/components/ProtectRoute/unit-protected-route"
 
 export function App() {
   return (
@@ -23,10 +25,20 @@ export function App() {
         <Route path="/login" element={<SignIn />} />
         <Route path="/admin/login" element={<AdminSignIn />} />
         <Route
+          path="/session"
+          element={
+            <ProtectedRoute>
+              <SelecaoUnidade />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/"
           element={
             <ProtectedRoute>
-              <SidebarLayout />
+              <UnitProtectedRoute>
+                <SidebarLayout />
+              </UnitProtectedRoute>
             </ProtectedRoute>
           }
         >
