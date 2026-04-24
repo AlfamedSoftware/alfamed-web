@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react"
-import { Plus, Bell } from "lucide-react"
+import { Bell, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useProfessionals, type ProfessionalFilter } from "@/hooks/use-professionals"
 import type { Professional } from "@/services/professionals.service"
@@ -12,6 +12,7 @@ import { ProfessionalEmptyState } from "./components/ProfessionalEmptyState"
 import { CreateProfessionalModal } from "./components/CreateProfessionalModal"
 import { DeleteConfirmDialog } from "./components/DeleteConfirmDialog"
 import { ToastContainer, useToast } from "./components/Toast"
+import { RegisterProfessionalModal } from "./components/RegisterProfessionalModal"
 
 export function Profissionais() {
     const {
@@ -19,7 +20,7 @@ export function Profissionais() {
         isLoading,
         error,
         counts,
-        createProfessional,
+        refetch,
         updateProfessional,
         removeProfessional,
         toggleActive,
@@ -27,15 +28,13 @@ export function Profissionais() {
 
     const { toasts, dismiss, toast } = useToast()
 
-    /* ---- UI State ---- */
     const [activeFilter, setActiveFilter] = useState<ProfessionalFilter>("all")
     const [searchQuery, setSearchQuery] = useState("")
-    const [isModalOpen, setIsModalOpen] = useState(false)
+    const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false)
     const [editingProfessional, setEditingProfessional] = useState<Professional | null>(null)
     const [deletingProfessional, setDeletingProfessional] = useState<Professional | null>(null)
     const [isDeleting, setIsDeleting] = useState(false)
 
-    /* ---- Filtered + Searched list ---- */
     const filtered = useMemo(() => {
         let list = professionals
 
@@ -47,36 +46,33 @@ export function Profissionais() {
             list = list.filter(
                 (p) =>
                     p.id.toLowerCase().includes(q) ||
-                    p.userId.toLowerCase().includes(q),
+                    p.userId.toLowerCase().includes(q) ||
+                    (p.name?.toLowerCase().includes(q) ?? false) ||
+                    (p.email?.toLowerCase().includes(q) ?? false),
             )
         }
 
         return list
     }, [professionals, activeFilter, searchQuery])
 
-    /* ---- Handlers ---- */
-    const handleOpenCreate = () => {
-        setEditingProfessional(null)
-        setIsModalOpen(true)
-    }
-
     const handleOpenEdit = (professional: Professional) => {
         setEditingProfessional(professional)
-        setIsModalOpen(true)
+    }
+
+    const handleCloseEdit = () => {
+        setEditingProfessional(null)
     }
 
     const handleSave = async (data: { userId?: string; isActive: boolean }) => {
         try {
-            if (editingProfessional) {
-                await updateProfessional(editingProfessional.id, { isActive: data.isActive })
-                toast.success("Profissional atualizado com sucesso!")
-            } else {
-                await createProfessional({ isActive: data.isActive })
-                toast.success("Profissional cadastrado com sucesso!")
-            }
+            if (!editingProfessional) return
+
+            await updateProfessional(editingProfessional.id, { isActive: data.isActive })
+            toast.success("Profissional atualizado com sucesso!")
+            handleCloseEdit()
         } catch (err) {
             toast.error(err instanceof Error ? err.message : "Erro ao salvar profissional")
-            throw err // re-throw so modal stays open
+            throw err
         }
     }
 
@@ -111,7 +107,6 @@ export function Profissionais() {
 
     return (
         <div className="flex flex-col h-full min-h-screen bg-gray-50/60">
-            {/* ── Top Header ── */}
             <header className="flex items-center justify-between px-6 pt-6 pb-2">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 leading-tight">Profissionais</h1>
@@ -126,7 +121,6 @@ export function Profissionais() {
                 </button>
             </header>
 
-            {/* ── Filters + Search + CTA ── */}
             <div className="flex flex-wrap items-center gap-3 px-6 py-4">
                 <ProfessionalFilters
                     activeFilter={activeFilter}
@@ -140,7 +134,7 @@ export function Profissionais() {
 
                 <Button
                     id="new-professional-btn"
-                    onClick={handleOpenCreate}
+                    onClick={() => setIsRegisterModalOpen(true)}
                     className="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-4 h-9 gap-1.5 shadow-sm"
                 >
                     <Plus className="w-4 h-4" />
@@ -148,7 +142,6 @@ export function Profissionais() {
                 </Button>
             </div>
 
-            {/* ── Main Content ── */}
             <main className="flex-1 px-6 pb-8">
                 {error && (
                     <div className="mb-4 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
@@ -175,10 +168,15 @@ export function Profissionais() {
                 )}
             </main>
 
-            {/* ── Modals ── */}
+            <RegisterProfessionalModal
+                open={isRegisterModalOpen}
+                onClose={() => setIsRegisterModalOpen(false)}
+                onCreated={refetch}
+            />
+
             <CreateProfessionalModal
-                open={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
+                open={!!editingProfessional}
+                onClose={handleCloseEdit}
                 onSave={handleSave}
                 professional={editingProfessional}
             />
@@ -191,7 +189,6 @@ export function Profissionais() {
                 onCancel={() => setDeletingProfessional(null)}
             />
 
-            {/* ── Toasts ── */}
             <ToastContainer toasts={toasts} onDismiss={dismiss} />
         </div>
     )

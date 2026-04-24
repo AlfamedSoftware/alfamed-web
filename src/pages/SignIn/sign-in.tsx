@@ -55,7 +55,7 @@ export function SignIn() {
             }
 
             navigate("/session", { replace: true })
-        } catch (error) {
+        } catch {
             form.setError("root", {
                 message: "Ocorreu um erro inesperado. Tente novamente.",
             })

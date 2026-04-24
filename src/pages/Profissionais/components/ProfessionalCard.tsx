@@ -30,19 +30,14 @@ function getAvatarColor(seed: string): string {
     return colors[Math.abs(hash) % colors.length]
 }
 
-/** Gets initials from the userId (first 2 chars uppercased). */
-function getInitials(userId: string): string {
-    return userId.slice(0, 2).toUpperCase()
-}
+function getInitials(name?: string): string {
+    const value = name?.trim()
+    if (!value) return "PR"
 
-/** Truncates and abbreviates a userId to a display-friendly pseudonym. */
-function getDisplayName(userId: string): string {
-    return `Prof. ${userId.slice(0, 8).toUpperCase()}`
-}
+    const parts = value.split(/\s+/).filter(Boolean)
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
 
-/** Derives a short display email from userId. */
-function getDisplayEmail(userId: string): string {
-    return `${userId.slice(0, 8)}@alfamed.com`
+    return `${parts[0][0] ?? ""}${parts[parts.length - 1][0] ?? ""}`.toUpperCase()
 }
 
 export function ProfessionalCard({
@@ -51,11 +46,11 @@ export function ProfessionalCard({
     onEdit,
     onDelete,
 }: ProfessionalCardProps) {
-    const { id, userId, isActive } = professional
-    const avatarColor = getAvatarColor(userId)
-    const initials = getInitials(userId)
-    const displayName = getDisplayName(userId)
-    const displayEmail = getDisplayEmail(userId)
+    const { id, userId, isActive, name, email } = professional
+    const avatarColor = getAvatarColor(name ?? userId)
+    const displayName = name?.trim() || "Profissional"
+    const displayEmail = email?.trim() || "Email não informado"
+    const initials = getInitials(name)
 
     const handleToggle = (e: React.MouseEvent) => {
         e.stopPropagation()

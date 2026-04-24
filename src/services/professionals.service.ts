@@ -3,6 +3,8 @@ import { authBaseUrl } from "@/lib/auth"
 export interface Professional {
     id: string
     userId: string
+    name?: string
+    email?: string
     isActive: boolean
     createdAt: string
     updatedAt: string
@@ -40,40 +42,30 @@ async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
     return JSON.parse(text) as T
 }
 
-export function getUnitIdHeader(): Record<string, string> {
-    // Pull the unit ID from localStorage if set, otherwise empty
-    const unitId = localStorage.getItem("x-unit-id") ?? ""
-    return unitId ? { "x-unit-id": unitId } : {}
-}
+// ❌ DEPRECATED: getUnitIdHeader removed
+// Clinic ID now managed by backend session, not via headers
 
 export const professionalsService = {
     list: (): Promise<Professional[]> =>
-        apiFetch<Professional[]>(BASE_URL, {
-            headers: getUnitIdHeader(),
-        }),
+        apiFetch<Professional[]>(BASE_URL),
 
     getById: (id: string): Promise<Professional> =>
-        apiFetch<Professional>(`${BASE_URL}/${id}`, {
-            headers: getUnitIdHeader(),
-        }),
+        apiFetch<Professional>(`${BASE_URL}/${id}`),
 
     create: (data: CreateProfessionalInput): Promise<Professional> =>
         apiFetch<Professional>(BASE_URL, {
             method: "POST",
             body: JSON.stringify(data),
-            headers: getUnitIdHeader(),
         }),
 
     update: (id: string, data: UpdateProfessionalInput): Promise<Professional> =>
         apiFetch<Professional>(`${BASE_URL}/${id}`, {
             method: "PATCH",
             body: JSON.stringify(data),
-            headers: getUnitIdHeader(),
         }),
 
     remove: (id: string): Promise<void> =>
         apiFetch<void>(`${BASE_URL}/${id}`, {
             method: "DELETE",
-            headers: getUnitIdHeader(),
         }),
 }

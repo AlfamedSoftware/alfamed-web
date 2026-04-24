@@ -14,7 +14,6 @@ import { Perfil } from "@/pages/Perfil/perfil"
 import { AdminSignIn } from "@/pages/SignIn/admin-sign-in"
 import { ServiceDeskUnitsList } from "@/pages/ServiceDesk/units-list"
 import { ServiceDeskUnitDetails } from "@/pages/ServiceDesk/unit-details"
-import { CadastroProfissionais } from "@/pages/Profissionais/Cadastro/cadastro-profissionais"
 import { SelecaoUnidade } from "@/pages/SelecaoUnidade/selecao-unidade"
 import { UnitProtectedRoute } from "@/components/ProtectRoute/unit-protected-route"
 
@@ -45,28 +44,26 @@ export function App() {
           <Route index element={<Navigate to="/home" replace />} />
           <Route path="home" element={<Home />} />
           <Route path="profissionais" element={<Profissionais />} />
-          <Route path="cadastro-profissionais" element={<CadastroProfissionais />} />
+          <Route path="cadastro-profissionais" element={<Navigate to="/profissionais" replace />} />
           <Route path="pacientes" element={<Pacientes />} />
           <Route path="agendamentos" element={<Agendamentos />} />
           <Route path="prontuarios" element={<Prontuarios />} />
           <Route path="configuracoes" element={<Configuracoes />} />
           <Route path="perfil" element={<Perfil />} />
-          <Route
-            path="admin/unidades"
-            element={
+        </Route>
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute>
               <InternalProtectedRoute>
-                <ServiceDeskUnitsList />
+                <SidebarLayout />
               </InternalProtectedRoute>
-            }
-          />
-          <Route
-            path="admin/unidades/:id"
-            element={
-              <InternalProtectedRoute>
-                <ServiceDeskUnitDetails />
-              </InternalProtectedRoute>
-            }
-          />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Navigate to="/admin/unidades" replace />} />
+          <Route path="unidades" element={<ServiceDeskUnitsList />} />
+          <Route path="unidades/:id" element={<ServiceDeskUnitDetails />} />
         </Route>
       </Routes>
     </DefaultLayout>

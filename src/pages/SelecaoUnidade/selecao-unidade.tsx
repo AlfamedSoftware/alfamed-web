@@ -1,62 +1,88 @@
-import { useSession } from "@/hooks/use-session"
 import { auth } from "@/lib/auth"
 import { authBaseUrl } from "@/lib/auth"
-import { getSelectedUnit, setSelectedUnit } from "@/lib/selected-unit"
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useNavigate } from "react-router"
 
 interface UnitProfile {
     id: string
     name: string
-    isActive: boolean
-    createdAt: string
-    updatedAt: string
 }
 
-function getBearerToken(session: unknown): string | null {
-    if (!session || typeof session !== "object") return null
-    const s = session as Record<string, unknown>
-
-    const tokenCandidates = [s.token, s.accessToken, s.sessionToken, s.bearerToken]
-    for (const candidate of tokenCandidates) {
-        if (typeof candidate === "string" && candidate.length > 0) {
-            return candidate
-        }
-    }
-
-    return null
+interface SessionClinicsResponse {
+    clinics: UnitProfile[]
+    selectedClinicId?: string
 }
 
 export function SelecaoUnidade() {
-    const { session, user, isLoading } = useSession()
     const navigate = useNavigate()
     const [units, setUnits] = useState<UnitProfile[]>([])
     const [isUnitsLoading, setIsUnitsLoading] = useState(true)
     const [unitsError, setUnitsError] = useState<string | null>(null)
     const [selectedUnitId, setSelectedUnitId] = useState("")
+    const [isSubmitting, setIsSubmitting] = useState(false)
+    const [submitError, setSubmitError] = useState<string | null>(null)
 
-    const userId = useMemo(() => {
-        if (!user || typeof user !== "object") return ""
-        const id = (user as Record<string, unknown>).id
-        return typeof id === "string" ? id : ""
-    }, [user])
+    const getClinicsContext = useCallback(async (signal?: AbortSignal): Promise<SessionClinicsResponse | null> => {
+        try {
+            const response = await fetch(`${authBaseUrl}/session/clinics`, {
+                method: "GET",
+                credentials: "include",
+                cache: "no-store",
+                signal,
+            })
+
+            if (!response.ok) {
+                return null
+            }
+
+            return (await response.json()) as SessionClinicsResponse
+        } catch (error) {
+            if ((error as Error).name === "AbortError") {
+                throw error
+            }
+            return null
+        }
+    }, [])
+
+    const handleSelectClinic = useCallback(async (clinicId: string) => {
+        setIsSubmitting(true)
+        setSubmitError(null)
+
+        try {
+            const response = await fetch(`${authBaseUrl}/session/select-clinic`, {
+                method: "POST",
+                credentials: "include",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ clinicId }),
+            })
+
+            if (!response.ok) {
+                const error = (await response.json()) as { message?: string }
+                setSubmitError(error.message ?? "Erro ao selecionar clínica")
+                return
+            }
+
+            for (let attempt = 0; attempt < 3; attempt++) {
+                const context = await getClinicsContext()
+                const confirmedClinicId = context?.selectedClinicId ?? null
+                if (confirmedClinicId === clinicId) {
+                    navigate("/home", { replace: true })
+                    return
+                }
+            }
+
+            setSubmitError("Não foi possível confirmar a clínica selecionada na sessão.")
+        } catch (error) {
+            setSubmitError("Erro de conexão ao selecionar clínica")
+            console.error("Failed to select clinic:", error)
+        } finally {
+            setIsSubmitting(false)
+        }
+    }, [getClinicsContext, navigate])
 
     useEffect(() => {
-        if (!userId) return
-
-        const existing = getSelectedUnit(userId)
-        if (existing?.id) {
-            setSelectedUnitId(existing.id)
-        }
-    }, [userId])
-
-    useEffect(() => {
-        if (!session) {
-            setUnits([])
-            setIsUnitsLoading(false)
-            return
-        }
-
         const controller = new AbortController()
 
         const fetchUnits = async () => {
@@ -64,77 +90,43 @@ export function SelecaoUnidade() {
             setUnitsError(null)
 
             try {
-                const bearerToken = getBearerToken(session)
-                if (!bearerToken) {
+                const context = await getClinicsContext(controller.signal)
+                if (!context) {
                     setUnits([])
-                    setUnitsError("Token de sessão não encontrado para carregar unidades.")
+                    setUnitsError("Erro ao carregar clínicas da sessão.")
                     return
                 }
 
-                const usedEndpoint = `${authBaseUrl}/units/by-user`
-                const response = await fetch(usedEndpoint, {
-                    method: "GET",
-                    credentials: "include",
-                    headers: {
-                        Authorization: `Bearer ${bearerToken}`,
-                    },
-                    signal: controller.signal,
-                })
+                const selectedClinicId =
+                    typeof context.selectedClinicId === "string" && context.selectedClinicId.length > 0
+                        ? context.selectedClinicId
+                        : null
 
-                if (response.status === 401) {
+                if (!Array.isArray(context.clinics)) {
                     setUnits([])
-                    setUnitsError("Não autenticado para carregar unidades (401).")
+                    setUnitsError("Resposta inválida ao carregar clínicas.")
                     return
                 }
 
-                if (response.status === 500) {
-                    setUnits([])
-                    setUnitsError("Erro interno no servidor ao carregar unidades (500).")
-                    return
-                }
-
-                if (!response.ok) {
-                    setUnits([])
-                    setUnitsError(`Erro ao carregar unidades (${response.status}) em ${usedEndpoint}`)
-                    return
-                }
-
-                const data = (await response.json()) as unknown
-                if (!Array.isArray(data)) {
-                    setUnits([])
-                    setUnitsError("Resposta inválida ao carregar unidades.")
-                    return
-                }
-
-                const parsedUnits = data
-                    .map((item) => {
-                        if (!item || typeof item !== "object") return null
-                        const unit = item as Record<string, unknown>
-
-                        if (typeof unit.id !== "string" || typeof unit.name !== "string") return null
-
-                        return {
-                            id: unit.id,
-                            name: unit.name,
-                            isActive: typeof unit.isActive === "boolean" ? unit.isActive : false,
-                            createdAt: typeof unit.createdAt === "string" ? unit.createdAt : "",
-                            updatedAt: typeof unit.updatedAt === "string" ? unit.updatedAt : "",
-                        }
-                    })
-                    .filter((unit): unit is UnitProfile => unit !== null)
+                const parsedUnits = context.clinics.filter(
+                    (unit): unit is UnitProfile =>
+                        typeof unit?.id === "string" && unit.id.length > 0 && typeof unit.name === "string",
+                )
 
                 setUnits(parsedUnits)
 
-                if (parsedUnits.length === 1 && userId) {
-                    const onlyUnit = parsedUnits[0]
-                    setSelectedUnit(userId, { id: onlyUnit.id, name: onlyUnit.name })
-                    setSelectedUnitId(onlyUnit.id)
-                    navigate("/home", { replace: true })
+                if (selectedClinicId) {
+                    setSelectedUnitId(selectedClinicId)
+                    return
+                }
+
+                if (parsedUnits.length === 1) {
+                    setSelectedUnitId(parsedUnits[0].id)
                 }
             } catch (error) {
                 if ((error as Error).name === "AbortError") return
                 setUnits([])
-                setUnitsError("Erro de conexão ao buscar unidades.")
+                setUnitsError("Erro de conexão ao buscar clínicas.")
             } finally {
                 setIsUnitsLoading(false)
             }
@@ -143,16 +135,15 @@ export function SelecaoUnidade() {
         void fetchUnits()
 
         return () => controller.abort()
-    }, [session, userId, navigate])
+    }, [getClinicsContext])
 
     function handleContinueToHome() {
-        if (!selectedUnitId || !userId) return
+        if (!selectedUnitId) return
 
         const selectedUnit = units.find((unit) => unit.id === selectedUnitId)
         if (!selectedUnit) return
 
-        setSelectedUnit(userId, selectedUnit)
-        navigate("/home", { replace: true })
+        void handleSelectClinic(selectedUnit.id)
     }
 
     async function handleLogout() {
@@ -160,7 +151,7 @@ export function SelecaoUnidade() {
         navigate("/login", { replace: true })
     }
 
-    if (isLoading || isUnitsLoading) {
+    if (isUnitsLoading) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-background px-4">
                 <div className="rounded-xl border bg-card px-6 py-4 text-sm text-muted-foreground shadow-sm">
@@ -190,9 +181,9 @@ export function SelecaoUnidade() {
                 )}
 
                 <div className="mt-6">
-                    {unitsError && (
+                    {(unitsError || submitError) && (
                         <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                            {unitsError}
+                            {unitsError || submitError}
                         </p>
                     )}
 
@@ -214,10 +205,10 @@ export function SelecaoUnidade() {
                             <button
                                 type="button"
                                 onClick={handleContinueToHome}
-                                disabled={!selectedUnitId}
+                                disabled={!selectedUnitId || isSubmitting}
                                 className="h-10 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                                Ir para Home
+                                {isSubmitting ? "Atualizando sessão..." : "Ir para Home"}
                             </button>
                         </div>
                     )}

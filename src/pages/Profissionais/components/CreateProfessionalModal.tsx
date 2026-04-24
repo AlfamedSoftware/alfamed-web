@@ -17,7 +17,7 @@ interface CreateProfessionalModalProps {
     open: boolean
     onClose: () => void
     onSave: (data: { userId?: string; isActive: boolean }) => Promise<void>
-    professional?: Professional | null // if set, we're editing
+    professional?: Professional | null
 }
 
 interface FormValues {
@@ -54,7 +54,6 @@ export function CreateProfessionalModal({
         setIsSubmitting(true)
         try {
             if (isEditing) {
-                // On edit, only update isActive (userId changes require backend logic)
                 await onSave({ isActive: data.isActive })
             } else {
                 await onSave({ userId: data.userId || undefined, isActive: data.isActive })
@@ -62,7 +61,7 @@ export function CreateProfessionalModal({
             reset()
             onClose()
         } catch {
-            // Error is handled upstream with toast
+            void 0
         } finally {
             setIsSubmitting(false)
         }
@@ -92,7 +91,6 @@ export function CreateProfessionalModal({
                     onSubmit={handleSubmit(onSubmit)}
                     className="flex-1 overflow-y-auto px-6 py-5 space-y-5"
                 >
-                    {/* UserId — only on create */}
                     {!isEditing && (
                         <div className="space-y-1.5">
                             <Label htmlFor="field-userId" className="text-sm font-medium text-gray-700">
@@ -113,7 +111,6 @@ export function CreateProfessionalModal({
                         </div>
                     )}
 
-                    {/* isActive toggle */}
                     <div className="space-y-1.5">
                         <Label className="text-sm font-medium text-gray-700">Status</Label>
                         <div className="flex items-center gap-3 mt-1">
@@ -155,8 +152,8 @@ export function CreateProfessionalModal({
                         {isSubmitting
                             ? "Salvando..."
                             : isEditing
-                              ? "Salvar alterações"
-                              : "Cadastrar"}
+                                ? "Salvar alterações"
+                                : "Cadastrar"}
                     </Button>
                 </SheetFooter>
             </SheetContent>

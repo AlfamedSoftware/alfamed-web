@@ -38,6 +38,12 @@ const cadastroProfissionalSchema = z.object({
 
 type CadastroProfissionalSchemaType = z.infer<typeof cadastroProfissionalSchema>
 
+interface CadastroProfissionaisFormProps {
+    onCreated?: () => void
+    showHeader?: boolean
+    className?: string
+}
+
 function extractCreatedUserId(data: unknown): string | null {
     if (!data || typeof data !== "object") {
         return null
@@ -76,7 +82,11 @@ function extractCreatedUserId(data: unknown): string | null {
     return null
 }
 
-export function CadastroProfissionais() {
+export function CadastroProfissionaisForm({
+    onCreated,
+    showHeader = true,
+    className,
+}: CadastroProfissionaisFormProps) {
     const [isLoading, setIsLoading] = useState(false)
     const [successMessage, setSuccessMessage] = useState("")
 
@@ -132,7 +142,7 @@ export function CadastroProfissionais() {
                         errorMessage = errorData.message
                     }
                 } catch {
-                    // Keep default message when response body is not JSON.
+                    void 0
                 }
 
                 form.setError("root", {
@@ -178,7 +188,7 @@ export function CadastroProfissionais() {
                         professionalErrorMessage = errorData.message
                     }
                 } catch {
-                    // Keep default message when response body is not JSON.
+                    void 0
                 }
 
                 form.setError("root", {
@@ -206,7 +216,7 @@ export function CadastroProfissionais() {
                         patientErrorMessage = errorData.message
                     }
                 } catch {
-                    // Keep default message when response body is not JSON.
+                    void 0
                 }
 
                 form.setError("root", {
@@ -216,6 +226,7 @@ export function CadastroProfissionais() {
             }
 
             setSuccessMessage("Profissional cadastrado com sucesso.")
+            onCreated?.()
             form.reset({
                 ...form.getValues(),
                 name: "",
@@ -238,246 +249,254 @@ export function CadastroProfissionais() {
     }
 
     return (
+        <div className={className ?? "mx-auto w-full max-w-5xl"}>
+            {showHeader ? (
+                <div className="mb-6 grid gap-2">
+                    <h1 className="text-2xl font-bold text-primary">Novo profissional</h1>
+                    <p className="text-muted-foreground">
+                        Preencha os dados do usuário para concluir o cadastro de profissionais.
+                    </p>
+                </div>
+            ) : null}
+
+            <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-5">
+                    <div className="grid gap-4 md:grid-cols-2">
+                        <FormField
+                            control={form.control}
+                            name="name"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Nome</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="Nome completo" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control}
+                            name="socialName"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Nome profissional</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="Nome profissional (opcional)" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control}
+                            name="email"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>E-mail</FormLabel>
+                                    <FormControl>
+                                        <Input type="email" placeholder="nome@dominio.com" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control}
+                            name="cpf"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>CPF</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="000.000.000-00" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control}
+                            name="birthdate"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Data de nascimento</FormLabel>
+                                    <FormControl>
+                                        <Input type="date" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control}
+                            name="phone"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Telefone</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="(00) 00000-0000" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control}
+                            name="password"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Senha</FormLabel>
+                                    <FormControl>
+                                        <Input
+                                            type="password"
+                                            placeholder="Defina uma senha segura"
+                                            {...field}
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control}
+                            name="confirmPassword"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Confirmar senha</FormLabel>
+                                    <FormControl>
+                                        <Input
+                                            type="password"
+                                            placeholder="Confirme sua senha"
+                                            {...field}
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control}
+                            name="sex"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Sexo</FormLabel>
+                                    <FormControl>
+                                        <select
+                                            value={field.value}
+                                            onChange={field.onChange}
+                                            className="border-input bg-background h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[1px]"
+                                        >
+                                            <option value="not_informed">Não informado</option>
+                                            <option value="male">Masculino</option>
+                                            <option value="female">Feminino</option>
+                                            <option value="other">Outro</option>
+                                        </select>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+
+                    <div className="grid gap-3 rounded-lg border p-4 md:grid-cols-3">
+                        <FormField
+                            control={form.control}
+                            name="emailVerified"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-md border p-3">
+                                    <FormLabel>Email verificado</FormLabel>
+                                    <FormControl>
+                                        <input
+                                            type="checkbox"
+                                            checked={field.value}
+                                            onChange={(event) => field.onChange(event.target.checked)}
+                                            className="h-4 w-4 accent-primary"
+                                        />
+                                    </FormControl>
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control}
+                            name="isActive"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-md border p-3">
+                                    <FormLabel>Ativo</FormLabel>
+                                    <FormControl>
+                                        <input
+                                            type="checkbox"
+                                            checked={field.value}
+                                            onChange={(event) => field.onChange(event.target.checked)}
+                                            className="h-4 w-4 accent-primary"
+                                        />
+                                    </FormControl>
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control}
+                            name="twoFactorEnabled"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-md border p-3">
+                                    <FormLabel>2FA habilitado</FormLabel>
+                                    <FormControl>
+                                        <input
+                                            type="checkbox"
+                                            checked={field.value}
+                                            onChange={(event) => field.onChange(event.target.checked)}
+                                            className="h-4 w-4 accent-primary"
+                                        />
+                                    </FormControl>
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+
+                    <div className="min-h-[24px] text-sm font-medium text-emerald-600">
+                        {successMessage}
+                    </div>
+
+                    <div className="min-h-[24px] text-sm font-medium text-destructive">
+                        {form.formState.errors.root?.message}
+                    </div>
+
+                    <div className="flex justify-end">
+                        <Button type="submit" className="min-w-48" disabled={isLoading}>
+                            {isLoading ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Salvando...
+                                </>
+                            ) : (
+                                <>
+                                    <Check className="mr-2 h-4 w-4" />
+                                    Cadastrar profissional
+                                </>
+                            )}
+                        </Button>
+                    </div>
+                </form>
+            </Form>
+        </div>
+    )
+}
+
+export function CadastroProfissionais() {
+    return (
         <>
             <PageHeader title="Cadastro de Profissionais" />
             <div className="flex flex-1 flex-col p-4">
-                <div className="mx-auto w-full max-w-5xl">
-                    <div className="mb-6 grid gap-2">
-                        <h1 className="text-2xl font-bold text-primary">Novo profissional</h1>
-                        <p className="text-muted-foreground">
-                            Preencha os dados do usuário para concluir o cadastro de profissionais.
-                        </p>
-                    </div>
-
-                    <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-5">
-                            <div className="grid gap-4 md:grid-cols-2">
-                                <FormField
-                                    control={form.control}
-                                    name="name"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Nome</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="Nome completo" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <FormField
-                                    control={form.control}
-                                    name="socialName"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Nome profissional</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="Nome profissional (opcional)" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <FormField
-                                    control={form.control}
-                                    name="email"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>E-mail</FormLabel>
-                                            <FormControl>
-                                                <Input type="email" placeholder="nome@dominio.com" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <FormField
-                                    control={form.control}
-                                    name="cpf"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>CPF</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="000.000.000-00" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <FormField
-                                    control={form.control}
-                                    name="birthdate"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Data de nascimento</FormLabel>
-                                            <FormControl>
-                                                <Input type="date" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <FormField
-                                    control={form.control}
-                                    name="phone"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Telefone</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="(00) 00000-0000" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <FormField
-                                    control={form.control}
-                                    name="password"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Senha</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    type="password"
-                                                    placeholder="Defina uma senha segura"
-                                                    {...field}
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <FormField
-                                    control={form.control}
-                                    name="confirmPassword"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Confirmar senha</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    type="password"
-                                                    placeholder="Confirme sua senha"
-                                                    {...field}
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <FormField
-                                    control={form.control}
-                                    name="sex"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Sexo</FormLabel>
-                                            <FormControl>
-                                                <select
-                                                    value={field.value}
-                                                    onChange={field.onChange}
-                                                    className="border-input bg-background h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[1px]"
-                                                >
-                                                    <option value="not_informed">Não informado</option>
-                                                    <option value="male">Masculino</option>
-                                                    <option value="female">Feminino</option>
-                                                    <option value="other">Outro</option>
-                                                </select>
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-
-                            <div className="grid gap-3 rounded-lg border p-4 md:grid-cols-3">
-                                <FormField
-                                    control={form.control}
-                                    name="emailVerified"
-                                    render={({ field }) => (
-                                        <FormItem className="flex flex-row items-center justify-between rounded-md border p-3">
-                                            <FormLabel>Email verificado</FormLabel>
-                                            <FormControl>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={field.value}
-                                                    onChange={(event) => field.onChange(event.target.checked)}
-                                                    className="h-4 w-4 accent-primary"
-                                                />
-                                            </FormControl>
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <FormField
-                                    control={form.control}
-                                    name="isActive"
-                                    render={({ field }) => (
-                                        <FormItem className="flex flex-row items-center justify-between rounded-md border p-3">
-                                            <FormLabel>Ativo</FormLabel>
-                                            <FormControl>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={field.value}
-                                                    onChange={(event) => field.onChange(event.target.checked)}
-                                                    className="h-4 w-4 accent-primary"
-                                                />
-                                            </FormControl>
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <FormField
-                                    control={form.control}
-                                    name="twoFactorEnabled"
-                                    render={({ field }) => (
-                                        <FormItem className="flex flex-row items-center justify-between rounded-md border p-3">
-                                            <FormLabel>2FA habilitado</FormLabel>
-                                            <FormControl>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={field.value}
-                                                    onChange={(event) => field.onChange(event.target.checked)}
-                                                    className="h-4 w-4 accent-primary"
-                                                />
-                                            </FormControl>
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-
-                            <div className="min-h-[24px] text-sm font-medium text-emerald-600">
-                                {successMessage}
-                            </div>
-
-                            <div className="min-h-[24px] text-sm font-medium text-destructive">
-                                {form.formState.errors.root?.message}
-                            </div>
-
-                            <div className="flex justify-end">
-                                <Button type="submit" className="min-w-48" disabled={isLoading}>
-                                    {isLoading ? (
-                                        <>
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            Salvando...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Check className="mr-2 h-4 w-4" />
-                                            Cadastrar profissional
-                                        </>
-                                    )}
-                                </Button>
-                            </div>
-                        </form>
-                    </Form>
-                </div>
+                <CadastroProfissionaisForm />
             </div>
         </>
     )

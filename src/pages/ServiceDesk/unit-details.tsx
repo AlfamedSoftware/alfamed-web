@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useNavigate, useParams } from "react-router"
 import { ArrowLeft, UserPlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -41,7 +41,7 @@ export function ServiceDeskUnitDetails() {
     const [isSaving, setIsSaving] = useState(false)
     const [form, setForm] = useState<NewProfessionalForm>(initialProfessionalForm)
 
-    const loadData = async () => {
+    const loadData = useCallback(async () => {
         if (!id) {
             return
         }
@@ -62,11 +62,11 @@ export function ServiceDeskUnitDetails() {
         } finally {
             setIsLoading(false)
         }
-    }
+    }, [id])
 
     useEffect(() => {
         void loadData()
-    }, [id])
+    }, [loadData])
 
     const handleCreateProfessional = async (event: React.FormEvent) => {
         event.preventDefault()

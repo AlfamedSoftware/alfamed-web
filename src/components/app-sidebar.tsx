@@ -26,7 +26,6 @@ import {
     Settings,
     Stethoscope,
     User,
-    UserPlus,
     Users,
 } from "lucide-react"
 import { useSession } from "@/hooks/use-session"
@@ -37,7 +36,6 @@ const menuItems = [
     { title: "Dashboard", icon: HomeIcon, url: "/home" },
     { title: "Pacientes", icon: Users, url: "/pacientes" },
     { title: "Profissionais", icon: Stethoscope, url: "/profissionais" },
-    { title: "Cadastro de Profissionais", icon: UserPlus, url: "/cadastro-profissionais" },
     { title: "Agendamentos", icon: CalendarCheck, url: "/agendamentos" },
     { title: "Prontuários", icon: ClipboardList, url: "/prontuarios" },
     { title: "Configurações", icon: Settings, url: "/configuracoes" },
@@ -89,7 +87,7 @@ export function AppSidebar() {
                                     >
                                         <Link to="/admin/unidades">
                                             <Lock className="h-4 w-4" />
-                                            <span>Admin/Interno</span>
+                                            <span>Central de Unidades</span>
                                         </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
