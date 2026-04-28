@@ -21,11 +21,11 @@ import {
     ChevronsUpDown,
     ClipboardList,
     Home as HomeIcon,
+    Lock,
     LogOut,
     Settings,
     Stethoscope,
     User,
-    UserPlus,
     Users,
 } from "lucide-react"
 import { useSession } from "@/hooks/use-session"
@@ -36,16 +36,16 @@ const menuItems = [
     { title: "Dashboard", icon: HomeIcon, url: "/home" },
     { title: "Pacientes", icon: Users, url: "/pacientes" },
     { title: "Profissionais", icon: Stethoscope, url: "/profissionais" },
-    { title: "Cadastro de Profissionais", icon: UserPlus, url: "/cadastro-profissionais" },
     { title: "Agendamentos", icon: CalendarCheck, url: "/agendamentos" },
     { title: "Prontuários", icon: ClipboardList, url: "/prontuarios" },
     { title: "Configurações", icon: Settings, url: "/configuracoes" },
 ]
 
 export function AppSidebar() {
-    const { user, isLoading } = useSession()
+    const { user, isLoading, isInternalUser } = useSession()
     const navigate = useNavigate()
     const location = useLocation()
+    const isAdminArea = location.pathname.startsWith("/admin")
 
     const handleLogout = async () => {
         await auth.signOut()
@@ -64,7 +64,7 @@ export function AppSidebar() {
                 <SidebarGroup>
                     <SidebarGroupContent>
                         <SidebarMenu>
-                            {menuItems.map((item) => (
+                            {!isAdminArea ? menuItems.map((item) => (
                                 <SidebarMenuItem key={item.title}>
                                     <SidebarMenuButton
                                         asChild
@@ -77,7 +77,21 @@ export function AppSidebar() {
                                         </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
-                            ))}
+                            )) : null}
+                            {isInternalUser ? (
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton
+                                        asChild
+                                        isActive={location.pathname.startsWith("/admin/unidades")}
+                                        tooltip="Admin/Interno"
+                                    >
+                                        <Link to="/admin/unidades">
+                                            <Lock className="h-4 w-4" />
+                                            <span>Central de Unidades</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            ) : null}
                         </SidebarMenu>
                     </SidebarGroupContent>
                 </SidebarGroup>
