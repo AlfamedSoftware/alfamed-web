@@ -5,35 +5,22 @@ import { useProfessionals, type ProfessionalFilter } from "@/hooks/use-professio
 import type { Professional } from "@/services/professionals.service"
 
 import { ProfessionalCard } from "./components/ProfessionalCard"
+import { PageHeader } from "@/components/page-header"
 import { ProfessionalFilters } from "./components/ProfessionalFilters"
 import { ProfessionalSearch } from "./components/ProfessionalSearch"
 import { ProfessionalGridSkeleton } from "./components/ProfessionalSkeleton"
 import { ProfessionalEmptyState } from "./components/ProfessionalEmptyState"
-import { CreateProfessionalModal } from "./components/CreateProfessionalModal"
-import { DeleteConfirmDialog } from "./components/DeleteConfirmDialog"
 import { ToastContainer, useToast } from "./components/Toast"
 import { RegisterProfessionalModal } from "./components/RegisterProfessionalModal"
 
 export function Profissionais() {
-    const {
-        professionals,
-        isLoading,
-        error,
-        counts,
-        refetch,
-        updateProfessional,
-        removeProfessional,
-        toggleActive,
-    } = useProfessionals()
+    const { professionals, isLoading, error, counts, refetch, toggleActive } = useProfessionals()
 
     const { toasts, dismiss, toast } = useToast()
 
     const [activeFilter, setActiveFilter] = useState<ProfessionalFilter>("all")
     const [searchQuery, setSearchQuery] = useState("")
     const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false)
-    const [editingProfessional, setEditingProfessional] = useState<Professional | null>(null)
-    const [deletingProfessional, setDeletingProfessional] = useState<Professional | null>(null)
-    const [isDeleting, setIsDeleting] = useState(false)
 
     const filtered = useMemo(() => {
         let list = professionals
@@ -55,26 +42,6 @@ export function Profissionais() {
         return list
     }, [professionals, activeFilter, searchQuery])
 
-    const handleOpenEdit = (professional: Professional) => {
-        setEditingProfessional(professional)
-    }
-
-    const handleCloseEdit = () => {
-        setEditingProfessional(null)
-    }
-
-    const handleSave = async (data: { userId?: string; isActive: boolean }) => {
-        try {
-            if (!editingProfessional) return
-
-            await updateProfessional(editingProfessional.id, { isActive: data.isActive })
-            toast.success("Profissional atualizado com sucesso!")
-            handleCloseEdit()
-        } catch (err) {
-            toast.error(err instanceof Error ? err.message : "Erro ao salvar profissional")
-            throw err
-        }
-    }
 
     const handleToggleActive = async (id: string, isActive: boolean) => {
         try {
@@ -85,41 +52,17 @@ export function Profissionais() {
         }
     }
 
-    const handleDeleteRequest = (professional: Professional) => {
-        setDeletingProfessional(professional)
-    }
-
-    const handleDeleteConfirm = async () => {
-        if (!deletingProfessional) return
-        setIsDeleting(true)
-        try {
-            await removeProfessional(deletingProfessional.id)
-            toast.success("Profissional removido com sucesso!")
-            setDeletingProfessional(null)
-        } catch {
-            toast.error("Erro ao remover profissional")
-        } finally {
-            setIsDeleting(false)
-        }
-    }
+    // editing/removal handled in profile page now via dedicated route
 
     const isFiltered = activeFilter !== "all" || searchQuery.trim() !== ""
 
     return (
-        <div className="flex flex-col h-full min-h-screen bg-gray-50/60">
-            <header className="flex items-center justify-between px-6 pt-6 pb-2">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900 leading-tight">Profissionais</h1>
-                    <p className="text-sm text-gray-500 mt-0.5">Gerencie a equipe médica do Alfamed</p>
-                </div>
-                <button
-                    id="notification-bell"
-                    className="relative p-2 text-gray-500 hover:text-gray-700 transition-colors"
-                >
-                    <Bell className="w-5 h-5" />
-                    <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500" />
-                </button>
-            </header>
+        <div className="flex flex-col h-full min-h-screen bg-background">
+            <PageHeader title="Profissionais" />
+
+            <div className="px-6 pt-4">
+                <p className="text-sm text-muted-foreground mt-0.5">Gerencie a equipe médica do Alfamed</p>
+            </div>
 
             <div className="flex flex-wrap items-center gap-3 px-6 py-4">
                 <ProfessionalFilters
@@ -160,8 +103,6 @@ export function Profissionais() {
                                 key={professional.id}
                                 professional={professional}
                                 onToggleActive={handleToggleActive}
-                                onEdit={handleOpenEdit}
-                                onDelete={handleDeleteRequest}
                             />
                         ))}
                     </div>
@@ -174,20 +115,7 @@ export function Profissionais() {
                 onCreated={refetch}
             />
 
-            <CreateProfessionalModal
-                open={!!editingProfessional}
-                onClose={handleCloseEdit}
-                onSave={handleSave}
-                professional={editingProfessional}
-            />
-
-            <DeleteConfirmDialog
-                professional={deletingProfessional}
-                isOpen={!!deletingProfessional}
-                isDeleting={isDeleting}
-                onConfirm={handleDeleteConfirm}
-                onCancel={() => setDeletingProfessional(null)}
-            />
+            {/* Edit and remove moved to individual profile page */}
 
             <ToastContainer toasts={toasts} onDismiss={dismiss} />
         </div>
