@@ -75,11 +75,11 @@ export function CreateProfessionalModal({
     return (
         <Sheet open={open} onOpenChange={(v) => !v && handleClose()}>
             <SheetContent side="right" className="w-full sm:max-w-md flex flex-col gap-0 p-0">
-                <SheetHeader className="px-6 pt-6 pb-4 border-b">
-                    <SheetTitle className="text-lg font-semibold text-gray-900">
+                <SheetHeader className="px-6 pt-6 pb-4 border-b border-border bg-popover">
+                    <SheetTitle className="text-lg font-semibold text-foreground">
                         {isEditing ? "Editar Profissional" : "Novo Profissional"}
                     </SheetTitle>
-                    <SheetDescription className="text-sm text-gray-500">
+                    <SheetDescription className="text-sm text-muted-foreground">
                         {isEditing
                             ? "Atualize as informações do profissional."
                             : "Preencha os dados para cadastrar um novo profissional."}
@@ -93,7 +93,7 @@ export function CreateProfessionalModal({
                 >
                     {!isEditing && (
                         <div className="space-y-1.5">
-                            <Label htmlFor="field-userId" className="text-sm font-medium text-gray-700">
+                            <Label htmlFor="field-userId" className="text-sm font-medium text-foreground">
                                 ID do Usuário
                             </Label>
                             <Input
@@ -105,14 +105,14 @@ export function CreateProfessionalModal({
                             {errors.userId && (
                                 <p className="text-xs text-red-500">{errors.userId.message}</p>
                             )}
-                            <p className="text-xs text-gray-400">
+                            <p className="text-xs text-muted-foreground">
                                 Deixe em branco para usar o usuário atual.
                             </p>
                         </div>
                     )}
 
                     <div className="space-y-1.5">
-                        <Label className="text-sm font-medium text-gray-700">Status</Label>
+                        <Label className="text-sm font-medium text-foreground">Status</Label>
                         <div className="flex items-center gap-3 mt-1">
                             <label
                                 htmlFor="toggle-isActive"
@@ -125,14 +125,14 @@ export function CreateProfessionalModal({
                                     {...register("isActive")}
                                     defaultChecked={professional?.isActive ?? true}
                                 />
-                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600" />
-                                <span className="ml-3 text-sm text-gray-600">Ativo</span>
+                                <div className="w-11 h-6 bg-popover peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-card after:border-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary" />
+                                <span className="ml-3 text-sm text-muted-foreground">Ativo</span>
                             </label>
                         </div>
                     </div>
                 </form>
 
-                <SheetFooter className="px-6 py-4 border-t bg-gray-50 flex gap-2">
+                <SheetFooter className="px-6 py-4 border-t bg-popover flex gap-2 border-border">
                     <Button
                         id="cancel-professional-modal"
                         type="button"

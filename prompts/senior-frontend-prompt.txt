@@ -1,0 +1,41 @@
+Objetivo:
+Crie uma tela de perfil de profissional (frontend React + Tailwind + shadcn UI) com qualidade de um senior frontend engineer.
+
+Escopo:
+- Página em `/profissionais/:id` mostrando foto, nome, e-mail, telefone, CRM, unidades vinculadas e status (ativo/desativado).
+- Layout responsivo e acessível, com header consistente (`PageHeader`) e botão do sidebar.
+- Formulário para editar nome, e-mail, telefone e foto (upload com preview), e botão para salvar alterações.
+- Controle de ativar/desativar profissional com confirmação e feedback de sucesso/erro (toast).
+- Validação de formulário (client-side) e tratamento de erros da API.
+- Bons padrões: componentes pequenos, hooks para lógica de dados, estados de carregamento e esqueleto, mensagens de erro, testes de unidade simples e storybook (se houver).
+
+Requisitos técnicos:
+- Usar o stack do repo (React Router, react-hook-form, shadcn UI components, Tailwind).
+- Chamadas à API através de `professionalsService` (já existente) para `getById` e `update`.
+- Seguir acessibilidade (labels, focus states, aria-attributes) e performance (lazy-loading da foto, evitar re-renders desnecessários).
+
+Entregáveis esperados:
+- Código limpo, modular e comentado onde necessário.
+- Lista de componentes a criar/atualizar.
+- Fluxo de navegação e estados (carregando, vazio, erro, salvando).
+- CSS/Tailwind utilities a serem usadas e rationale breve.
+- Um conjunto de testes unitários sugeridos e como executá-los.
+
+Critérios de aceitação (QA):
+- Ao abrir `/profissionais/:id`, os dados do profissional são carregados e renderizados.
+- Alterar nome/e-mail e clicar em salvar envia patch para API e volta para lista com toast de sucesso.
+- Toggle de ativo altera o status com feedback.
+- Foto mostra preview ao selecionar arquivo (upload real opcional).
+
+Observações para o implementador:
+- Se a API não suportar atualização de campos do usuário, implemente o front-end optimistically e documente o endpoint necessário.
+- Manter a consistência com os componentes existentes do repo (usar `PageHeader`, `Input`, `Button`, `Form` do `components/ui`).
+
+Instruções de entrega:
+- Forneça arquivos modificados/criados e comandos para rodar localmente (`npm run dev`).
+- Inclua exemplos de teste e instruções para rodá-los.
+
+---
+
+Exemplo de prompt para IA (curto):
+"Desenvolva a página `/profissionais/:id` em React + Tailwind + shadcn UI. Mostrar perfil do profissional, formulário editável (nome, e-mail, telefone), upload de foto com preview, toggle de ativo, validação, toasts e chamadas à API `GET /professionals/:id` e `PATCH /professionals/:id`. Garanta acessibilidade e responsividade. Forneça código completo, testes unitários e instruções de execução."

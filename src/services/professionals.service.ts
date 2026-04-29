@@ -16,6 +16,8 @@ export interface CreateProfessionalInput {
 
 export interface UpdateProfessionalInput {
     isActive?: boolean
+    name?: string
+    email?: string
 }
 
 const BASE_URL = `${authBaseUrl}/professionals`

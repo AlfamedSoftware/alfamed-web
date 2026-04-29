@@ -10,10 +10,10 @@ export function ProfessionalEmptyState({ isFiltered = false }: ProfessionalEmpty
             <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mb-4">
                 <Stethoscope className="w-8 h-8 text-blue-400" />
             </div>
-            <h3 className="text-base font-semibold text-gray-800 mb-1">
+                <h3 className="text-base font-semibold mb-1 text-muted-foreground">
                 {isFiltered ? "Nenhum profissional encontrado" : "Nenhum profissional cadastrado"}
             </h3>
-            <p className="text-sm text-gray-500 max-w-xs">
+            <p className="text-sm text-muted-foreground max-w-xs">
                 {isFiltered
                     ? "Tente ajustar os filtros ou a busca para encontrar o que procura."
                     : "Clique em \"Novo Profissional\" para começar a adicionar profissionais à sua equipe."}
