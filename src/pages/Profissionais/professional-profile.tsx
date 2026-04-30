@@ -72,7 +72,7 @@ export function ProfessionalProfile() {
         }
     }
 
-    async function onSubmit(values: any) {
+    async function onSubmit() {
         // Backend currently accepts only { isActive?: boolean } on PATCH /professionals/:id
         if (!id) return
         setSaving(true)
