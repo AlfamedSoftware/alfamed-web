@@ -1,8 +1,7 @@
 import { useState, useMemo } from "react"
-import { Bell, Plus } from "lucide-react"
+import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useProfessionals, type ProfessionalFilter } from "@/hooks/use-professionals"
-import type { Professional } from "@/services/professionals.service"
 
 import { ProfessionalCard } from "./components/ProfessionalCard"
 import { PageHeader } from "@/components/page-header"
