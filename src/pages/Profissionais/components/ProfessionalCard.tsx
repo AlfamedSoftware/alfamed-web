@@ -6,6 +6,7 @@ import type { Professional } from "@/services/professionals.service"
 interface ProfessionalCardProps {
     professional: Professional
     onToggleActive: (id: string, isActive: boolean) => Promise<void>
+    onClick?: (id: string) => void
 }
 
 /** Generates a deterministic color class from a string (userId). */
@@ -39,11 +40,13 @@ function getInitials(name?: string): string {
     return `${parts[0][0] ?? ""}${parts[parts.length - 1][0] ?? ""}`.toUpperCase()
 }
 
-export function ProfessionalCard({ professional, onToggleActive }: ProfessionalCardProps) {
-    const { id, userId, isActive, name, email } = professional
+export function ProfessionalCard({ professional, onToggleActive, onClick }: ProfessionalCardProps) {
+    const { id, userId, isActive, name, email, phone, crm } = professional
     const avatarColor = getAvatarColor(name ?? userId)
     const displayName = name?.trim() || "Profissional"
     const displayEmail = email?.trim() || "Email não informado"
+    const displayPhone = phone?.trim() || professional.users?.[0]?.phone?.trim() || "Telefone não informado"
+    const displayCrm = crm?.trim() || "CRM não informado"
     const initials = getInitials(name)
 
     const navigate = useNavigate()
@@ -60,10 +63,10 @@ export function ProfessionalCard({ professional, onToggleActive }: ProfessionalC
                 "transition-all duration-200 hover:shadow-md hover:-translate-y-0.5",
                 "bg-card text-card-foreground border-border",
             )}
-            onClick={() => navigate(`/profissionais/${id}`)}
+            onClick={() => (onClick ? onClick(id) : navigate(`/profissionais/${id}`))}
         >
             {/* Header: Avatar + Name + Status */}
-                <div className="flex items-start justify-between mb-3">
+            <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3 min-w-0">
                     <div
                         className={cn(
@@ -108,22 +111,20 @@ export function ProfessionalCard({ professional, onToggleActive }: ProfessionalC
             </div>
 
             {/* Contact Info */}
-                <div className="space-y-1.5 mb-4">
+            <div className="space-y-1.5 mb-4">
                 <div className="flex items-center gap-2 text-muted-foreground">
                     <Mail className="w-3.5 h-3.5 flex-shrink-0" />
                     <span className="text-xs truncate">{displayEmail}</span>
                 </div>
                 <div className="flex items-center gap-2 text-muted-foreground">
                     <Phone className="w-3.5 h-3.5 flex-shrink-0" />
-                    <span className="text-xs">(11) 9 0000-0000</span>
+                    <span className="text-xs truncate">{displayPhone}</span>
                 </div>
             </div>
 
             {/* Footer: CRM + Patient count */}
             <div className="flex items-center justify-between pt-3 border-t mt-auto text-xs text-muted-foreground border-border">
-                <span className="font-medium text-muted-foreground">
-                    CRM/SP {id.slice(0, 6).replace(/-/g, "").toUpperCase()}
-                </span>
+                <span className="font-medium text-muted-foreground">{displayCrm}</span>
                 <div className="flex items-center gap-1 text-muted-foreground">
                     <Users className="w-3.5 h-3.5" />
                     <span className="font-semibold text-muted-foreground">—</span>
