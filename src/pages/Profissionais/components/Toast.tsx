@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { CheckCircle, XCircle, X } from "lucide-react"
 
@@ -76,13 +76,10 @@ export function useToast() {
         setToasts((prev) => prev.filter((t) => t.id !== id))
     }, [])
 
-    const toast = useMemo(
-        () => ({
-            success: (message: string) => addToast(message, "success"),
-            error: (message: string) => addToast(message, "error"),
-        }),
-        [addToast],
-    )
+    const toast = {
+        success: (message: string) => addToast(message, "success"),
+        error: (message: string) => addToast(message, "error"),
+    }
 
     return { toasts, dismiss, toast }
 }

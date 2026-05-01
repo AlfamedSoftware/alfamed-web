@@ -1,12 +1,9 @@
 import { useState, useMemo } from "react"
-import { useNavigate } from "react-router"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useProfessionals, type ProfessionalFilter } from "@/hooks/use-professionals"
-import { professionalsService, type Professional } from "@/services/professionals.service"
 
 import { ProfessionalCard } from "./components/ProfessionalCard"
-import ModalProfessionalDetails from "./components/ModalProfessionalDetails"
 import { PageHeader } from "@/components/page-header"
 import { ProfessionalFilters } from "./components/ProfessionalFilters"
 import { ProfessionalSearch } from "./components/ProfessionalSearch"
@@ -17,10 +14,7 @@ import { RegisterProfessionalModal } from "./components/RegisterProfessionalModa
 
 export function Profissionais() {
     const { professionals, isLoading, error, counts, refetch, toggleActive } = useProfessionals()
-    const navigate = useNavigate()
 
-    const [selectedProfessional, setSelectedProfessional] = useState<Professional | null>(null)
-    const [isDetailsOpen, setIsDetailsOpen] = useState(false)
     const { toasts, dismiss, toast } = useToast()
 
     const [activeFilter, setActiveFilter] = useState<ProfessionalFilter>("all")
@@ -55,21 +49,6 @@ export function Profissionais() {
         } catch {
             toast.error("Erro ao alterar status do profissional")
         }
-    }
-
-    const openDetails = async (id: string) => {
-        try {
-            const detail = await professionalsService.getById(id)
-            setSelectedProfessional(detail)
-            setIsDetailsOpen(true)
-        } catch {
-            toast.error("Erro ao carregar profissional")
-        }
-    }
-
-    const handleStartEdit = (id: string) => {
-        setIsDetailsOpen(false)
-        navigate(`/profissionais/${id}`)
     }
 
     // editing/removal handled in profile page now via dedicated route
@@ -123,7 +102,6 @@ export function Profissionais() {
                                 key={professional.id}
                                 professional={professional}
                                 onToggleActive={handleToggleActive}
-                                onClick={(id) => openDetails(id)}
                             />
                         ))}
                     </div>
@@ -136,12 +114,7 @@ export function Profissionais() {
                 onCreated={refetch}
             />
 
-            <ModalProfessionalDetails
-                open={isDetailsOpen}
-                professional={selectedProfessional}
-                onClose={() => setIsDetailsOpen(false)}
-                onEdit={handleStartEdit}
-            />
+            {/* Edit and remove moved to individual profile page */}
 
             <ToastContainer toasts={toasts} onDismiss={dismiss} />
         </div>

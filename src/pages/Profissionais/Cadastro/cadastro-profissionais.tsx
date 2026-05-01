@@ -17,54 +17,16 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 
-function digitsOnly(value: string) {
-    return value.replace(/\D/g, "")
-}
-
-function formatCpf(value: string) {
-    const digits = digitsOnly(value).slice(0, 11)
-    const part1 = digits.slice(0, 3)
-    const part2 = digits.slice(3, 6)
-    const part3 = digits.slice(6, 9)
-    const part4 = digits.slice(9, 11)
-
-    if (!part1) return ""
-    if (!part2) return part1
-    if (!part3) return `${part1}.${part2}`
-    if (!part4) return `${part1}.${part2}.${part3}`
-    return `${part1}.${part2}.${part3}-${part4}`
-}
-
-function formatPhone(value: string) {
-    const digits = digitsOnly(value).slice(0, 11)
-    const ddd = digits.slice(0, 2)
-    const first = digits.slice(2, digits.length > 10 ? 7 : 6)
-    const second = digits.slice(digits.length > 10 ? 7 : 6, digits.length > 10 ? 11 : 10)
-
-    if (!ddd) return ""
-    if (!first) return `(${ddd}`
-    if (!second) return `(${ddd}) ${first}`
-    return `(${ddd}) ${first}-${second}`
-}
-
-const brStates = [
-    "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA",
-    "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN",
-    "RS", "RO", "RR", "SC", "SP", "SE", "TO",
-]
-
 const cadastroProfissionalSchema = z.object({
     name: z.string().min(1, "Nome é obrigatório"),
     socialName: z.string().optional(),
     email: z.string().email("Informe um e-mail válido"),
-    cpf: z.string().regex(/^\d{3}\.\d{3}\.\d{3}-\d{2}$/, "CPF deve estar no formato 000.000.000-00"),
+    cpf: z.string().min(11, "CPF deve ter 11 dígitos"),
     birthdate: z.string().min(1, "Data de nascimento é obrigatória"),
-    phone: z.string().regex(/^\(\d{2}\) \d{4,5}-\d{4}$/, "Telefone deve estar no formato (11) 99999-9999"),
+    phone: z.string().min(10, "Telefone inválido"),
     password: z.string().min(8, "Senha deve ter pelo menos 8 caracteres"),
     confirmPassword: z.string().min(8, "Confirmação de senha é obrigatória"),
     sex: z.enum(["male", "female", "other", "not_informed"]),
-    crmState: z.string().length(2, "Selecione o estado do CRM").optional(),
-    crmNumber: z.string().regex(/^\d{4,6}$/, "O número do CRM deve conter apenas dígitos").optional(),
     emailVerified: z.boolean(),
     image: z.string().optional(),
     isActive: z.boolean(),
@@ -140,8 +102,6 @@ export function CadastroProfissionaisForm({
             password: "",
             confirmPassword: "",
             sex: "not_informed",
-            crmState: "SP",
-            crmNumber: "",
             emailVerified: false,
             image: "",
             isActive: true,
@@ -162,7 +122,6 @@ export function CadastroProfissionaisForm({
                 cpf: values.cpf.replace(/\D/g, ""),
                 phone: values.phone.replace(/\D/g, ""),
                 birthdate: new Date(`${values.birthdate}T00:00:00.000Z`).toISOString(),
-                crm: values.crmState && values.crmNumber ? `${values.crmState}${values.crmNumber}` : undefined,
             }
 
             const response = await fetch(`${authBaseUrl}/auth/register`, {
@@ -279,8 +238,6 @@ export function CadastroProfissionaisForm({
                 password: "",
                 confirmPassword: "",
                 sex: "not_informed",
-                crmState: "SP",
-                crmNumber: "",
                 emailVerified: false,
                 image: "",
                 isActive: true,
@@ -354,14 +311,7 @@ export function CadastroProfissionaisForm({
                                 <FormItem>
                                     <FormLabel>CPF</FormLabel>
                                     <FormControl>
-                                        <Input
-                                            inputMode="numeric"
-                                            placeholder="000.000.000-00"
-                                            {...field}
-                                            onChange={(event) => {
-                                                form.setValue("cpf", formatCpf(event.target.value), { shouldDirty: true })
-                                            }}
-                                        />
+                                        <Input placeholder="000.000.000-00" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -389,14 +339,7 @@ export function CadastroProfissionaisForm({
                                 <FormItem>
                                     <FormLabel>Telefone</FormLabel>
                                     <FormControl>
-                                        <Input
-                                            inputMode="numeric"
-                                            placeholder="(11) 98765-4321"
-                                            {...field}
-                                            onChange={(event) => {
-                                                form.setValue("phone", formatPhone(event.target.value), { shouldDirty: true })
-                                            }}
-                                        />
+                                        <Input placeholder="(00) 00000-0000" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -456,54 +399,6 @@ export function CadastroProfissionaisForm({
                                             <option value="female">Feminino</option>
                                             <option value="other">Outro</option>
                                         </select>
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    </div>
-
-                    <div className="grid gap-4 md:grid-cols-2">
-                        <FormField
-                            control={form.control}
-                            name="crmState"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Estado CRM</FormLabel>
-                                    <FormControl>
-                                        <select
-                                            value={field.value ?? "SP"}
-                                            onChange={field.onChange}
-                                            className="border-input bg-background h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[1px]"
-                                        >
-                                            {brStates.map((state) => (
-                                                <option key={state} value={state}>
-                                                    {state}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-
-                        <FormField
-                            control={form.control}
-                            name="crmNumber"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Número do CRM</FormLabel>
-                                    <FormControl>
-                                        <Input
-                                            inputMode="numeric"
-                                            placeholder="123456"
-                                            {...field}
-                                            onChange={(event) => {
-                                                const digits = digitsOnly(event.target.value).slice(0, 6)
-                                                form.setValue("crmNumber", digits, { shouldDirty: true })
-                                            }}
-                                        />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
