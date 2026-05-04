@@ -5,6 +5,13 @@ export interface Professional {
     userId: string
     name?: string
     email?: string
+    crm?: string
+    phone?: string
+    cpf?: string
+    birthdate?: string
+    unit?: { id: string; name: string } | null
+    patientsActive?: number
+    users?: { id: string; name: string; email: string; phone?: string; cpf?: string; birthdate?: string }[]
     isActive: boolean
     createdAt: string
     updatedAt: string
@@ -16,6 +23,12 @@ export interface CreateProfessionalInput {
 
 export interface UpdateProfessionalInput {
     isActive?: boolean
+    name?: string
+    email?: string
+    phone?: string
+    cpf?: string
+    birthdate?: string
+    crm?: string
 }
 
 const BASE_URL = `${authBaseUrl}/professionals`

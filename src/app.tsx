@@ -6,6 +6,7 @@ import { Routes, Route, Navigate } from "react-router"
 import { ProtectedRoute } from "@/components/ProtectRoute/protected-route"
 import { InternalProtectedRoute } from "@/components/ProtectRoute/internal-protected-route"
 import { Profissionais } from "@/pages/Profissionais/profissionais"
+import { ProfessionalProfile } from "@/pages/Profissionais/professional-profile"
 import { Pacientes } from "@/pages/Pacientes/pacientes"
 import { Agendamentos } from "@/pages/Agendamentos/agendamentos"
 import { Prontuarios } from "@/pages/Prontuarios/prontuarios"
@@ -44,6 +45,7 @@ export function App() {
           <Route index element={<Navigate to="/home" replace />} />
           <Route path="home" element={<Home />} />
           <Route path="profissionais" element={<Profissionais />} />
+          <Route path="profissionais/:id" element={<ProfessionalProfile />} />
           <Route path="cadastro-profissionais" element={<Navigate to="/profissionais" replace />} />
           <Route path="pacientes" element={<Pacientes />} />
           <Route path="agendamentos" element={<Agendamentos />} />

@@ -2,7 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 export function ProfessionalCardSkeleton() {
     return (
-        <div className="flex flex-col bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+        <div className="flex flex-col rounded-2xl shadow-sm border border-border p-5 bg-card">
             {/* Header */}
             <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
@@ -28,7 +28,7 @@ export function ProfessionalCardSkeleton() {
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+            <div className="flex items-center justify-between pt-3 border-t border-border">
                 <Skeleton className="h-3 w-24 rounded" />
                 <Skeleton className="h-3 w-20 rounded" />
             </div>

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useMemo } from "react"
 import { cn } from "@/lib/utils"
 import { CheckCircle, XCircle, X } from "lucide-react"
 
@@ -27,8 +27,8 @@ function ToastItem({ toast, onDismiss }: ToastItemProps) {
                 "flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg text-sm font-medium",
                 "animate-in slide-in-from-right-5 fade-in-0 duration-300",
                 toast.type === "success"
-                    ? "bg-white border border-green-200 text-green-800"
-                    : "bg-white border border-red-200 text-red-800",
+                    ? "bg-popover border border-green-200 text-green-800"
+                    : "bg-popover border border-red-200 text-red-800",
             )}
         >
             {toast.type === "success" ? (
@@ -39,7 +39,7 @@ function ToastItem({ toast, onDismiss }: ToastItemProps) {
             <span className="flex-1">{toast.message}</span>
             <button
                 onClick={() => onDismiss(toast.id)}
-                className="ml-1 text-gray-400 hover:text-gray-600 transition-colors"
+                className="ml-1 text-muted-foreground hover:text-foreground transition-colors"
             >
                 <X className="w-3.5 h-3.5" />
             </button>
@@ -76,10 +76,13 @@ export function useToast() {
         setToasts((prev) => prev.filter((t) => t.id !== id))
     }, [])
 
-    const toast = {
-        success: (message: string) => addToast(message, "success"),
-        error: (message: string) => addToast(message, "error"),
-    }
+    const toast = useMemo(
+        () => ({
+            success: (message: string) => addToast(message, "success"),
+            error: (message: string) => addToast(message, "error"),
+        }),
+        [addToast],
+    )
 
     return { toasts, dismiss, toast }
 }
