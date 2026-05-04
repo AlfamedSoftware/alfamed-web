@@ -81,7 +81,7 @@ const menuItemsByRole: Record<RoleMenuKey, SidebarMenuItemConfig[]> = {
 } as const
 
 export function AppSidebar() {
-    const { user, isLoading, isInternalUser } = useSession()
+    const { user, isLoading } = useSession()
     const navigate = useNavigate()
     const location = useLocation()
     const isAdminArea = location.pathname.startsWith("/admin")
