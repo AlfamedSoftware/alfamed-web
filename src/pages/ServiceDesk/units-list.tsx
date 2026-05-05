@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { Link } from "react-router"
 import { Building2, Plus, Trash2 } from "lucide-react"
 import { z } from "zod"
+import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { adminUnitsService, type AdminUnit } from "@/services/admin/admin-units.service"
@@ -169,14 +170,12 @@ export function ServiceDeskUnitsList() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 p-4 sm:p-6">
-            <div className="mx-auto max-w-6xl">
-                <div className="rounded-3xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm">
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+            <PageHeader title="Administração de Unidades" />
+            <div className="mx-auto max-w-6xl p-4 sm:p-6">
+                <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 sm:p-6 shadow-sm">
                     <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div>
-                            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Administração de Unidades</h1>
-                            <p className="text-sm text-slate-500">ServiceDesk interno Alfamed</p>
-                        </div>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">ServiceDesk interno Alfamed</p>
 
                         <Button onClick={() => setIsModalOpen(true)} className="cursor-pointer">
                             <Plus className="h-4 w-4 mr-1" />
@@ -185,7 +184,7 @@ export function ServiceDeskUnitsList() {
                     </div>
 
                     {error ? (
-                        <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                        <div className="mt-4 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/30 p-3 text-sm text-red-700 dark:text-red-400">
                             {error}
                         </div>
                     ) : null}
@@ -195,15 +194,15 @@ export function ServiceDeskUnitsList() {
                     ) : (
                         <div className="mt-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                             {units.map((unit) => (
-                                <article key={unit.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                                <article key={unit.id} className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 shadow-sm">
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="flex items-center gap-2">
-                                            <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-50 text-cyan-700">
+                                            <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400">
                                                 <Building2 className="h-4 w-4" />
                                             </span>
                                             <div>
-                                                <h2 className="font-semibold text-slate-900">{unit.name}</h2>
-                                                <p className="text-xs text-slate-500">{unit.city ?? "Sem cidade"} / {unit.state ?? "--"}</p>
+                                                <h2 className="font-semibold text-slate-900 dark:text-white">{unit.name}</h2>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400">{unit.city ?? "Sem cidade"} / {unit.state ?? "--"}</p>
                                             </div>
                                         </div>
                                         <button
@@ -215,7 +214,7 @@ export function ServiceDeskUnitsList() {
                                         </button>
                                     </div>
 
-                                    <dl className="mt-4 text-sm text-slate-600 space-y-1">
+                                    <dl className="mt-4 text-sm text-slate-600 dark:text-slate-300 space-y-1">
                                         <div><span className="font-medium">CNPJ:</span> {unit.cnpj ?? "-"}</div>
                                         <div><span className="font-medium">E-mail:</span> {unit.email ?? "-"}</div>
                                         <div><span className="font-medium">Profissionais:</span> {unit.professionalsCount}</div>
@@ -223,7 +222,7 @@ export function ServiceDeskUnitsList() {
 
                                     <Link
                                         to={`/admin/unidades/${unit.id}`}
-                                        className="mt-4 inline-flex rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                                        className="mt-4 inline-flex rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-1.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
                                     >
                                         Ver detalhes
                                     </Link>
@@ -236,13 +235,13 @@ export function ServiceDeskUnitsList() {
 
             {isModalOpen ? (
                 <div className="fixed inset-0 z-50 bg-slate-900/50 px-4 py-8 overflow-y-auto">
-                    <div className="mx-auto max-w-2xl rounded-2xl bg-white p-6">
-                        <h2 className="text-xl font-semibold text-slate-900">Nova unidade</h2>
-                        <p className="text-sm text-slate-500">Inclui criação automática do usuário dono e vínculo profissional.</p>
+                    <div className="mx-auto max-w-2xl rounded-2xl bg-white dark:bg-slate-800 p-6">
+                        <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Nova unidade</h2>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Inclui criação automática do usuário dono e vínculo profissional.</p>
 
                         <form onSubmit={handleCreateUnit} className="mt-4 grid gap-3">
                             {modalError ? (
-                                <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                                <div className="rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/30 p-3 text-sm text-red-700 dark:text-red-400">
                                     {modalError}
                                 </div>
                             ) : null}
@@ -259,7 +258,7 @@ export function ServiceDeskUnitsList() {
                             </div>
                             <Input placeholder="E-mail da unidade" value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))} required />
 
-                            <h3 className="mt-2 text-sm font-semibold text-slate-800">Dados do dono da unidade</h3>
+                            <h3 className="mt-2 text-sm font-semibold text-slate-800 dark:text-slate-200">Dados do dono da unidade</h3>
                             <div className="grid sm:grid-cols-2 gap-3">
                                 <Input placeholder="Nome" value={form.ownerName} onChange={(e) => setForm((p) => ({ ...p, ownerName: e.target.value }))} required />
                                 <Input placeholder="E-mail" value={form.ownerEmail} onChange={(e) => setForm((p) => ({ ...p, ownerEmail: e.target.value }))} required />
