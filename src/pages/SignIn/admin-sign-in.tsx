@@ -70,17 +70,17 @@ export function AdminSignIn() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-slate-100 via-white to-cyan-50 p-4 sm:p-8 flex items-center justify-center">
-            <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white shadow-xl p-6 sm:p-8">
+        <div className="min-h-screen bg-gradient-to-b from-slate-100 via-white to-cyan-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4 sm:p-8 flex items-center justify-center">
+            <div className="w-full max-w-md rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-xl p-6 sm:p-8">
                 <div className="flex items-center gap-2 mb-5">
-                    <span className="inline-flex items-center gap-1 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-700">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-cyan-200 dark:border-cyan-900 bg-cyan-50 dark:bg-cyan-900/30 px-3 py-1 text-xs font-semibold text-cyan-700 dark:text-cyan-400">
                         <ShieldCheck className="h-3.5 w-3.5" />
                         Área Interna
                     </span>
                 </div>
 
-                <h1 className="text-2xl font-bold text-slate-900">ServiceDesk Alfamed</h1>
-                <p className="text-sm text-slate-500 mt-1">Acesso exclusivo para equipe interna.</p>
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">ServiceDesk Alfamed</h1>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Acesso exclusivo para equipe interna.</p>
 
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 mt-6">

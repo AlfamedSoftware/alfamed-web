@@ -238,6 +238,23 @@ export function CadastroProfissionaisForm({
                 return
             }
 
+            // Se o CRM foi informado, atualizamos o registro do profissional
+            try {
+                const createdProfessional = await professionalResponse.json().catch(() => null)
+                const professionalId = createdProfessional?.id
+                if (professionalId && values.crmState && values.crmNumber) {
+                    await fetch(`${authBaseUrl}/professionals/${professionalId}`, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        credentials: "include",
+                        body: JSON.stringify({ crm: `${values.crmState}${values.crmNumber}` }),
+                    })
+                }
+            } catch {
+                // Não bloqueamos o fluxo principal caso a atualização do CRM falhe
+                void 0
+            }
+
             const patientResponse = await fetch(`${authBaseUrl}/patients/link-user`, {
                 method: "POST",
                 headers: {
