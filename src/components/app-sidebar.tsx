@@ -136,18 +136,32 @@ export function AppSidebar() {
                                 </SidebarMenuItem>
                             ) : null}
                             {isAdminArea ? (
-                                <SidebarMenuItem>
-                                    <SidebarMenuButton
-                                        asChild
-                                        isActive={location.pathname.startsWith("/admin/unidades")}
-                                        tooltip="Admin/Interno"
-                                    >
-                                        <Link to="/admin/unidades">
-                                            <Lock className="h-4 w-4" />
-                                            <span>Central de Unidades</span>
-                                        </Link>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
+                                <>
+                                    <SidebarMenuItem>
+                                        <SidebarMenuButton
+                                            asChild
+                                            isActive={location.pathname.startsWith("/admin/unidades")}
+                                            tooltip="Admin/Interno"
+                                        >
+                                            <Link to="/admin/unidades">
+                                                <Lock className="h-4 w-4" />
+                                                <span>Central de Unidades</span>
+                                            </Link>
+                                        </SidebarMenuButton>
+                                    </SidebarMenuItem>
+                                    <SidebarMenuItem>
+                                        <SidebarMenuButton
+                                            asChild
+                                            isActive={location.pathname.startsWith("/admin/upm")}
+                                            tooltip="UPM"
+                                        >
+                                            <Link to="/admin/upm">
+                                                <Users className="h-4 w-4" />
+                                                <span>UPM</span>
+                                            </Link>
+                                        </SidebarMenuButton>
+                                    </SidebarMenuItem>
+                                </>
                             ) : null}
                         </SidebarMenu>
                     </SidebarGroupContent>

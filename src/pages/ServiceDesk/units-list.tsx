@@ -23,24 +23,76 @@ type NewUnitForm = {
     ownerPassword: string
 }
 
+function digitsOnly(value: string) {
+    return value.replace(/\D/g, "")
+}
+
+function formatCpf(value: string) {
+    const digits = digitsOnly(value).slice(0, 11)
+    const part1 = digits.slice(0, 3)
+    const part2 = digits.slice(3, 6)
+    const part3 = digits.slice(6, 9)
+    const part4 = digits.slice(9, 11)
+
+    if (!part1) return ""
+    if (!part2) return part1
+    if (!part3) return `${part1}.${part2}`
+    if (!part4) return `${part1}.${part2}.${part3}`
+    return `${part1}.${part2}.${part3}-${part4}`
+}
+
+function formatCnpj(value: string) {
+    const digits = digitsOnly(value).slice(0, 14)
+    const part1 = digits.slice(0, 2)
+    const part2 = digits.slice(2, 5)
+    const part3 = digits.slice(5, 8)
+    const part4 = digits.slice(8, 12)
+    const part5 = digits.slice(12, 14)
+
+    if (!part1) return ""
+    if (!part2) return part1
+    if (!part3) return `${part1}.${part2}`
+    if (!part4) return `${part1}.${part2}.${part3}`
+    if (!part5) return `${part1}.${part2}.${part3}/${part4}`
+    return `${part1}.${part2}.${part3}/${part4}-${part5}`
+}
+
+function formatPhone(value: string) {
+    const digits = digitsOnly(value).slice(0, 11)
+    const ddd = digits.slice(0, 2)
+    const first = digits.slice(2, digits.length > 10 ? 7 : 6)
+    const second = digits.slice(digits.length > 10 ? 7 : 6, digits.length > 10 ? 11 : 10)
+
+    if (!ddd) return ""
+    if (!first) return `(${ddd}`
+    if (!second) return `(${ddd}) ${first}`
+    return `(${ddd}) ${first}-${second}`
+}
+
+const brStates = [
+    "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA",
+    "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN",
+    "RS", "RO", "RR", "SC", "SP", "SE", "TO",
+]
+
 const dateStringSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data invalida. Use o formato YYYY-MM-DD")
 
 const createAdminUnitPayloadSchema = z
     .object({
         name: z.string().min(1, "Nome da unidade e obrigatorio"),
-        cnpj: z.string().min(1, "CNPJ e obrigatorio"),
+        cnpj: z.string().refine((value) => digitsOnly(value).length === 14, "CNPJ invalido"),
         address: z.string().min(1, "Endereco e obrigatorio"),
         city: z.string().min(1, "Cidade e obrigatoria"),
         state: z.string().length(2, "UF deve ter 2 caracteres"),
-        phone: z.string().min(8, "Telefone deve ter no minimo 8 caracteres"),
+        phone: z.string().refine((value) => digitsOnly(value).length >= 10, "Telefone invalido"),
         email: z.email("E-mail da unidade invalido"),
         owner: z
             .object({
                 name: z.string().min(1, "Nome do dono e obrigatorio"),
                 email: z.email("E-mail do dono invalido"),
-                cpf: z.string().min(11, "CPF deve ter no minimo 11 caracteres").max(14, "CPF invalido"),
+                cpf: z.string().refine((value) => digitsOnly(value).length === 11, "CPF invalido"),
                 birthdate: dateStringSchema,
-                phone: z.string().min(8, "Telefone do dono deve ter no minimo 8 caracteres"),
+                phone: z.string().refine((value) => digitsOnly(value).length >= 10, "Telefone do dono invalido"),
                 password: z.string().min(8, "Senha do dono deve ter no minimo 8 caracteres"),
             })
             .strict(),
@@ -76,7 +128,7 @@ const initialForm: NewUnitForm = {
     cnpj: "",
     address: "",
     city: "",
-    state: "",
+    state: "SP",
     phone: "",
     email: "",
     ownerName: "",
@@ -120,18 +172,18 @@ export function ServiceDeskUnitsList() {
 
         const payload = {
             name: form.name,
-            cnpj: form.cnpj,
+            cnpj: digitsOnly(form.cnpj),
             address: form.address,
             city: form.city,
             state: form.state,
-            phone: form.phone,
+            phone: digitsOnly(form.phone),
             email: form.email,
             owner: {
                 name: form.ownerName,
                 email: form.ownerEmail,
-                cpf: form.ownerCpf,
+                cpf: digitsOnly(form.ownerCpf),
                 birthdate: form.ownerBirthdate,
-                phone: form.ownerPhone,
+                phone: digitsOnly(form.ownerPhone),
                 password: form.ownerPassword,
             },
         }
@@ -248,13 +300,36 @@ export function ServiceDeskUnitsList() {
 
                             <div className="grid sm:grid-cols-2 gap-3">
                                 <Input placeholder="Nome da unidade" value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} required />
-                                <Input placeholder="CNPJ" value={form.cnpj} onChange={(e) => setForm((p) => ({ ...p, cnpj: e.target.value }))} required />
+                                <Input
+                                    inputMode="numeric"
+                                    placeholder="00.000.000/0000-00"
+                                    value={form.cnpj}
+                                    onChange={(e) => setForm((p) => ({ ...p, cnpj: formatCnpj(e.target.value) }))}
+                                    required
+                                />
                             </div>
                             <Input placeholder="Endereço" value={form.address} onChange={(e) => setForm((p) => ({ ...p, address: e.target.value }))} required />
                             <div className="grid sm:grid-cols-3 gap-3">
                                 <Input placeholder="Cidade" value={form.city} onChange={(e) => setForm((p) => ({ ...p, city: e.target.value }))} required />
-                                <Input placeholder="UF" value={form.state} onChange={(e) => setForm((p) => ({ ...p, state: e.target.value.toUpperCase() }))} maxLength={2} required />
-                                <Input placeholder="Telefone" value={form.phone} onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))} required />
+                                <select
+                                    value={form.state}
+                                    onChange={(e) => setForm((p) => ({ ...p, state: e.target.value }))}
+                                    className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 py-1 text-sm text-slate-900 shadow-xs outline-none focus-visible:border-slate-400 focus-visible:ring-1 focus-visible:ring-slate-400/40 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus-visible:border-slate-500 dark:focus-visible:ring-slate-500/40"
+                                    required
+                                >
+                                    {brStates.map((state) => (
+                                        <option key={state} value={state}>
+                                            {state}
+                                        </option>
+                                    ))}
+                                </select>
+                                <Input
+                                    inputMode="numeric"
+                                    placeholder="(11) 98765-4321"
+                                    value={form.phone}
+                                    onChange={(e) => setForm((p) => ({ ...p, phone: formatPhone(e.target.value) }))}
+                                    required
+                                />
                             </div>
                             <Input placeholder="E-mail da unidade" value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))} required />
 
@@ -262,9 +337,21 @@ export function ServiceDeskUnitsList() {
                             <div className="grid sm:grid-cols-2 gap-3">
                                 <Input placeholder="Nome" value={form.ownerName} onChange={(e) => setForm((p) => ({ ...p, ownerName: e.target.value }))} required />
                                 <Input placeholder="E-mail" value={form.ownerEmail} onChange={(e) => setForm((p) => ({ ...p, ownerEmail: e.target.value }))} required />
-                                <Input placeholder="CPF" value={form.ownerCpf} onChange={(e) => setForm((p) => ({ ...p, ownerCpf: e.target.value }))} required />
+                                <Input
+                                    inputMode="numeric"
+                                    placeholder="000.000.000-00"
+                                    value={form.ownerCpf}
+                                    onChange={(e) => setForm((p) => ({ ...p, ownerCpf: formatCpf(e.target.value) }))}
+                                    required
+                                />
                                 <Input type="date" value={form.ownerBirthdate} onChange={(e) => setForm((p) => ({ ...p, ownerBirthdate: e.target.value }))} required />
-                                <Input placeholder="Telefone" value={form.ownerPhone} onChange={(e) => setForm((p) => ({ ...p, ownerPhone: e.target.value }))} required />
+                                <Input
+                                    inputMode="numeric"
+                                    placeholder="(11) 98765-4321"
+                                    value={form.ownerPhone}
+                                    onChange={(e) => setForm((p) => ({ ...p, ownerPhone: formatPhone(e.target.value) }))}
+                                    required
+                                />
                                 <Input type="password" placeholder="Senha inicial" value={form.ownerPassword} onChange={(e) => setForm((p) => ({ ...p, ownerPassword: e.target.value }))} required />
                             </div>
 
