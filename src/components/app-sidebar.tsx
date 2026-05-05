@@ -8,6 +8,9 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    SidebarMenuSub,
+    SidebarMenuSubItem,
+    SidebarMenuSkeleton,
 } from "@/components/ui/sidebar"
 import {
     DropdownMenu,
@@ -23,18 +26,23 @@ import {
     Home as HomeIcon,
     Lock,
     LogOut,
-    Settings,
     Stethoscope,
     User,
-    Users,
 } from "lucide-react"
 import { useSession } from "@/hooks/use-session"
+import { useEffect, useState } from "react"
 import { auth } from "@/lib/auth"
 import { useSidebarMenu } from "@/contexts/sidebar-menu-context"
 import { Link, useLocation, useNavigate } from "react-router"
 import type { LucideIcon } from "lucide-react"
 
 type SidebarMenuItemConfig = {
+    title: string
+    icon: LucideIcon
+    url: string
+}
+
+type SidebarMenuSubItemConfig = {
     title: string
     icon: LucideIcon
     url: string
@@ -60,32 +68,39 @@ const roleLabels: Record<RoleMenuKey, string> = {
 
 const menuItemsByRole: Record<RoleMenuKey, SidebarMenuItemConfig[]> = {
     [MENU_ROLE_KEYS.alfamed]: [
-        { title: "Inicio", icon: HomeIcon, url: "/home" },
-        { title: "Pacientes", icon: Users, url: "/pacientes" },
+        { title: "Início", icon: HomeIcon, url: "/home" },
         { title: "Profissionais", icon: Stethoscope, url: "/profissionais" },
+        { title: "Procedimentos", icon: ClipboardList, url: "/procedimentos" },
+        { title: "Especialidades", icon: ClipboardList, url: "/especialidades" },
     ],
     [MENU_ROLE_KEYS.administrative]: [
-        { title: "Inicio", icon: HomeIcon, url: "/home" },
-        { title: "Pacientes", icon: Users, url: "/pacientes" },
+        { title: "Início", icon: HomeIcon, url: "/home" },
         { title: "Profissionais", icon: Stethoscope, url: "/profissionais" },
-    ],
-    [MENU_ROLE_KEYS.assistant]: [
-        { title: "Inicio", icon: HomeIcon, url: "/home" },
-        { title: "Agendamentos", icon: CalendarCheck, url: "/agendamentos" },
-        { title: "Prontuários", icon: ClipboardList, url: "/prontuarios" },
+        { title: "Procedimentos", icon: ClipboardList, url: "/procedimentos" },
+        { title: "Especialidades", icon: ClipboardList, url: "/especialidades" },
     ],
     [MENU_ROLE_KEYS.medic]: [
-        { title: "Inicio", icon: HomeIcon, url: "/home" },
-        { title: "Configurações", icon: Settings, url: "/configuracoes" },
+        { title: "Início", icon: HomeIcon, url: "/home" },
+        { title: "Agendamentos", icon: CalendarCheck, url: "/agendamentos" },
+        { title: "Agendas", icon: ClipboardList, url: "/agendas" },
+    ],
+    [MENU_ROLE_KEYS.assistant]: [
+        { title: "Início", icon: HomeIcon, url: "/home" },
+        { title: "Agendas", icon: ClipboardList, url: "/agendas" },
     ],
 } as const
+
+const professionalsSubmenu: SidebarMenuSubItemConfig[] = [
+    { title: "Vínculo de Especialidades", icon: ClipboardList, url: "/profissionais/vinculo-especialidades" },
+    { title: "Vínculo de Cargos", icon: ClipboardList, url: "/profissionais/vinculo-cargos" },
+]
 
 export function AppSidebar() {
     const { user, isLoading } = useSession()
     const navigate = useNavigate()
     const location = useLocation()
     const isAdminArea = location.pathname.startsWith("/admin")
-    const { menuRoles } = useSidebarMenu()
+    const { menuRoles, selectedUnitName } = useSidebarMenu()
 
     const menuItemsForRoles = menuRoles.flatMap((role) =>
         allowedRoleKeys.has(role as RoleMenuKey)
@@ -96,6 +111,20 @@ export function AppSidebar() {
     const activeRoleKey = menuRoles.find((role) => allowedRoleKeys.has(role as RoleMenuKey)) as RoleMenuKey | undefined
     const currentRoleLabel = activeRoleKey ? roleLabels[activeRoleKey] : null
     const hasMenuItems = menuItems.length > 0
+
+    // Show a skeleton placeholder while the menu roles haven't arrived.
+    // It will remain visible until `menuRoles` contains entries.
+    const [showMenuSkeleton, setShowMenuSkeleton] = useState<boolean>(menuRoles.length === 0)
+
+    useEffect(() => {
+        if (menuRoles.length > 0) setShowMenuSkeleton(false)
+    }, [menuRoles])
+
+    const [showUnitSkeleton, setShowUnitSkeleton] = useState<boolean>(!selectedUnitName)
+
+    useEffect(() => {
+        if (selectedUnitName) setShowUnitSkeleton(false)
+    }, [selectedUnitName])
 
     const handleLogout = async () => {
         await auth.signOut()
@@ -118,7 +147,7 @@ export function AppSidebar() {
                                 <SidebarMenuItem key={item.title}>
                                     <SidebarMenuButton
                                         asChild
-                                        isActive={location.pathname === item.url}
+                                        isActive={location.pathname === item.url || location.pathname.startsWith(`${item.url}/`)}
                                         tooltip={item.title}
                                     >
                                         <Link to={item.url}>
@@ -126,14 +155,43 @@ export function AppSidebar() {
                                             <span>{item.title}</span>
                                         </Link>
                                     </SidebarMenuButton>
+
+                                    {item.title === "Profissionais" ? (
+                                        <SidebarMenuSub>
+                                            {professionalsSubmenu.map((subItem) => (
+                                                <SidebarMenuSubItem key={subItem.title}>
+                                                    <SidebarMenuButton asChild size="sm" tooltip={subItem.title}>
+                                                        <Link to={subItem.url}>
+                                                            <subItem.icon className="h-4 w-4" />
+                                                            <span>{subItem.title}</span>
+                                                        </Link>
+                                                    </SidebarMenuButton>
+                                                </SidebarMenuSubItem>
+                                            ))}
+                                        </SidebarMenuSub>
+                                    ) : null}
                                 </SidebarMenuItem>
                             ))}
                             {!isAdminArea && !hasMenuItems ? (
-                                <SidebarMenuItem>
-                                    <div className="px-3 py-2 text-sm text-muted-foreground">
-                                        Nenhum cargo definido.<br />Entre em contato com o administrador.
-                                    </div>
-                                </SidebarMenuItem>
+                                showMenuSkeleton ? (
+                                    <>
+                                        <SidebarMenuItem>
+                                            <SidebarMenuSkeleton showIcon />
+                                        </SidebarMenuItem>
+                                        <SidebarMenuItem>
+                                            <SidebarMenuSkeleton showIcon />
+                                        </SidebarMenuItem>
+                                        <SidebarMenuItem>
+                                            <SidebarMenuSkeleton showIcon />
+                                        </SidebarMenuItem>
+                                    </>
+                                ) : (
+                                    <SidebarMenuItem>
+                                        <div className="px-3 py-2 text-sm text-muted-foreground">
+                                            Nenhum cargo definido.<br />Entre em contato com o administrador.
+                                        </div>
+                                    </SidebarMenuItem>
+                                )
                             ) : null}
                             {isAdminArea ? (
                                 <SidebarMenuItem>
@@ -168,9 +226,15 @@ export function AppSidebar() {
                                         <span className="text-sm font-medium truncate w-full leading-tight">
                                             {isLoading ? "Carregando..." : user?.name || "Usuário"}
                                         </span>
-                                        <span className="text-xs opacity-70 truncate w-full leading-tight">
-                                            {isLoading ? "" : user?.email || ""}
-                                        </span>
+                                            {showUnitSkeleton ? (
+                                                <div className="mt-1 w-36">
+                                                    <SidebarMenuSkeleton />
+                                                </div>
+                                            ) : (
+                                                <span className="truncate text-xs opacity-70 truncate w-full leading-tight">
+                                                    {selectedUnitName || ""}
+                                                </span>
+                                            )}
                                     </div>
                                     <ChevronsUpDown className="ml-auto h-4 w-4 group-data-[collapsible=icon]:hidden" />
                                 </SidebarMenuButton>
@@ -190,13 +254,25 @@ export function AppSidebar() {
                                         <span className="truncate text-sm font-medium">
                                             {isLoading ? "Carregando..." : user?.name || "Usuário"}
                                         </span>
-                                        <span className="truncate text-xs text-muted-foreground">
-                                            {isLoading ? "" : user?.email || ""}
-                                        </span>
-                                        {!isAdminArea ? (
+                                        {showUnitSkeleton ? (
+                                            <div className="mt-1 w-36">
+                                                <SidebarMenuSkeleton />
+                                            </div>
+                                        ) : (
                                             <span className="truncate text-xs text-muted-foreground">
-                                                {isLoading ? "" : currentRoleLabel ? `Cargo atual: ${currentRoleLabel}` : "Cargo não definido"}
+                                                {selectedUnitName || ""}
                                             </span>
+                                        )}
+                                        {!isAdminArea ? (
+                                            showMenuSkeleton ? (
+                                                <div className="mt-2 w-36">
+                                                    <SidebarMenuSkeleton />
+                                                </div>
+                                            ) : (
+                                                <span className="truncate text-xs text-muted-foreground">
+                                                    {isLoading ? "" : currentRoleLabel ? `Cargo atual: ${currentRoleLabel}` : "Cargo não definido"}
+                                                </span>
+                                            )
                                         ) : null}
                                     </div>
                                 </div>

@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth"
 import { authBaseUrl } from "@/lib/auth"
+import { Skeleton } from "@/components/ui/skeleton"
 import { useCallback, useEffect, useState } from "react"
 import { useNavigate } from "react-router"
 
@@ -154,8 +155,11 @@ export function SelecaoUnidade() {
     if (isUnitsLoading) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-background px-4">
-                <div className="rounded-xl border bg-card px-6 py-4 text-sm text-muted-foreground shadow-sm">
-                    Carregando unidades...
+                <div className="w-full max-w-lg rounded-2xl border bg-card p-6 shadow-sm">
+                    <Skeleton className="h-8 w-52" />
+                    <Skeleton className="mt-4 h-4 w-72" />
+                    <Skeleton className="mt-6 h-10 w-full" />
+                    <Skeleton className="mt-3 h-10 w-full" />
                 </div>
             </div>
         )
@@ -194,7 +198,9 @@ export function SelecaoUnidade() {
                                 onChange={(event) => setSelectedUnitId(event.target.value)}
                                 className="h-10 rounded-md border bg-background px-3 text-sm text-foreground"
                             >
-                                <option value="">Selecione uma unidade</option>
+                                <option value="" disabled hidden>
+                                    Selecione uma unidade
+                                </option>
                                 {units.map((unit) => (
                                     <option key={unit.id} value={unit.id}>
                                         {unit.name}
