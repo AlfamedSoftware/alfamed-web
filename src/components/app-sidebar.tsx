@@ -30,22 +30,72 @@ import {
 } from "lucide-react"
 import { useSession } from "@/hooks/use-session"
 import { auth } from "@/lib/auth"
+import { useSidebarMenu } from "@/contexts/sidebar-menu-context"
 import { Link, useLocation, useNavigate } from "react-router"
+import type { LucideIcon } from "lucide-react"
 
-const menuItems = [
-    { title: "Dashboard", icon: HomeIcon, url: "/home" },
-    { title: "Pacientes", icon: Users, url: "/pacientes" },
-    { title: "Profissionais", icon: Stethoscope, url: "/profissionais" },
-    { title: "Agendamentos", icon: CalendarCheck, url: "/agendamentos" },
-    { title: "Prontuários", icon: ClipboardList, url: "/prontuarios" },
-    { title: "Configurações", icon: Settings, url: "/configuracoes" },
-]
+type SidebarMenuItemConfig = {
+    title: string
+    icon: LucideIcon
+    url: string
+}
+
+const MENU_ROLE_KEYS = {
+    alfamed: "internal_alfamed",
+    administrative: "administrative",
+    assistant: "administrative_assistant",
+    medic: "medic",
+} as const
+
+type RoleMenuKey = (typeof MENU_ROLE_KEYS)[keyof typeof MENU_ROLE_KEYS]
+
+const allowedRoleKeys = new Set<RoleMenuKey>(Object.values(MENU_ROLE_KEYS))
+
+const roleLabels: Record<RoleMenuKey, string> = {
+    [MENU_ROLE_KEYS.alfamed]: "Alfamed",
+    [MENU_ROLE_KEYS.administrative]: "Administrativo",
+    [MENU_ROLE_KEYS.assistant]: "Assistente administrativo",
+    [MENU_ROLE_KEYS.medic]: "Médico",
+}
+
+const menuItemsByRole: Record<RoleMenuKey, SidebarMenuItemConfig[]> = {
+    [MENU_ROLE_KEYS.alfamed]: [
+        { title: "Inicio", icon: HomeIcon, url: "/home" },
+        { title: "Pacientes", icon: Users, url: "/pacientes" },
+        { title: "Profissionais", icon: Stethoscope, url: "/profissionais" },
+    ],
+    [MENU_ROLE_KEYS.administrative]: [
+        { title: "Inicio", icon: HomeIcon, url: "/home" },
+        { title: "Pacientes", icon: Users, url: "/pacientes" },
+        { title: "Profissionais", icon: Stethoscope, url: "/profissionais" },
+    ],
+    [MENU_ROLE_KEYS.assistant]: [
+        { title: "Inicio", icon: HomeIcon, url: "/home" },
+        { title: "Agendamentos", icon: CalendarCheck, url: "/agendamentos" },
+        { title: "Prontuários", icon: ClipboardList, url: "/prontuarios" },
+    ],
+    [MENU_ROLE_KEYS.medic]: [
+        { title: "Inicio", icon: HomeIcon, url: "/home" },
+        { title: "Configurações", icon: Settings, url: "/configuracoes" },
+    ],
+} as const
 
 export function AppSidebar() {
-    const { user, isLoading, isInternalUser } = useSession()
+    const { user, isLoading } = useSession()
     const navigate = useNavigate()
     const location = useLocation()
     const isAdminArea = location.pathname.startsWith("/admin")
+    const { menuRoles } = useSidebarMenu()
+
+    const menuItemsForRoles = menuRoles.flatMap((role) =>
+        allowedRoleKeys.has(role as RoleMenuKey)
+            ? menuItemsByRole[role as RoleMenuKey]
+            : [],
+    )
+    const menuItems = Array.from(new Map<string, SidebarMenuItemConfig>(menuItemsForRoles.map((item) => [item.url, item])).values())
+    const activeRoleKey = menuRoles.find((role) => allowedRoleKeys.has(role as RoleMenuKey)) as RoleMenuKey | undefined
+    const currentRoleLabel = activeRoleKey ? roleLabels[activeRoleKey] : null
+    const hasMenuItems = menuItems.length > 0
 
     const handleLogout = async () => {
         await auth.signOut()
@@ -64,7 +114,7 @@ export function AppSidebar() {
                 <SidebarGroup>
                     <SidebarGroupContent>
                         <SidebarMenu>
-                            {!isAdminArea ? menuItems.map((item) => (
+                            {menuItems.map((item) => (
                                 <SidebarMenuItem key={item.title}>
                                     <SidebarMenuButton
                                         asChild
@@ -77,8 +127,15 @@ export function AppSidebar() {
                                         </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
-                            )) : null}
-                            {isInternalUser ? (
+                            ))}
+                            {!isAdminArea && !hasMenuItems ? (
+                                <SidebarMenuItem>
+                                    <div className="px-3 py-2 text-sm text-muted-foreground">
+                                        Nenhum cargo definido.<br />Entre em contato com o administrador.
+                                    </div>
+                                </SidebarMenuItem>
+                            ) : null}
+                            {isAdminArea ? (
                                 <SidebarMenuItem>
                                     <SidebarMenuButton
                                         asChild
@@ -136,16 +193,31 @@ export function AppSidebar() {
                                         <span className="truncate text-xs text-muted-foreground">
                                             {isLoading ? "" : user?.email || ""}
                                         </span>
+                                        {!isAdminArea ? (
+                                            <span className="truncate text-xs text-muted-foreground">
+                                                {isLoading ? "" : currentRoleLabel ? `Cargo atual: ${currentRoleLabel}` : "Cargo não definido"}
+                                            </span>
+                                        ) : null}
                                     </div>
                                 </div>
                                 <DropdownMenuSeparator />
                                 <div className="p-1">
-                                    <DropdownMenuItem asChild>
-                                        <Link to="/perfil">
-                                            <User className="h-4 w-4" />
-                                            Perfil
-                                        </Link>
-                                    </DropdownMenuItem>
+                                    {!isAdminArea ? (
+                                        <>
+                                            <DropdownMenuItem asChild>
+                                                <Link to="/perfil">
+                                                    <User className="h-4 w-4" />
+                                                    Perfil
+                                                </Link>
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem asChild>
+                                                <Link to="/session">
+                                                    <HomeIcon className="h-4 w-4" />
+                                                    Trocar unidade
+                                                </Link>
+                                            </DropdownMenuItem>
+                                        </>
+                                    ) : null}
                                     <DropdownMenuItem
                                         variant="destructive"
                                         onClick={handleLogout}

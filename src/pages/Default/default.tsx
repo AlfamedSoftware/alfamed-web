@@ -1,5 +1,5 @@
 import { useEffect } from "react"
-import { Outlet } from "react-router"
+import { Outlet, useLocation } from "react-router"
 import {
     SidebarInset,
     SidebarProvider,
@@ -16,8 +16,10 @@ interface SessionClinicsResponse {
     selectedProfessionalUnitId?: string
 }
 
-function SidebarBootstrap() {
+function DefaultBootstrap() {
     const { user, isLoading } = useSession()
+    const location = useLocation()
+    const isAdminArea = location.pathname.startsWith("/admin")
     const { setMenuRoles, setSelectedUnitName } = useSidebarMenu()
 
     useEffect(() => {
@@ -25,7 +27,8 @@ function SidebarBootstrap() {
             return
         }
 
-        if (!user?.id) {
+        // Se estivermos na área admin, não carregamos roles/unidade
+        if (isAdminArea) {
             setMenuRoles([])
             setSelectedUnitName(null)
             return
@@ -81,15 +84,15 @@ function SidebarBootstrap() {
         void bootstrap()
 
         return () => controller.abort()
-    }, [isLoading, setMenuRoles, setSelectedUnitName, user?.id])
+    }, [isLoading, isAdminArea, setMenuRoles, setSelectedUnitName, user?.id])
 
     return null
 }
 
-export function SidebarLayout() {
+export function Default() {
     return (
         <SidebarMenuProvider>
-            <SidebarBootstrap />
+            <DefaultBootstrap />
             <SidebarProvider>
                 <AppSidebar />
                 <SidebarInset>

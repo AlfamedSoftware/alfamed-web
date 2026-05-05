@@ -1,7 +1,7 @@
 import { Home } from "./pages/Home/home"
+import { Default } from "./pages/Default/default"
 import { SignIn } from "@/pages/SignIn/sign-in"
 import { DefaultLayout } from "@/layouts/default-layout"
-import { SidebarLayout } from "@/layouts/sidebar-layout"
 import { Routes, Route, Navigate } from "react-router"
 import { ProtectedRoute } from "@/components/ProtectRoute/protected-route"
 import { InternalProtectedRoute } from "@/components/ProtectRoute/internal-protected-route"
@@ -37,7 +37,7 @@ export function App() {
           element={
             <ProtectedRoute>
               <UnitProtectedRoute>
-                <SidebarLayout />
+                <Default />
               </UnitProtectedRoute>
             </ProtectedRoute>
           }
@@ -58,7 +58,7 @@ export function App() {
           element={
             <ProtectedRoute>
               <InternalProtectedRoute>
-                <SidebarLayout />
+                <Default />
               </InternalProtectedRoute>
             </ProtectedRoute>
           }
