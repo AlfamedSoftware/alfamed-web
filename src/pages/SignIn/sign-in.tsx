@@ -127,11 +127,11 @@ export function SignIn() {
                 </div>
             </div>
             <div className="hidden lg:flex items-center justify-start pl-20 h-full">
-                <div className="w-full max-w-[600px] pb-24">
+                <div className="w-full max-w-[600px] pb-24]shadow-[0_30px_100px_-50px_rgba(0,0,0,0.95)] backdrop-blur-sm">
                     <img
                         src={loginLogo}
                         alt="Image"
-                        className="h-full w-full object-contain dark:brightness-[0.2] dark:grayscale"
+                        className="h-full w-full object-contain"
                     />
                 </div>
             </div>
