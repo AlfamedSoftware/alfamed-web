@@ -16,6 +16,7 @@ import { useState } from "react"
 import { Loader2 } from "lucide-react"
 import loginLogo from "@/assets/auth/login.svg"
 import { useNavigate } from "react-router"
+import { ensureStorageAccessBeforeLogin } from "@/lib/storage-access"
 
 const signInSchema = z.object({
     email: z.string(),
@@ -39,6 +40,14 @@ export function SignIn() {
     async function onSubmit({ email, password }: signInSchemaType) {
         setIsLoading(true)
         try {
+            const storageAccess = await ensureStorageAccessBeforeLogin()
+            if (!storageAccess.granted) {
+                form.setError("root", {
+                    message: "No Safari, permita o acesso a cookies para concluir o login.",
+                })
+                return
+            }
+
             const response = await auth.signIn.email({
                 email,
                 password,

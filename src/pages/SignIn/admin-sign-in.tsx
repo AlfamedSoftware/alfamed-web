@@ -15,6 +15,7 @@ import {
     FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import { ensureStorageAccessBeforeLogin } from "@/lib/storage-access"
 
 const adminSignInSchema = z.object({
     email: z.email(),
@@ -46,6 +47,14 @@ export function AdminSignIn() {
         setIsLoading(true)
 
         try {
+            const storageAccess = await ensureStorageAccessBeforeLogin()
+            if (!storageAccess.granted) {
+                form.setError("root", {
+                    message: "No Safari, permita o acesso a cookies para concluir o login.",
+                })
+                return
+            }
+
             const response = await auth.signIn.email({
                 email,
                 password,
