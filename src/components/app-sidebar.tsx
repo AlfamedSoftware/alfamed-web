@@ -28,6 +28,7 @@ import {
     LogOut,
     Stethoscope,
     User,
+    Users,
 } from "lucide-react"
 import { useSession } from "@/hooks/use-session"
 import { useEffect, useState } from "react"
