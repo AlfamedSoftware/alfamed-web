@@ -240,15 +240,23 @@ export function AppSidebar() {
                                         <span className="text-sm font-medium truncate w-full leading-tight">
                                             {isLoading ? "Carregando..." : user?.name || "Usuário"}
                                         </span>
-                                            {showUnitSkeleton ? (
-                                                <div className="mt-1 w-36">
-                                                    <SidebarMenuSkeleton />
-                                                </div>
-                                            ) : (
-                                                <span className="truncate text-xs opacity-70 truncate w-full leading-tight">
-                                                    {selectedUnitName || ""}
-                                                </span>
-                                            )}
+                                        {isAdminArea ? (
+                                            <span className="truncate text-xs opacity-70 truncate w-full leading-tight">
+                                                ServiceDesk
+                                            </span>
+                                        ) : (
+                                            <>
+                                                {showUnitSkeleton ? (
+                                                    <div className="mt-1 w-36">
+                                                        <SidebarMenuSkeleton />
+                                                    </div>
+                                                ) : (
+                                                    <span className="truncate text-xs opacity-70 truncate w-full leading-tight">
+                                                        {selectedUnitName || ""}
+                                                    </span>
+                                                )}
+                                            </>
+                                        )}
                                     </div>
                                     <ChevronsUpDown className="ml-auto h-4 w-4 group-data-[collapsible=icon]:hidden" />
                                 </SidebarMenuButton>
@@ -268,26 +276,32 @@ export function AppSidebar() {
                                         <span className="truncate text-sm font-medium">
                                             {isLoading ? "Carregando..." : user?.name || "Usuário"}
                                         </span>
-                                        {showUnitSkeleton ? (
-                                            <div className="mt-1 w-36">
-                                                <SidebarMenuSkeleton />
-                                            </div>
-                                        ) : (
+                                        {isAdminArea ? (
                                             <span className="truncate text-xs text-muted-foreground">
-                                                {selectedUnitName || ""}
+                                                ServiceDesk
                                             </span>
+                                        ) : (
+                                            <>
+                                                {showUnitSkeleton ? (
+                                                    <div className="mt-1 w-36">
+                                                        <SidebarMenuSkeleton />
+                                                    </div>
+                                                ) : (
+                                                    <span className="truncate text-xs text-muted-foreground">
+                                                        {selectedUnitName || ""}
+                                                    </span>
+                                                )}
+                                                {showMenuSkeleton ? (
+                                                    <div className="mt-2 w-36">
+                                                        <SidebarMenuSkeleton />
+                                                    </div>
+                                                ) : (
+                                                    <span className="truncate text-xs text-muted-foreground">
+                                                        {isLoading ? "" : currentRoleLabel ? `Cargo: ${currentRoleLabel}` : "Cargo não definido"}
+                                                    </span>
+                                                )}
+                                            </>
                                         )}
-                                        {!isAdminArea ? (
-                                            showMenuSkeleton ? (
-                                                <div className="mt-2 w-36">
-                                                    <SidebarMenuSkeleton />
-                                                </div>
-                                            ) : (
-                                                <span className="truncate text-xs text-muted-foreground">
-                                                    {isLoading ? "" : currentRoleLabel ? `Cargo atual: ${currentRoleLabel}` : "Cargo não definido"}
-                                                </span>
-                                            )
-                                        ) : null}
                                     </div>
                                 </div>
                                 <DropdownMenuSeparator />
