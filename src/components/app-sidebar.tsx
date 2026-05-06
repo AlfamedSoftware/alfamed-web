@@ -28,7 +28,6 @@ import {
     LogOut,
     Stethoscope,
     User,
-    Users,
 } from "lucide-react"
 import { useSession } from "@/hooks/use-session"
 import { useEffect, useState } from "react"
@@ -215,7 +214,7 @@ export function AppSidebar() {
                                             tooltip="UPM"
                                         >
                                             <Link to="/admin/upm">
-                                                <Users className="h-4 w-4" />
+                                                <User className="h-4 w-4" />
                                                 <span>UPM</span>
                                             </Link>
                                         </SidebarMenuButton>
