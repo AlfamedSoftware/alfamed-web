@@ -21,6 +21,7 @@ import { AdminSignIn } from "@/pages/SignIn/admin-sign-in"
 import { ServiceDeskUnitsList } from "@/pages/ServiceDesk/units-list"
 import { ServiceDeskUnitDetails } from "@/pages/ServiceDesk/unit-details"
 import { ServiceDeskUpmUsers } from "@/pages/ServiceDesk/upm-users"
+import { UpmUserProfile } from "@/pages/ServiceDesk/upm-user-profile"
 import { SelecaoUnidade } from "@/pages/SelecaoUnidade/selecao-unidade"
 import { UnitProtectedRoute } from "@/components/ProtectRoute/unit-protected-route"
 
@@ -78,6 +79,7 @@ export function App() {
           <Route path="unidades" element={<ServiceDeskUnitsList />} />
           <Route path="unidades/:id" element={<ServiceDeskUnitDetails />} />
           <Route path="upm" element={<ServiceDeskUpmUsers />} />
+          <Route path="upm/usuarios/:id" element={<UpmUserProfile />} />
         </Route>
       </Routes>
     </DefaultLayout>
