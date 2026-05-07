@@ -46,7 +46,19 @@ export function SignIn() {
             })
 
             if (response?.error) {
-                if (response.error.status === 401 || response.error.status === 400) {
+                if (response.error.status === 401) {
+                    // Check if the error message indicates account is inactive
+                    const errorMessage = response.error.message || "";
+                    if (errorMessage.includes("inactive")) {
+                        form.setError("root", {
+                            message: "Sua conta foi desativada. Entre em contato com o suporte.",
+                        })
+                    } else {
+                        form.setError("root", {
+                            message: "Email ou senha inválidos",
+                        })
+                    }
+                } else if (response.error.status === 400) {
                     form.setError("root", {
                         message: "Email ou senha inválidos",
                     })

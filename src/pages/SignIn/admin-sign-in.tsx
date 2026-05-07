@@ -53,9 +53,16 @@ export function AdminSignIn() {
             })
 
             if (response?.error) {
-                form.setError("root", {
-                    message: "Credenciais inválidas para a área interna",
-                })
+                const errorMessage = response.error.message || "";
+                if (errorMessage.includes("inactive")) {
+                    form.setError("root", {
+                        message: "Sua conta foi desativada. Entre em contato com o suporte.",
+                    })
+                } else {
+                    form.setError("root", {
+                        message: "Credenciais inválidas para a área interna",
+                    })
+                }
                 return
             }
 

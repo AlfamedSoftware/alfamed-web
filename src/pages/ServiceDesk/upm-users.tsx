@@ -1,20 +1,30 @@
 import { useEffect, useMemo, useState } from "react"
-import { Shield, UserPlus } from "lucide-react"
+import { UserPlus } from "lucide-react"
 import { z } from "zod"
+import { useNavigate } from "react-router"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import PasswordInput from "@/components/ui/password-input"
 import { adminUnitsService, type AdminUnit } from "@/services/admin/admin-units.service"
 import { adminUpmService, type AdminUpmUser } from "@/services/admin/admin-upm.service"
+import { UpmUserCard } from "./components/UpmUserCard"
 
 type NewUpmUserForm = {
     unitId: string
     name: string
-    email: string
+    emailLocalPart: string
     cpf: string
     birthdate: string
     phone: string
     password: string
+}
+
+const INTERNAL_EMAIL_DOMAIN = "alfamed.com"
+
+function normalizeEmailLocalPart(value: string) {
+    const trimmed = value.trim().toLowerCase()
+    return trimmed.includes("@") ? trimmed.split("@")[0] : trimmed
 }
 
 function digitsOnly(value: string) {
@@ -47,28 +57,25 @@ function formatPhone(value: string) {
     return `(${ddd}) ${first}-${second}`
 }
 
-function formatCpfDisplay(value: string) {
-    return formatCpf(value)
-}
-
-function formatPhoneDisplay(value: string) {
-    return formatPhone(value)
-}
-
 const createUpmUserSchema = z.object({
     unitId: z.string().uuid("Selecione uma unidade válida"),
     name: z.string().min(1, "Nome é obrigatório"),
-    email: z.email("E-mail inválido"),
+    emailLocalPart: z
+        .string()
+        .min(1, "Informe o e-mail")
+        .regex(/^[a-z0-9._-]+$/, "Use apenas letras, números, ponto, traço e underscore no e-mail"),
     cpf: z.string().refine((value) => digitsOnly(value).length === 11, "CPF inválido"),
     birthdate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida"),
     phone: z.string().refine((value) => digitsOnly(value).length >= 10, "Telefone inválido"),
     password: z.string().min(8, "Senha deve ter no mínimo 8 caracteres"),
 })
 
+const DEFAULT_UNIT_ID = "8b2f9e64-8c48-4d47-b6bf-e0c75114f4d6"
+
 const initialForm: NewUpmUserForm = {
-    unitId: "",
+    unitId: DEFAULT_UNIT_ID,
     name: "",
-    email: "",
+    emailLocalPart: "",
     cpf: "",
     birthdate: "",
     phone: "",
@@ -100,6 +107,7 @@ function mapCreateUserErrorMessage(message: string) {
 }
 
 export function ServiceDeskUpmUsers() {
+    const navigate = useNavigate()
     const [users, setUsers] = useState<AdminUpmUser[]>([])
     const [units, setUnits] = useState<AdminUnit[]>([])
     const [isLoading, setIsLoading] = useState(true)
@@ -122,10 +130,7 @@ export function ServiceDeskUpmUsers() {
             setUsers(usersData)
             setUnits(unitsData)
 
-            setForm((prev) => ({
-                ...prev,
-                unitId: prev.unitId || unitsData[0]?.id || "",
-            }))
+            setForm((prev) => ({ ...prev, unitId: prev.unitId || DEFAULT_UNIT_ID }))
         } catch (err) {
             setError(err instanceof Error ? err.message : "Falha ao carregar dados da UPM")
         } finally {
@@ -154,7 +159,7 @@ export function ServiceDeskUpmUsers() {
             unitId: validationResult.data.unitId,
             user: {
                 name: validationResult.data.name,
-                email: validationResult.data.email,
+                email: `${validationResult.data.emailLocalPart}@${INTERNAL_EMAIL_DOMAIN}`,
                 cpf: digitsOnly(validationResult.data.cpf),
                 birthdate: validationResult.data.birthdate,
                 phone: digitsOnly(validationResult.data.phone),
@@ -169,7 +174,7 @@ export function ServiceDeskUpmUsers() {
 
             setForm({
                 ...initialForm,
-                unitId: units[0]?.id ?? "",
+                unitId: DEFAULT_UNIT_ID,
             })
             setModalError(null)
             setIsModalOpen(false)
@@ -214,38 +219,14 @@ export function ServiceDeskUpmUsers() {
                     ) : users.length === 0 ? (
                         <p className="mt-8 text-sm text-slate-500">Nenhum usuário interno com role Alfamed encontrado.</p>
                     ) : (
-                        <div className="mt-6 overflow-auto">
-                            <table className="w-full text-sm text-slate-900 dark:text-slate-100">
-                                <thead>
-                                    <tr className="border-b border-slate-200 dark:border-slate-700 text-left text-slate-500 dark:text-slate-400">
-                                        <th className="py-2 pr-3">Nome</th>
-                                        <th className="py-2 pr-3">E-mail</th>
-                                        <th className="py-2 pr-3">CPF</th>
-                                        <th className="py-2 pr-3">Telefone</th>
-                                        <th className="py-2 pr-3">Unidade</th>
-                                        <th className="py-2 pr-3">Permissão</th>
-                                        <th className="py-2 pr-3">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {users.map((user) => (
-                                        <tr key={user.professionalUnitId} className="border-b border-slate-100 dark:border-slate-700">
-                                            <td className="py-2 pr-3">{user.name}</td>
-                                            <td className="py-2 pr-3">{user.email}</td>
-                                            <td className="py-2 pr-3">{formatCpfDisplay(user.cpf)}</td>
-                                            <td className="py-2 pr-3">{formatPhoneDisplay(user.phone)}</td>
-                                            <td className="py-2 pr-3">{user.unitName}</td>
-                                            <td className="py-2 pr-3">
-                                                <span className="inline-flex items-center gap-1 rounded-full border border-cyan-200 dark:border-cyan-900 bg-cyan-50 dark:bg-cyan-900/30 px-2 py-0.5 text-xs font-semibold text-cyan-700 dark:text-cyan-400">
-                                                    <Shield className="h-3.5 w-3.5" />
-                                                    Alfamed
-                                                </span>
-                                            </td>
-                                            <td className="py-2 pr-3">{user.status ? "Ativo" : "Inativo"}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {users.map((user) => (
+                                <UpmUserCard
+                                    key={user.professionalUnitId}
+                                    user={user}
+                                    onClick={(u) => navigate(`/admin/upm/usuarios/${u.professionalUnitId}`)}
+                                />
+                            ))}
                         </div>
                     )}
                 </div>
@@ -267,18 +248,10 @@ export function ServiceDeskUpmUsers() {
                             ) : null}
 
                             <div className="grid sm:grid-cols-2 gap-3">
-                                <select
-                                    value={form.unitId}
-                                    onChange={(e) => setForm((p) => ({ ...p, unitId: e.target.value }))}
-                                    className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 py-1 text-sm text-slate-900 shadow-xs outline-none focus-visible:border-slate-400 focus-visible:ring-1 focus-visible:ring-slate-400/40 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus-visible:border-slate-500 dark:focus-visible:ring-slate-500/40"
-                                    required
-                                >
-                                    {units.map((unit) => (
-                                        <option key={unit.id} value={unit.id}>
-                                            {unit.name}
-                                        </option>
-                                    ))}
-                                </select>
+                                {/* Unit is fixed to DEFAULT_UNIT_ID per request */}
+                                <div className="h-9 w-full flex items-center rounded-md border border-slate-300 bg-slate-50 px-3 text-sm text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100">
+                                    {units.find((u) => u.id === DEFAULT_UNIT_ID)?.name ?? "Unidade Alfamed"}
+                                </div>
                                 <Input
                                     placeholder="Nome completo"
                                     value={form.name}
@@ -288,12 +261,23 @@ export function ServiceDeskUpmUsers() {
                             </div>
 
                             <div className="grid sm:grid-cols-2 gap-3">
-                                <Input
-                                    placeholder="E-mail"
-                                    value={form.email}
-                                    onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
-                                    required
-                                />
+                                <div className="flex h-9 w-full overflow-hidden rounded-md border border-slate-300 bg-white text-sm shadow-xs focus-within:border-slate-400 focus-within:ring-1 focus-within:ring-slate-400/40 dark:border-slate-600 dark:bg-slate-800 dark:focus-within:border-slate-500 dark:focus-within:ring-slate-500/40">
+                                    <Input
+                                        placeholder="nome"
+                                        value={form.emailLocalPart}
+                                        onChange={(e) =>
+                                            setForm((p) => ({
+                                                ...p,
+                                                emailLocalPart: normalizeEmailLocalPart(e.target.value),
+                                            }))
+                                        }
+                                        className="h-full flex-1 border-0 bg-transparent px-3 shadow-none focus-visible:ring-0"
+                                        required
+                                    />
+                                    <div className="flex items-center border-l border-slate-300 bg-slate-100 px-3 text-slate-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                                        @{INTERNAL_EMAIL_DOMAIN}
+                                    </div>
+                                </div>
                                 <Input
                                     inputMode="numeric"
                                     placeholder="000.000.000-00"
@@ -316,8 +300,7 @@ export function ServiceDeskUpmUsers() {
                                 />
                             </div>
 
-                            <Input
-                                type="password"
+                            <PasswordInput
                                 placeholder="Senha inicial"
                                 value={form.password}
                                 onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}

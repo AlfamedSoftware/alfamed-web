@@ -16,6 +16,7 @@ import {
     FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import PasswordInput from "@/components/ui/password-input"
 
 function digitsOnly(value: string) {
     return value.replace(/\D/g, "")
@@ -427,8 +428,7 @@ export function CadastroProfissionaisForm({
                                 <FormItem>
                                     <FormLabel>Senha</FormLabel>
                                     <FormControl>
-                                        <Input
-                                            type="password"
+                                        <PasswordInput
                                             placeholder="Defina uma senha segura"
                                             {...field}
                                         />
@@ -445,8 +445,7 @@ export function CadastroProfissionaisForm({
                                 <FormItem>
                                     <FormLabel>Confirmar senha</FormLabel>
                                     <FormControl>
-                                        <Input
-                                            type="password"
+                                        <PasswordInput
                                             placeholder="Confirme sua senha"
                                             {...field}
                                         />
