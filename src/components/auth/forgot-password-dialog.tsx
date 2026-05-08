@@ -95,29 +95,29 @@ export function ForgotPasswordDialog({ open, onOpenChange }: ForgotPasswordDialo
         <div className="fixed inset-0 z-50 flex items-center justify-center">
             {/* Overlay */}
             <div
-                className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                className="absolute inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm"
                 onClick={handleClose}
             />
 
             {/* Content */}
-            <div className="relative rounded-2xl shadow-xl p-6 w-full max-w-md mx-4 animate-in fade-in-0 zoom-in-95 duration-200 bg-card text-card-foreground border border-border">
+            <div className="relative rounded-2xl shadow-xl p-6 w-full max-w-md mx-4 animate-in fade-in-0 zoom-in-95 duration-200 bg-white text-slate-900 border border-slate-200 dark:bg-slate-900 dark:text-slate-50 dark:border-slate-800">
                 {success ? (
                     <div className="flex flex-col items-center justify-center py-8 text-center">
                         <CheckCircle className="h-12 w-12 text-green-500 mb-4" />
-                        <h3 className="text-lg font-semibold">Email enviado com sucesso!</h3>
+                        <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Email enviado com sucesso!</h3>
                         <p className="mt-4">
                             Se o email <strong>{successEmail}</strong> existe em nossa base de dados, você
                             receberá um link de redefinição de senha.
                         </p>
-                        <p className="text-sm text-muted-foreground mt-4">
+                        <p className="mt-4 text-sm text-slate-600 dark:text-slate-400">
                             O link expira em 15 minutos. Verifique sua caixa de entrada (e spam).
                         </p>
                     </div>
                 ) : (
                     <>
                         <div className="mb-4">
-                            <h3 className="text-lg font-semibold">Esqueceu sua senha?</h3>
-                            <p className="text-sm text-muted-foreground">Digite seu email para receber um link de redefinição de senha</p>
+                            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Esqueceu sua senha?</h3>
+                            <p className="text-sm text-slate-700 dark:text-slate-400">Digite seu email para receber um link de redefinição de senha</p>
                         </div>
 
                         <Form {...form}>
@@ -133,6 +133,7 @@ export function ForgotPasswordDialog({ open, onOpenChange }: ForgotPasswordDialo
                                                     placeholder="seu@email.com"
                                                     type="email"
                                                     disabled={isLoading}
+                                                    className="border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus-visible:ring-blue-500 dark:border-slate-700 dark:bg-slate-950/60 dark:text-slate-50 dark:placeholder:text-slate-500"
                                                     {...field}
                                                 />
                                             </FormControl>
@@ -142,7 +143,7 @@ export function ForgotPasswordDialog({ open, onOpenChange }: ForgotPasswordDialo
                                 />
 
                                 {form.formState.errors.root && (
-                                    <div className="flex items-center gap-2 rounded-md bg-destructive/10 p-3 text-destructive">
+                                    <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-400">
                                         <AlertCircle className="h-4 w-4 flex-shrink-0" />
                                         <p className="text-sm">{form.formState.errors.root.message}</p>
                                     </div>
