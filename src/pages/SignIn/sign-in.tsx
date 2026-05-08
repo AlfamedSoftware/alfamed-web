@@ -16,6 +16,7 @@ import { useState } from "react"
 import { Loader2 } from "lucide-react"
 import loginLogo from "@/assets/auth/login.svg"
 import { useNavigate } from "react-router"
+import { ForgotPasswordDialog } from "@/components/auth/forgot-password-dialog"
 
 const signInSchema = z.object({
     email: z.string(),
@@ -26,6 +27,7 @@ type signInSchemaType = z.infer<typeof signInSchema>
 
 export function SignIn() {
     const [isLoading, setIsLoading] = useState(false)
+    const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false)
     const navigate = useNavigate()
 
     const form = useForm<signInSchemaType>({
@@ -51,7 +53,7 @@ export function SignIn() {
                     const errorMessage = response.error.message || "";
                     if (errorMessage.includes("inactive")) {
                         form.setError("root", {
-                            message: "Sua conta foi desativada. Entre em contato com o suporte.",
+                            message: "Sua conta foi desativada.",
                         })
                     } else {
                         form.setError("root", {
@@ -132,7 +134,11 @@ export function SignIn() {
                         </form>
                     </Form>
                     <div className="text-center">
-                        <Button variant="link" className="text-primary cursor-pointer text-base">
+                        <Button
+                            variant="link"
+                            className="text-primary cursor-pointer text-base"
+                            onClick={() => setForgotPasswordOpen(true)}
+                        >
                             Esqueceu sua senha?
                         </Button>
                     </div>
@@ -147,6 +153,11 @@ export function SignIn() {
                     />
                 </div>
             </div>
+
+            <ForgotPasswordDialog
+                open={forgotPasswordOpen}
+                onOpenChange={setForgotPasswordOpen}
+            />
         </div>
     )
 }

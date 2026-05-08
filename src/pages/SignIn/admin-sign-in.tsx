@@ -36,13 +36,6 @@ export function AdminSignIn() {
     })
 
     async function onSubmit({ email, password }: AdminSignInSchemaType) {
-        if (!email.toLowerCase().endsWith("@alfamed.com")) {
-            form.setError("email", {
-                message: "Use um e-mail corporativo @alfamed.com",
-            })
-            return
-        }
-
         setIsLoading(true)
 
         try {
@@ -56,7 +49,7 @@ export function AdminSignIn() {
                 const errorMessage = response.error.message || "";
                 if (errorMessage.includes("inactive")) {
                     form.setError("root", {
-                        message: "Sua conta foi desativada. Entre em contato com o suporte.",
+                        message: "Conta Desativada.",
                     })
                 } else {
                     form.setError("root", {
