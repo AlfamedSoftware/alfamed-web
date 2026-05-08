@@ -1,6 +1,7 @@
 import { Home } from "./pages/Home/home"
 import { Default } from "./pages/Default/default"
 import { SignIn } from "@/pages/SignIn/sign-in"
+import { ResetPassword } from "@/pages/ResetPassword/reset-password"
 import { DefaultLayout } from "@/layouts/default-layout"
 import { Routes, Route, Navigate } from "react-router"
 import { ProtectedRoute } from "@/components/ProtectRoute/protected-route"
@@ -31,6 +32,8 @@ export function App() {
       <Routes>
         <Route path="/login" element={<SignIn />} />
         <Route path="/admin/login" element={<AdminSignIn />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/sign-in" element={<SignIn />} />
         <Route
           path="/session"
           element={
