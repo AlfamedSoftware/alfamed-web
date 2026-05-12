@@ -126,10 +126,6 @@ export const adminUnitsService = {
             method: "PATCH",
             body: JSON.stringify(data),
         }),
-    remove: (id: string) =>
-        apiFetch<{ message: string }>(`${BASE_URL}/${id}`, {
-            method: "DELETE",
-        }),
     listProfessionals: (unitId: string) =>
         apiFetch<AdminProfessional[]>(`${BASE_URL}/${unitId}/professionals`),
     createProfessional: (unitId: string, data: CreateAdminProfessionalInput) =>

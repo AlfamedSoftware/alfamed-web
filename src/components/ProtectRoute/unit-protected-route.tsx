@@ -8,18 +8,18 @@ interface UnitProtectedRouteProps {
 }
 
 export function UnitProtectedRoute({ children }: UnitProtectedRouteProps) {
-    const [isCheckingClinic, setIsCheckingClinic] = useState(true)
-    const [hasClinicSelected, setHasClinicSelected] = useState(false)
+    const [isCheckingUnit, setIsCheckingUnit] = useState(true)
+    const [hasUnitSelected, setHasUnitSelected] = useState(false)
     const [isAuthenticated, setIsAuthenticated] = useState(true)
 
     useEffect(() => {
         const controller = new AbortController()
 
-        const checkSelectedClinic = async () => {
-            setIsCheckingClinic(true)
+        const checkSelectedUnit = async () => {
+            setIsCheckingUnit(true)
 
             try {
-                const response = await fetch(`${authBaseUrl}/session/clinics`, {
+                const response = await fetch(`${authBaseUrl}/session/units`, {
                     method: "GET",
                     credentials: "include",
                     cache: "no-store",
@@ -30,30 +30,32 @@ export function UnitProtectedRoute({ children }: UnitProtectedRouteProps) {
                     if (response.status === 401) {
                         setIsAuthenticated(false)
                     }
-                    setHasClinicSelected(false)
+                    setHasUnitSelected(false)
                     return
                 }
 
-                const data = (await response.json()) as { selectedClinicId?: string }
+                const data = (await response.json()) as { selectedUnitId?: string; selectedProfessionalUnitId?: string }
                 setIsAuthenticated(true)
-                setHasClinicSelected(typeof data.selectedClinicId === "string" && data.selectedClinicId.length > 0)
+                const hasUnitId = typeof data.selectedUnitId === "string" && data.selectedUnitId.length > 0
+                const hasProfessionalUnitId = typeof data.selectedProfessionalUnitId === "string" && data.selectedProfessionalUnitId.length > 0
+                setHasUnitSelected(hasUnitId && hasProfessionalUnitId)
             } catch {
                 if (!controller.signal.aborted) {
-                    setHasClinicSelected(false)
+                    setHasUnitSelected(false)
                 }
             } finally {
                 if (!controller.signal.aborted) {
-                    setIsCheckingClinic(false)
+                    setIsCheckingUnit(false)
                 }
             }
         }
 
-        void checkSelectedClinic()
+        void checkSelectedUnit()
 
         return () => controller.abort()
     }, [])
 
-    if (isCheckingClinic) {
+    if (isCheckingUnit) {
         return <Loading fullScreen message="Validando unidade selecionada..." />
     }
 
@@ -61,8 +63,8 @@ export function UnitProtectedRoute({ children }: UnitProtectedRouteProps) {
         return <Navigate to="/login" replace />
     }
 
-    if (!hasClinicSelected) {
-        return <Navigate to="/session" replace />
+    if (!hasUnitSelected) {
+        return <Navigate to="/selecao-unidade" replace />
     }
 
     return <>{children}</>

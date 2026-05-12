@@ -33,6 +33,7 @@ import { useSession } from "@/hooks/use-session"
 import { useEffect, useState } from "react"
 import { auth } from "@/lib/auth"
 import { useSidebarMenu } from "@/contexts/sidebar-menu-context"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Link, useLocation, useNavigate } from "react-router"
 import type { LucideIcon } from "lucide-react"
 
@@ -100,7 +101,7 @@ export function AppSidebar() {
     const navigate = useNavigate()
     const location = useLocation()
     const isAdminArea = location.pathname.startsWith("/admin")
-    const { menuRoles, selectedUnitName } = useSidebarMenu()
+    const { menuRoles, isMenuRolesLoading, selectedUnitName } = useSidebarMenu()
 
     const menuItemsForRoles = menuRoles.flatMap((role) =>
         allowedRoleKeys.has(role as RoleMenuKey)
@@ -111,14 +112,6 @@ export function AppSidebar() {
     const activeRoleKey = menuRoles.find((role) => allowedRoleKeys.has(role as RoleMenuKey)) as RoleMenuKey | undefined
     const currentRoleLabel = activeRoleKey ? roleLabels[activeRoleKey] : null
     const hasMenuItems = menuItems.length > 0
-
-    // Show a skeleton placeholder while the menu roles haven't arrived.
-    // It will remain visible until `menuRoles` contains entries.
-    const [showMenuSkeleton, setShowMenuSkeleton] = useState<boolean>(menuRoles.length === 0)
-
-    useEffect(() => {
-        if (menuRoles.length > 0) setShowMenuSkeleton(false)
-    }, [menuRoles])
 
     const [showUnitSkeleton, setShowUnitSkeleton] = useState<boolean>(!selectedUnitName)
 
@@ -173,7 +166,7 @@ export function AppSidebar() {
                                 </SidebarMenuItem>
                             ))}
                             {!isAdminArea && !hasMenuItems ? (
-                                showMenuSkeleton ? (
+                                isMenuRolesLoading ? (
                                     <>
                                         <SidebarMenuItem>
                                             <SidebarMenuSkeleton showIcon />
@@ -236,22 +229,22 @@ export function AppSidebar() {
                                             {isLoading ? "..." : getUserInitial()}
                                         </span>
                                     </div>
-                                    <div className="flex flex-col justify-center items-start min-w-0 flex-1 ml-2 group-data-[collapsible=icon]:hidden">
-                                        <span className="text-sm font-medium truncate w-full leading-tight">
+                                    <div className="ml-2 flex min-w-0 flex-1 flex-col items-start justify-center group-data-[collapsible=icon]:hidden">
+                                        <span className="w-full truncate text-sm font-medium leading-tight">
                                             {isLoading ? "Carregando..." : user?.name || "Usuário"}
                                         </span>
                                         {isAdminArea ? (
-                                            <span className="truncate text-xs opacity-70 truncate w-full leading-tight">
+                                            <span className="w-full truncate text-xs opacity-70 leading-tight">
                                                 ServiceDesk
                                             </span>
                                         ) : (
                                             <>
                                                 {showUnitSkeleton ? (
-                                                    <div className="mt-1 w-36">
-                                                        <SidebarMenuSkeleton />
+                                                    <div className="w-36">
+                                                        <Skeleton variant="text" size="sm" className="w-36" />
                                                     </div>
                                                 ) : (
-                                                    <span className="truncate text-xs opacity-70 truncate w-full leading-tight">
+                                                    <span className="w-full truncate text-xs opacity-70 leading-tight">
                                                         {selectedUnitName || ""}
                                                     </span>
                                                 )}
@@ -261,11 +254,7 @@ export function AppSidebar() {
                                     <ChevronsUpDown className="ml-auto h-4 w-4 group-data-[collapsible=icon]:hidden" />
                                 </SidebarMenuButton>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent
-                                className="min-w-56 p-0"
-                                align="end"
-                                side="right"
-                            >
+                            <DropdownMenuContent className="min-w-56 p-0" align="end" side="right">
                                 <div className="flex items-center gap-2 p-2">
                                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
                                         <span className="text-sm font-semibold">
@@ -283,21 +272,21 @@ export function AppSidebar() {
                                         ) : (
                                             <>
                                                 {showUnitSkeleton ? (
-                                                    <div className="mt-1 w-36">
-                                                        <SidebarMenuSkeleton />
+                                                    <div className="w-36">
+                                                        <Skeleton variant="text" size="sm" className="w-36" />
                                                     </div>
                                                 ) : (
                                                     <span className="truncate text-xs text-muted-foreground">
                                                         {selectedUnitName || ""}
                                                     </span>
                                                 )}
-                                                {showMenuSkeleton ? (
-                                                    <div className="mt-2 w-36">
-                                                        <SidebarMenuSkeleton />
+                                                {isMenuRolesLoading ? (
+                                                    <div className="w-36">
+                                                        <Skeleton variant="text" size="sm" className="w-36" />
                                                     </div>
                                                 ) : (
                                                     <span className="truncate text-xs text-muted-foreground">
-                                                        {isLoading ? "" : currentRoleLabel ? `Cargo: ${currentRoleLabel}` : "Cargo não definido"}
+                                                        {currentRoleLabel ? `Cargo: ${currentRoleLabel}` : "Cargo: Não definido"}
                                                     </span>
                                                 )}
                                             </>
@@ -322,10 +311,7 @@ export function AppSidebar() {
                                             </DropdownMenuItem>
                                         </>
                                     ) : null}
-                                    <DropdownMenuItem
-                                        variant="destructive"
-                                        onClick={handleLogout}
-                                    >
+                                    <DropdownMenuItem variant="destructive" onClick={handleLogout}>
                                         <LogOut className="h-4 w-4" />
                                         Sair
                                     </DropdownMenuItem>
