@@ -12,6 +12,7 @@ import {
     FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/components/ui/password-input"
 import { useState } from "react"
 import { Loader2 } from "lucide-react"
 import loginLogo from "@/assets/auth/login.svg"
@@ -110,7 +111,7 @@ export function SignIn() {
                                     <FormItem>
                                         <FormLabel>Senha</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="insira sua senha" type="password" {...field} />
+                                            <PasswordInput placeholder="insira sua senha" {...field} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
