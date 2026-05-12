@@ -15,6 +15,7 @@ import {
     FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/components/ui/password-input"
 
 const adminSignInSchema = z.object({
     email: z.email(),
@@ -105,7 +106,7 @@ export function AdminSignIn() {
                                 <FormItem>
                                     <FormLabel>Senha</FormLabel>
                                     <FormControl>
-                                        <Input type="password" placeholder="Sua senha" {...field} />
+                                        <PasswordInput placeholder="Sua senha" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
