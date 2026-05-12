@@ -82,7 +82,6 @@ const menuItemsByRole: Record<RoleMenuKey, SidebarMenuItemConfig[]> = {
     ],
     [MENU_ROLE_KEYS.medic]: [
         { title: "Início", icon: HomeIcon, url: "/home" },
-        { title: "Profissionais", icon: Stethoscope, url: "/profissionais" },
         { title: "Agendamentos", icon: CalendarCheck, url: "/agendamentos" },
         { title: "Agendas", icon: ClipboardList, url: "/agendas" },
     ],

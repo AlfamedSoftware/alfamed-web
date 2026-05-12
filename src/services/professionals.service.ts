@@ -52,9 +52,4 @@ export const professionalsService = {
             method: "PATCH",
             body: JSON.stringify(data),
         }),
-
-    remove: (id: string): Promise<void> =>
-        fetchWithAuth<void>(`${BASE_URL}/${id}`, {
-            method: "DELETE",
-        }),
 }
