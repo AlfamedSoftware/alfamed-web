@@ -1,4 +1,5 @@
 import { authBaseUrl } from "@/lib/auth"
+import { fetchWithAuth } from "@/lib/api-client"
 
 export type AdminUpmUser = {
     professionalId: string
@@ -44,39 +45,15 @@ export type UpdateAdminUpmUserInput = {
 
 const BASE_URL = `${authBaseUrl}/admin/upm`
 
-async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
-    const headers = new Headers(options?.headers)
-
-    if (options?.body && !headers.has("Content-Type")) {
-        headers.set("Content-Type", "application/json")
-    }
-
-    const response = await fetch(url, {
-        ...options,
-        credentials: "include",
-        headers,
-    })
-
-    if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: "Erro desconhecido" }))
-        throw new Error(error?.message ?? `Erro ${response.status}`)
-    }
-
-    const text = await response.text()
-    if (!text) return undefined as T
-
-    return JSON.parse(text) as T
-}
-
 export const adminUpmService = {
-    listUsers: () => apiFetch<AdminUpmUser[]>(`${BASE_URL}/users`),
+    listUsers: () => fetchWithAuth<AdminUpmUser[]>(`${BASE_URL}/users`),
     createUser: (data: CreateAdminUpmUserInput) =>
-        apiFetch<AdminUpmUser>(`${BASE_URL}/users`, {
+        fetchWithAuth<AdminUpmUser>(`${BASE_URL}/users`, {
             method: "POST",
             body: JSON.stringify(data),
         }),
     updateUser: (professionalUnitId: string, data: UpdateAdminUpmUserInput) =>
-        apiFetch<AdminUpmUser>(`${BASE_URL}/users/${professionalUnitId}`, {
+        fetchWithAuth<AdminUpmUser>(`${BASE_URL}/users/${professionalUnitId}`, {
             method: "PATCH",
             body: JSON.stringify(data),
         }),
