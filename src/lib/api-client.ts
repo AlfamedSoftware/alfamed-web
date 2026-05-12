@@ -20,6 +20,10 @@ export async function fetchWithAuth<T>(
 
     // Intercepta 401 (Unauthorized)
     if (response.status === 401) {
+        alert("Sua sessão atingiu o tempo limite de inatividade. Redirecionando para login.")
+        if (navigationCallback) {
+            navigationCallback("/login")
+        }
         throw new Error("Sessão expirada. Redirecionando para login.")
     }
 
