@@ -1,14 +1,13 @@
-import { Mail, Phone, Stethoscope, Users } from "lucide-react"
+import { Mail, Phone } from "lucide-react"
 import { useNavigate } from "react-router"
 import { cn } from "@/lib/utils"
-import type { Professional } from "@/Servicos/professionals.service"
+import type { ProfessionalUnitFullData } from "@/Servicos/professionals.service"
 
 interface ProfessionalCardProps {
-    professional: Professional
+    professional: ProfessionalUnitFullData
     onClick?: (id: string) => void
 }
 
-/** Generates a deterministic color class from a string (userId). */
 function getAvatarColor(seed: string): string {
     const colors = [
         "bg-blue-500",
@@ -40,19 +39,32 @@ function getInitials(name?: string): string {
 }
 
 export function ProfessionalCard({ professional, onClick }: ProfessionalCardProps) {
-    const { id, userId, isActive, name, email, phone } = professional
-    const avatarColor = getAvatarColor(name ?? userId)
-    const displayName = name?.trim() || "Profissional"
-    const displayEmail = email?.trim() || "Email não informado"
-    const displayPhone = phone?.trim() || professional.users?.[0]?.phone?.trim() || "Telefone não informado"
-    const displayRole = professional.roles?.name || "Cargo não informado"
-    const initials = getInitials(name)
-
     const navigate = useNavigate()
 
-    const handleToggle = (e: React.MouseEvent) => {
-        e.stopPropagation()
-    }
+    const id = professional.id
+    const isActive = professional.isActive
+
+    const usersAny = professional.users as unknown
+    const rolesAny = professional.roles as unknown
+
+    const firstUser =
+        Array.isArray(usersAny) ? (usersAny[0] as ProfessionalCardProps["professional"]["users"]) : professional.users
+
+    const firstRole =
+        Array.isArray(rolesAny) ? (rolesAny[0] as ProfessionalCardProps["professional"]["roles"]) : professional.roles
+
+    const name = firstUser?.name
+    const cpf = firstUser?.cpf
+    const email = firstUser?.email
+    const phone = firstUser?.phone
+    const roleName = firstRole?.name
+
+    const avatarColor = getAvatarColor(name ?? cpf ?? id)
+    const displayName = name?.trim() || "Profissional"
+    const displayEmail = email?.trim() || "Email não informado"
+    const displayPhone = phone?.trim() || "Telefone não informado"
+    const displayRole = roleName?.trim() || "Cargo não informado"
+    const initials = getInitials(name)
 
     return (
         <div
@@ -63,7 +75,6 @@ export function ProfessionalCard({ professional, onClick }: ProfessionalCardProp
             )}
             onClick={() => (onClick ? onClick(id) : navigate(`/profissionais/${id}`))}
         >
-            {/* Header: Avatar + Name + Status */}
             <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3 min-w-0">
                     <div
@@ -79,12 +90,11 @@ export function ProfessionalCard({ professional, onClick }: ProfessionalCardProp
                             {displayName}
                         </p>
                         <div className="flex items-center gap-1 mt-0.5 text-muted-foreground">
-                            <span className="text-xs truncate"> { displayRole }</span>
+                            <span className="text-xs truncate"> {displayRole}</span>
                         </div>
                     </div>
                 </div>
 
-                {/* Status Badge */}
                 <button
                     className={cn(
                         "flex-shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium",
@@ -104,8 +114,9 @@ export function ProfessionalCard({ professional, onClick }: ProfessionalCardProp
                 </button>
             </div>
 
-            {/* Contact Info */}
-            <div className="space-y-1.5 mb-4">
+            <div className="border-t border-border mb-4" />
+
+            <div className="ml-3 space-y-1.5">
                 <div className="flex items-center gap-2 text-muted-foreground">
                     <Mail className="w-3.5 h-3.5 flex-shrink-0" />
                     <span className="text-xs truncate">{displayEmail}</span>

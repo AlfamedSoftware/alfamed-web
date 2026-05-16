@@ -15,7 +15,7 @@ import { authBaseUrl } from "@/lib/auth"
 import { cn } from "@/lib/utils"
 import {
     professionalsService,
-    type ProfessionalFullData,
+    type ProfessionalUnitFullData,
     type UpdateProfessionalInput,
     professionalFullSchema,
     professionalProfileSchema,
@@ -35,7 +35,7 @@ type ProfessionalRole = {
     description: string
 }
 
-type ProfessionalProfileData = ProfessionalFullData
+type ProfessionalProfileData = ProfessionalUnitFullData
 
 // ============================================================================
 // UI HELPERS - Formatação e utilidades de interface
@@ -331,11 +331,11 @@ function buildAdminUpdatePayload(
     professionalUnitId?: string
 ): UpdateProfessionalInput {
     const v = values as ProfessionalFullForm
-    const fullData = data as ProfessionalFullData | undefined
+    const fullData = data as ProfessionalUnitFullData | undefined
 
     // Extrair IDs do data
     const userRecord = Array.isArray(fullData?.users) ? fullData.users[0] : fullData?.users as any
-    const professionalRecord = Array.isArray(fullData?.professionals) ? fullData.professionals[0] : fullData?.professional as any
+    const professionalRecord = Array.isArray(fullData?.professionals) ? fullData.professionals[0] : undefined
     const patientRecord = Array.isArray(fullData?.patients) ? fullData.patients[0] : undefined
 
     const payload: UpdateProfessionalInput = {
@@ -372,11 +372,11 @@ function buildProfileUpdatePayload(
     professionalUnitId?: string
 ): UpdateProfessionalInput {
     const v = values as ProfessionalProfileForm
-    const fullData = data as ProfessionalFullData | undefined
+    const fullData = data as ProfessionalUnitFullData | undefined
 
     // Extrair IDs do data
     const userRecord = Array.isArray(fullData?.users) ? fullData.users[0] : fullData?.users as any
-    const professionalRecord = Array.isArray(fullData?.professionals) ? fullData.professionals[0] : fullData?.professional as any
+    const professionalRecord = Array.isArray(fullData?.professionals) ? fullData.professionals[0] : undefined
 
     const payload: UpdateProfessionalInput = {
         // IDs das tabelas

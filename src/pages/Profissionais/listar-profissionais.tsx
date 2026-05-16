@@ -1,9 +1,7 @@
-import { useState, useMemo, useEffect } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { useProfessionals, type ProfessionalFilter } from "@/hooks/use-professionals"
-
 import { ProfessionalCard } from "./Componentes/listar-profissionais-card"
 import { PageHeader } from "@/components/page-header"
 import { ProfessionalFilters } from "./Componentes/ProfessionalFilters"
@@ -12,6 +10,9 @@ import { ProfessionalGridSkeleton } from "./Componentes/Skeleton/listar-profissi
 import { ProfessionalEmptyState } from "./Componentes/ProfessionalEmptyState"
 import { fetchWithAuth } from "@/lib/api-client"
 import { authBaseUrl } from "@/lib/auth"
+import { professionalsService, type ProfessionalUnitFullData } from "@/Servicos/professionals.service"
+
+type ProfessionalFilter = "all" | "active" | "inactive"
 
 interface SessionUnitsResponse {
     units: Array<{ id: string; name: string }>
@@ -22,22 +23,54 @@ export function Profissionais() {
     const navigate = useNavigate()
     const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null)
 
-    // Fetch selectedUnitId from session
+    const [professionals, setProfessionals] = useState<ProfessionalUnitFullData[]>([])
+    const [isLoading, setIsLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
+
     useEffect(() => {
         const fetchUnitId = async () => {
             try {
                 const data = await fetchWithAuth<SessionUnitsResponse>(`${authBaseUrl}/session/units`)
-                if (data.selectedUnitId) {
-                    setSelectedUnitId(data.selectedUnitId)
-                }
+                if (data.selectedUnitId) setSelectedUnitId(data.selectedUnitId)
             } catch (err) {
                 console.error("Error fetching unit id:", err)
             }
         }
+
         fetchUnitId()
     }, [])
 
-    const { professionals, isLoading, error, counts } = useProfessionals(selectedUnitId || "")
+    useEffect(() => {
+        const fetchProfessionals = async () => {
+            if (!selectedUnitId) {
+                setProfessionals([])
+                setIsLoading(false)
+                return
+            }
+
+            setIsLoading(true)
+            setError(null)
+            try {
+                const data = await professionalsService.listByUnit(selectedUnitId)
+                setProfessionals(data)
+            } catch (err) {
+                setError(err instanceof Error ? err.message : "Erro ao carregar profissionais")
+            } finally {
+                setIsLoading(false)
+            }
+        }
+
+        fetchProfessionals()
+    }, [selectedUnitId])
+
+    const counts = useMemo(
+        () => ({
+            all: professionals.length,
+            active: professionals.filter((p) => p.isActive).length,
+            inactive: professionals.filter((p) => !p.isActive).length,
+        }),
+        [professionals],
+    )
 
     const [activeFilter, setActiveFilter] = useState<ProfessionalFilter>("all")
     const [searchQuery, setSearchQuery] = useState("")
@@ -50,13 +83,14 @@ export function Profissionais() {
 
         if (searchQuery.trim()) {
             const q = searchQuery.toLowerCase()
-            list = list.filter(
-                (p) =>
-                    p.id.toLowerCase().includes(q) ||
-                    p.userId.toLowerCase().includes(q) ||
-                    (p.name?.toLowerCase().includes(q) ?? false) ||
-                    (p.email?.toLowerCase().includes(q) ?? false),
-            )
+            list = list.filter((p) => {
+                const users = p.users
+                const firstUser = Array.isArray(users) ? users[0] : users
+                return (
+                    (firstUser?.name?.toLowerCase().includes(q) ?? false) ||
+                    (firstUser?.cpf?.toLowerCase().includes(q) ?? false)
+                )
+            })
         }
 
         return list
@@ -69,11 +103,7 @@ export function Profissionais() {
             <PageHeader title="Profissionais" />
 
             <div className="flex flex-wrap items-center gap-3 px-6 py-4">
-                <ProfessionalFilters
-                    activeFilter={activeFilter}
-                    onFilterChange={setActiveFilter}
-                    counts={counts}
-                />
+                <ProfessionalFilters activeFilter={activeFilter} onFilterChange={setActiveFilter} counts={counts} />
 
                 <div className="flex-1" />
 
@@ -91,9 +121,7 @@ export function Profissionais() {
 
             <main className="flex-1 px-6 pb-8">
                 {error && (
-                    <div className="mb-4 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
-                        {error}
-                    </div>
+                    <div className="mb-4 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>
                 )}
 
                 {isLoading ? (
@@ -103,10 +131,7 @@ export function Profissionais() {
                 ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                         {filtered.map((professional) => (
-                            <ProfessionalCard
-                                key={professional.id}
-                                professional={professional}
-                            />
+                            <ProfessionalCard key={professional.id} professional={professional} />
                         ))}
                     </div>
                 )}
