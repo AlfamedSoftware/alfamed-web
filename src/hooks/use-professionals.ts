@@ -2,49 +2,60 @@ import { useState, useEffect, useCallback } from "react"
 import {
     professionalsService,
     type Professional,
-    type CreateProfessionalInput,
-    type UpdateProfessionalInput,
-} from "@/services/professionals.service"
+    type ProfessionalUnitFullData,
+} from "@/Servicos/professionals.service"
 
 export type ProfessionalFilter = "all" | "active" | "inactive"
 
-export function useProfessionals() {
+function transformProfessionalUnitData(data: ProfessionalUnitFullData): Professional {
+    const user = Array.isArray(data.users) ? data.users[0] : data.users
+    const professional = Array.isArray(data.professionals) ? data.professionals[0] : data.professionals
+    const role = Array.isArray(data.roles) ? data.roles[0] : data.roles
+
+    return {
+        id: data.id,
+        userId: user?.id ?? "",
+        name: user?.name ?? "",
+        email: user?.email ?? "",
+        phone: user?.phone ?? "",
+        cpf: user?.cpf ?? "",
+        birthdate: user?.birthdate ?? "",
+        crm: professional?.id ?? "",
+        isActive: data.isActive,
+        users: user ? [user] : [],
+        roles: role,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+    }
+}
+
+export function useProfessionals(unitId: string) {
     const [professionals, setProfessionals] = useState<Professional[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
     const fetchProfessionals = useCallback(async () => {
+        if (!unitId) {
+            setIsLoading(false)
+            return
+        }
+
         setIsLoading(true)
         setError(null)
         try {
-            const data = await professionalsService.list()
+            const unitData = await professionalsService.listByUnit(unitId)
+            const data = unitData.map(transformProfessionalUnitData)
             setProfessionals(data)
         } catch (err) {
             setError(err instanceof Error ? err.message : "Erro ao carregar profissionais")
         } finally {
             setIsLoading(false)
         }
-    }, [])
+    }, [unitId])
 
     useEffect(() => {
         fetchProfessionals()
     }, [fetchProfessionals])
-
-    const createProfessional = async (data: CreateProfessionalInput) => {
-        const created = await professionalsService.create(data)
-        setProfessionals((prev) => [...prev, created])
-        return created
-    }
-
-    const updateProfessional = async (id: string, data: UpdateProfessionalInput) => {
-        const updated = await professionalsService.update(id, data)
-        setProfessionals((prev) => prev.map((p) => (p.id === id ? updated : p)))
-        return updated
-    }
-
-    const toggleActive = async (id: string, currentIsActive: boolean) => {
-        return updateProfessional(id, { isActive: !currentIsActive })
-    }
 
     const counts = {
         all: professionals.length,
@@ -57,9 +68,5 @@ export function useProfessionals() {
         isLoading,
         error,
         counts,
-        refetch: fetchProfessionals,
-        createProfessional,
-        updateProfessional,
-        toggleActive,
     }
 }

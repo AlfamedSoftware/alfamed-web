@@ -1,31 +1,46 @@
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useNavigate } from "react-router"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useProfessionals, type ProfessionalFilter } from "@/hooks/use-professionals"
-import { professionalsService, type Professional } from "@/services/professionals.service"
 
-import { ProfessionalCard } from "./components/ProfessionalCard"
-import ModalProfessionalDetails from "./components/ModalProfessionalDetails"
+import { ProfessionalCard } from "./Componentes/listar-profissionais-card"
 import { PageHeader } from "@/components/page-header"
-import { ProfessionalFilters } from "./components/ProfessionalFilters"
-import { ProfessionalSearch } from "./components/ProfessionalSearch"
-import { ProfessionalGridSkeleton } from "./components/ProfessionalSkeleton"
-import { ProfessionalEmptyState } from "./components/ProfessionalEmptyState"
-import { ToastContainer, useToast } from "./components/Toast"
-import { RegisterProfessionalModal } from "./components/RegisterProfessionalModal"
+import { ProfessionalFilters } from "./Componentes/ProfessionalFilters"
+import { ProfessionalSearch } from "./Componentes/ProfessionalSearch"
+import { ProfessionalGridSkeleton } from "./Componentes/Skeleton/listar-profissionais-skeleton"
+import { ProfessionalEmptyState } from "./Componentes/ProfessionalEmptyState"
+import { fetchWithAuth } from "@/lib/api-client"
+import { authBaseUrl } from "@/lib/auth"
+
+interface SessionUnitsResponse {
+    units: Array<{ id: string; name: string }>
+    selectedUnitId?: string
+}
 
 export function Profissionais() {
-    const { professionals, isLoading, error, counts, refetch, toggleActive } = useProfessionals()
     const navigate = useNavigate()
+    const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null)
 
-    const [selectedProfessional, setSelectedProfessional] = useState<Professional | null>(null)
-    const [isDetailsOpen, setIsDetailsOpen] = useState(false)
-    const { toasts, dismiss, toast } = useToast()
+    // Fetch selectedUnitId from session
+    useEffect(() => {
+        const fetchUnitId = async () => {
+            try {
+                const data = await fetchWithAuth<SessionUnitsResponse>(`${authBaseUrl}/session/units`)
+                if (data.selectedUnitId) {
+                    setSelectedUnitId(data.selectedUnitId)
+                }
+            } catch (err) {
+                console.error("Error fetching unit id:", err)
+            }
+        }
+        fetchUnitId()
+    }, [])
+
+    const { professionals, isLoading, error, counts } = useProfessionals(selectedUnitId || "")
 
     const [activeFilter, setActiveFilter] = useState<ProfessionalFilter>("all")
     const [searchQuery, setSearchQuery] = useState("")
-    const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false)
 
     const filtered = useMemo(() => {
         let list = professionals
@@ -47,42 +62,11 @@ export function Profissionais() {
         return list
     }, [professionals, activeFilter, searchQuery])
 
-
-    const handleToggleActive = async (id: string, isActive: boolean) => {
-        try {
-            await toggleActive(id, isActive)
-            toast.success(isActive ? "Profissional desativado" : "Profissional ativado")
-        } catch {
-            toast.error("Erro ao alterar status do profissional")
-        }
-    }
-
-    const openDetails = async (id: string) => {
-        try {
-            const detail = await professionalsService.getById(id)
-            setSelectedProfessional(detail)
-            setIsDetailsOpen(true)
-        } catch {
-            toast.error("Erro ao carregar profissional")
-        }
-    }
-
-    const handleStartEdit = (id: string) => {
-        setIsDetailsOpen(false)
-        navigate(`/profissionais/${id}`)
-    }
-
-    // editing/removal handled in profile page now via dedicated route
-
     const isFiltered = activeFilter !== "all" || searchQuery.trim() !== ""
 
     return (
         <div className="flex flex-col h-full min-h-screen bg-background">
             <PageHeader title="Profissionais" />
-
-            <div className="px-6 pt-4">
-                <p className="text-sm text-muted-foreground mt-0.5">Gerencie a equipe médica do Alfamed</p>
-            </div>
 
             <div className="flex flex-wrap items-center gap-3 px-6 py-4">
                 <ProfessionalFilters
@@ -97,7 +81,7 @@ export function Profissionais() {
 
                 <Button
                     id="new-professional-btn"
-                    onClick={() => setIsRegisterModalOpen(true)}
+                    onClick={() => navigate("/cadastro-profissionais")}
                     className="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-4 h-9 gap-1.5 shadow-sm"
                 >
                     <Plus className="w-4 h-4" />
@@ -113,7 +97,7 @@ export function Profissionais() {
                 )}
 
                 {isLoading ? (
-                    <ProfessionalGridSkeleton count={8} />
+                    <ProfessionalGridSkeleton count={24} />
                 ) : filtered.length === 0 ? (
                     <ProfessionalEmptyState isFiltered={isFiltered} />
                 ) : (
@@ -122,28 +106,11 @@ export function Profissionais() {
                             <ProfessionalCard
                                 key={professional.id}
                                 professional={professional}
-                                onToggleActive={handleToggleActive}
-                                onClick={(id) => openDetails(id)}
                             />
                         ))}
                     </div>
                 )}
             </main>
-
-            <RegisterProfessionalModal
-                open={isRegisterModalOpen}
-                onClose={() => setIsRegisterModalOpen(false)}
-                onCreated={refetch}
-            />
-
-            <ModalProfessionalDetails
-                open={isDetailsOpen}
-                professional={selectedProfessional}
-                onClose={() => setIsDetailsOpen(false)}
-                onEdit={handleStartEdit}
-            />
-
-            <ToastContainer toasts={toasts} onDismiss={dismiss} />
         </div>
     )
 }

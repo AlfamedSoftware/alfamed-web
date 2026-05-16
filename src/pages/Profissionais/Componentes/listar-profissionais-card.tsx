@@ -1,11 +1,10 @@
 import { Mail, Phone, Stethoscope, Users } from "lucide-react"
 import { useNavigate } from "react-router"
 import { cn } from "@/lib/utils"
-import type { Professional } from "@/services/professionals.service"
+import type { Professional } from "@/Servicos/professionals.service"
 
 interface ProfessionalCardProps {
     professional: Professional
-    onToggleActive: (id: string, isActive: boolean) => Promise<void>
     onClick?: (id: string) => void
 }
 
@@ -40,20 +39,19 @@ function getInitials(name?: string): string {
     return `${parts[0][0] ?? ""}${parts[parts.length - 1][0] ?? ""}`.toUpperCase()
 }
 
-export function ProfessionalCard({ professional, onToggleActive, onClick }: ProfessionalCardProps) {
-    const { id, userId, isActive, name, email, phone, crm } = professional
+export function ProfessionalCard({ professional, onClick }: ProfessionalCardProps) {
+    const { id, userId, isActive, name, email, phone } = professional
     const avatarColor = getAvatarColor(name ?? userId)
     const displayName = name?.trim() || "Profissional"
     const displayEmail = email?.trim() || "Email não informado"
     const displayPhone = phone?.trim() || professional.users?.[0]?.phone?.trim() || "Telefone não informado"
-    const displayCrm = crm?.trim() || "CRM não informado"
+    const displayRole = professional.roles?.name || "Cargo não informado"
     const initials = getInitials(name)
 
     const navigate = useNavigate()
 
     const handleToggle = (e: React.MouseEvent) => {
         e.stopPropagation()
-        onToggleActive(id, isActive)
     }
 
     return (
@@ -81,17 +79,13 @@ export function ProfessionalCard({ professional, onToggleActive, onClick }: Prof
                             {displayName}
                         </p>
                         <div className="flex items-center gap-1 mt-0.5 text-muted-foreground">
-                            <Stethoscope className="w-3 h-3 flex-shrink-0" />
-                            <span className="text-xs truncate">Clínica Geral</span>
+                            <span className="text-xs truncate"> { displayRole }</span>
                         </div>
                     </div>
                 </div>
 
                 {/* Status Badge */}
                 <button
-                    id={`toggle-status-${id}`}
-                    onClick={handleToggle}
-                    title={isActive ? "Clique para desativar" : "Clique para ativar"}
                     className={cn(
                         "flex-shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium",
                         "transition-all duration-150 cursor-pointer",
@@ -106,7 +100,7 @@ export function ProfessionalCard({ professional, onToggleActive, onClick }: Prof
                             isActive ? "bg-green-500" : "bg-[var(--muted-foreground)]",
                         )}
                     />
-                    {isActive ? "Ativo" : "Desativado"}
+                    {isActive ? "Ativo" : "Inativo"}
                 </button>
             </div>
 
@@ -121,18 +115,6 @@ export function ProfessionalCard({ professional, onToggleActive, onClick }: Prof
                     <span className="text-xs truncate">{displayPhone}</span>
                 </div>
             </div>
-
-            {/* Footer: CRM + Patient count */}
-            <div className="flex items-center justify-between pt-3 border-t mt-auto text-xs text-muted-foreground border-border">
-                <span className="font-medium text-muted-foreground">{displayCrm}</span>
-                <div className="flex items-center gap-1 text-muted-foreground">
-                    <Users className="w-3.5 h-3.5" />
-                    <span className="font-semibold text-muted-foreground">—</span>
-                    <span>pacientes</span>
-                </div>
-            </div>
-
-            {/* Hover actions removed — card is clickable to open profile */}
         </div>
     )
 }

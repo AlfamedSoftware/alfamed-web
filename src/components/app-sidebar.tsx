@@ -93,7 +93,6 @@ const menuItemsByRole: Record<RoleMenuKey, SidebarMenuItemConfig[]> = {
 
 const professionalsSubmenu: SidebarMenuSubItemConfig[] = [
     { title: "Vínculo de Especialidades", icon: ClipboardList, url: "/profissionais/vinculo-especialidades" },
-    { title: "Vínculo de Cargos", icon: ClipboardList, url: "/profissionais/vinculo-cargos" },
 ]
 
 export function AppSidebar() {
