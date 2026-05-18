@@ -1,32 +1,43 @@
 import { useEffect } from "react"
-import { Outlet } from "react-router"
+import { Outlet, useLocation } from "react-router"
 import {
     SidebarInset,
     SidebarProvider,
 } from "@/components/ui/sidebar"
-import { AppSidebar } from "@/components/app-sidebar"
+import { AppSidebar } from "../components/app-sidebar"
 import { SidebarMenuProvider, useSidebarMenu } from "@/contexts/sidebar-menu-context"
 import { useSession } from "@/hooks/use-session"
 import { authBaseUrl } from "@/lib/auth"
+import { fetchWithAuth } from "@/lib/api-client"
 import { listProfessionalUnitRoles } from "@/services/professional-unit-roles.service"
 
-interface SessionClinicsResponse {
-    clinics: Array<{ id: string; name: string }>
-    selectedClinicId?: string
+interface SessionUnitsResponse {
+    units: Array<{ id: string; name: string }>
+    selectedUnitId?: string
     selectedProfessionalUnitId?: string
 }
 
 function SidebarBootstrap() {
     const { user, isLoading } = useSession()
-    const { setMenuRoles, setSelectedUnitName } = useSidebarMenu()
+    const location = useLocation()
+    const { setMenuRoles, setIsMenuRolesLoading, setSelectedUnitName } = useSidebarMenu()
+    const isAdminArea = location.pathname.startsWith("/admin")
 
     useEffect(() => {
         if (isLoading) {
             return
         }
 
+        if (isAdminArea) {
+            setMenuRoles([])
+            setIsMenuRolesLoading(false)
+            setSelectedUnitName(null)
+            return
+        }
+
         if (!user?.id) {
             setMenuRoles([])
+            setIsMenuRolesLoading(false)
             setSelectedUnitName(null)
             return
         }
@@ -34,45 +45,42 @@ function SidebarBootstrap() {
         const controller = new AbortController()
 
         const bootstrap = async () => {
-            try {
-                const response = await fetch(`${authBaseUrl}/session/clinics`, {
-                    method: "GET",
-                    credentials: "include",
-                    cache: "no-store",
-                    signal: controller.signal,
-                })
+            setIsMenuRolesLoading(true)
 
-                if (!response.ok) {
+            try {
+                const data = await fetchWithAuth<SessionUnitsResponse>(`${authBaseUrl}/session/units`)
+
+                const selectedUnitId = typeof data.selectedUnitId === "string" && data.selectedUnitId.length > 0
+                    ? data.selectedUnitId
+                    : null
+                const selectedProfessionalUnitId = typeof data.selectedProfessionalUnitId === "string" && data.selectedProfessionalUnitId.length > 0
+                    ? data.selectedProfessionalUnitId
+                    : null
+
+                if (!selectedUnitId || !selectedProfessionalUnitId) {
                     setMenuRoles([])
+                    setIsMenuRolesLoading(false)
                     setSelectedUnitName(null)
                     return
                 }
 
-                const data = (await response.json()) as SessionClinicsResponse
-                const selectedClinic = data.clinics.find((clinic) => clinic.id === data.selectedClinicId)
-                setSelectedUnitName(selectedClinic?.name ?? null)
-
-                const selectedClinicId = typeof data.selectedClinicId === "string" ? data.selectedClinicId : null
-                const selectedProfessionalUnitId =
-                    typeof data.selectedProfessionalUnitId === "string" ? data.selectedProfessionalUnitId : null
-
-                if (!selectedClinicId || !selectedProfessionalUnitId) {
-                    setMenuRoles([])
-                    return
-                }
+                const selectedUnit = data.units.find((unit) => unit.id === selectedUnitId)
+                setSelectedUnitName(selectedUnit?.name ?? null)
 
                 const roleKeys = await listProfessionalUnitRoles({
                     requestUserId: user.id,
-                    unitId: selectedClinicId,
+                    unitId: selectedUnitId,
                     professionalUnitId: selectedProfessionalUnitId,
                 })
 
                 if (!controller.signal.aborted) {
                     setMenuRoles(roleKeys)
+                    setIsMenuRolesLoading(false)
                 }
-            } catch {
+            } catch (error) {
                 if (!controller.signal.aborted) {
                     setMenuRoles([])
+                    setIsMenuRolesLoading(false)
                     setSelectedUnitName(null)
                 }
             }
@@ -81,7 +89,7 @@ function SidebarBootstrap() {
         void bootstrap()
 
         return () => controller.abort()
-    }, [isLoading, setMenuRoles, setSelectedUnitName, user?.id])
+    }, [isAdminArea, isLoading, setIsMenuRolesLoading, setMenuRoles, setSelectedUnitName, user?.id])
 
     return null
 }

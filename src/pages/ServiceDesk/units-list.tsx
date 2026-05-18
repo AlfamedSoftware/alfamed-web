@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { Link } from "react-router"
-import { Building2, Plus, Trash2 } from "lucide-react"
+import { Building2, Plus } from "lucide-react"
 import { z } from "zod"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
@@ -212,15 +212,6 @@ export function ServiceDeskUnitsList() {
         }
     }
 
-    const handleDelete = async (unitId: string) => {
-        try {
-            await adminUnitsService.remove(unitId)
-            await loadUnits()
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Falha ao excluir unidade")
-        }
-    }
-
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
             <PageHeader title="Administração de Unidades" />
@@ -257,13 +248,6 @@ export function ServiceDeskUnitsList() {
                                                 <p className="text-xs text-slate-500 dark:text-slate-400">{unit.city ?? "Sem cidade"} / {unit.state ?? "--"}</p>
                                             </div>
                                         </div>
-                                        <button
-                                            onClick={() => void handleDelete(unit.id)}
-                                            className="rounded-md p-1.5 text-slate-400 hover:text-red-600 cursor-pointer"
-                                            title="Excluir unidade"
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </button>
                                     </div>
 
                                     <dl className="mt-4 text-sm text-slate-600 dark:text-slate-300 space-y-1">
