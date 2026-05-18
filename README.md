@@ -1,11 +1,14 @@
 # Alfamed Web
 
-Frontend da aplicação Alfamed, construído com React + TypeScript + Vite.
+Frontend da aplicação Alfamed (React + TypeScript + Vite).
+
+> **Agentes de IA:** leia também [`AGENTS.md`](./AGENTS.md) — fluxos de auth, guards, cookies e Service Desk.
 
 ## Requisitos
 
 - Node.js 20+
 - npm 10+
+- API rodando (repositório `alfamed-api`, porta **3333** em dev)
 
 ## Instalação
 
@@ -15,227 +18,179 @@ npm install
 
 ## Variáveis de ambiente
 
-Use o arquivo `.env.example` como referência.
-
-### Variáveis suportadas:
+Use `.env.example` como referência.
 
 ```env
-VITE_API_URL=https://seu-backend-aqui.com
-VITE_API_PROXY_TARGET=http://localhost:3000
+VITE_API_URL=http://localhost:3333
+VITE_API_PROXY_TARGET=http://localhost:3333
 ```
 
-**Significado:**
+| Variável | Descrição |
+|----------|-----------|
+| `VITE_API_URL` | Base da API e do client Better Auth (`src/lib/auth.ts`). Se vazio: localhost → `http://localhost:3333`; produção → `https://alfamed-api-dev.vercel.app` |
+| `VITE_API_PROXY_TARGET` | Apenas dev — alvo do proxy Vite (`/api`, `/health`) |
 
-- `VITE_API_URL`: URL base da API usada pelo client de autenticação (`src/lib/auth.ts`). Se deixar vazio, usa padrão:
-  - Em **localhost/127.0.0.1**: `http://localhost:3000`
-  - Em **produção**: `https://alfamed-api-dev.vercel.app`
-- `VITE_API_PROXY_TARGET`: **Somente em desenvolvimento**. Alvo do proxy local do Vite para evitar CORS. Não é usado em produção.
+**Não use porta 3000** para a API local — o backend sobe em **3333** (`bun run dev`).
 
-### Usar backend local ou backend dev web
-
-Você pode alternar no `.env` conforme o cenário.
-
-Backend local:
-
-```env
-VITE_API_URL=
-VITE_API_PROXY_TARGET=http://localhost:3000
-```
-
-Backend dev hospedado:
-
-```env
-VITE_API_URL=
-VITE_API_PROXY_TARGET=https://alfamed-api-dev.vercel.app
-```
-
-## Execução local (desenvolvimento)
+## Execução
 
 ```bash
-npm run dev
-```
-
-Em desenvolvimento, o projeto usa proxy no Vite (`vite.config.ts`) para encaminhar:
-
-- `/api` para `VITE_API_PROXY_TARGET`
-- `/health` para `VITE_API_PROXY_TARGET`
-
-Isso ajuda a evitar erro de CORS no ambiente local.
-
-## Build de produção
-
-```bash
+npm run dev      # http://localhost:5173
 npm run build
-```
-
-## Preview da build
-
-```bash
 npm run preview
+npm run lint
 ```
 
-## Scripts
+## Conexão com a API
 
-- `npm run dev`: sobe a aplicação em modo desenvolvimento
-- `npm run build`: type-check + build de produção
-- `npm run preview`: serve a build localmente
-- `npm run lint`: executa o lint
+- Cliente de auth: `src/lib/auth.ts` (`createAuthClient`, plugin 2FA).
+- Todas as chamadas autenticadas: **`credentials: "include"`** (cookies de sessão Better Auth).
+- **Não** usar header `x-unit-id` (removido na API).
+- **Não** usar `Authorization: Bearer` para sessão — a sessão vai em cookie.
 
-## Conexão com API
+### Health check
 
-O client de autenticação está em `src/lib/auth.ts` e usa `VITE_API_URL` como base (ou fallback padrão se vazio).
+`src/main.tsx` chama `GET {authBaseUrl}/health` no boot (só log, não bloqueia o app).
 
-### Health Check na inicialização
+---
 
-Na inicialização (`src/main.tsx`), a aplicação chama `GET {VITE_API_URL}/health` e registra no console:
+## Fluxo clínico (Login → Home)
 
-- `API online` quando retornar status 200 com `{ "status": "ok" }`
-- `API offline` em falha de rede, status HTTP inválido ou resposta diferente
+### 1. Login — `/login` ou `/sign-in`
 
-Este check é **informativo** e não bloqueia o carregamento do app.
+Arquivo: `src/pages/SignIn/sign-in.tsx`
 
-## How It Works (Login -> Home)
+```typescript
+await auth.signIn.email({
+  email,
+  password,
+  callbackURL: `${window.location.origin}/session`,
+})
+```
 
-Este é o fluxo atual de autenticação e seleção de unidade até chegar na Home.
+Sucesso → `/session`. Erro 401/inativo → mensagem na tela.
 
-### 1. Login (`/login`)
+### 2. Sessão obrigatória — `ProtectedRoute`
 
-- Arquivo: `src/pages/SignIn/sign-in.tsx`
-- Ao enviar e-mail/senha, o frontend chama `auth.signIn.email(...)`.
-- Em sucesso, redireciona para `/session`.
-- Em falha `400/401`, exibe `Email ou senha inválidos`.
+Arquivo: `src/components/ProtectRoute/protected-route.tsx`
 
-### 2. Validação de sessão (guard global)
+Sem sessão (`useSession` / `auth.getSession()`) → redireciona `/login`.
 
-- Arquivo: `src/components/ProtectRoute/protected-route.tsx`
-- Rotas protegidas só renderizam com sessão válida (`useSession`).
-- Se não houver sessão, redireciona para `/login`.
+### 3. Seleção de unidade — `/session`
 
-### 3. Seleção de unidade (`/session`)
+Arquivo: `src/pages/SelecaoUnidade/selecao-unidade.tsx`
 
-- Arquivo: `src/pages/SelecaoUnidade/selecao-unidade.tsx`
-- Busca unidades em `GET {VITE_API_URL}/session/clinics` com:
-	- `Authorization: Bearer <token da sessão>`
-	- `credentials: include`
+- `GET /session/clinics` com `credentials: "include"` (sem Bearer).
+- Usuário escolhe clínica → `POST /session/select-clinic` com `{ "clinicId": "uuid" }`.
+- O backend define cookies **`selectedClinicId`** e **`selectedProfessionalUnitId`**.
+- 1 unidade apenas → seleção automática e redirect `/home`.
+- Botão **Sair** → `auth.signOut()` → `/login`.
 
-Tratamento de retorno:
+### 4. Área logada — `UnitProtectedRoute`
 
-- `200`: renderiza lista de unidades no select.
-- `401`: mostra mensagem de não autenticado.
-- `500`: mostra mensagem de erro interno.
-- sem unidades: mostra mensagem de que o usuário não tem vínculo.
+Arquivo: `src/components/ProtectRoute/unit-protected-route.tsx`
 
-Regras de navegação nesta etapa:
+- Confere `selectedClinicId` via `GET /session/clinics`.
+- Sem unidade selecionada → `/session`.
+- Com unidade → `/home` e rotas filhas (`app.tsx`).
 
-- Se vier **apenas 1 unidade**, ela é selecionada automaticamente, salva e o usuário é redirecionado para `/home`.
-- Se vier **mais de 1 unidade**, o usuário escolhe no select e clica em `Ir para Home`.
-- Há botão `Sair` para encerrar sessão e voltar para `/login`.
+### 5. Nome da unidade no menu
 
-### 4. Persistência e sincronização da unidade ativa
+`src/contexts/sidebar-menu-context.tsx` guarda `selectedUnitName` só para **exibição**. O escopo real da API está nos **cookies**, não em `localStorage`.
 
-**Mecanismo:**
-- O backend mantém qual unidade está selecionada para cada usuário.
-- Na seleção em `/session`, o frontend envia `POST {VITE_API_URL}/session/select-clinic` com o ID da unidade.
-- O backend salva essa preferência e a retorna em futuras chamadas de `GET /session/clinics` (campo `selectedClinicId`).
+### 6. Roles e sidebar
 
-**No Frontend:**
-- Arquivo: `src/contexts/sidebar-menu-context.tsx`
-- Estado global `selectedUnitName` (apenas o **nome** da unidade para exibição).
-- Sincronizado em layouts/páginas que buscam clinics:
-  - `src/layouts/sidebar-layout.tsx` (após carregar clinics)
-  - `src/pages/Default/default.tsx` (após carregar clinics)
-  - `src/pages/SelecaoUnidade/selecao-unidade.tsx` (seleção manual)
+Bootstrap: `src/pages/Default/default.tsx` (`DefaultBootstrap`)
 
-**Sem localStorage:**
-A seleção agora é persistida no **backend**, eliminando problemas de sincronização com múltiplos abas ou dispositivos.
+1. `GET /session/clinics`
+2. `GET /professionals/professional-unit/roles` com `credentials: "include"` (a API lê unidade/vínculo dos **cookies**)
+3. Roles no context → menu em `src/components/app-sidebar.tsx`
 
-### 5. Acesso à Home e rotas filhas
+| `roles.key` | Itens de menu (resumo) |
+|-------------|-------------------------|
+| `internal_alfamed` | Início, Profissionais, Procedimentos, Especialidades |
+| `administrative` | Idem |
+| `medic` | Início, Agendamentos, Agendas |
+| `administrative_assistant` | Início, Agendas |
 
-- Arquivo: `src/components/ProtectRoute/unit-protected-route.tsx`
-- Além de sessão válida, valida que existe `selectedClinicId` no servidor (`GET /session/clinics`).
-- Se não houver unidade selecionada no backend, redireciona para `/session`.
+---
 
-### 6. Resumo de exceções de redirecionamento
+## Fluxo Service Desk (admin interno)
 
-- **Sem sessão**: qualquer rota protegida → `/login`
-- **Com sessão, sem unidade ativa no backend**: rotas internas (`/home` e filhas) → `/session`
-- **Com sessão e unidade ativa no backend**: acesso normal às páginas internas
+**Não** passa por `/session` nem exige cookie de clínica.
 
-### 7. Papéis (Roles) e montagem dinâmica do menu
+### 1. Login — `/admin/login`
 
-**Fluxo de carregamento dos roles:**
+Arquivo: `src/pages/SignIn/admin-sign-in.tsx`
 
-1. **Bootstrap na sidebar** (`src/layouts/sidebar-layout.tsx`):
-   - Após usuário logar e selecionar uma unidade, o componente `SidebarBootstrap` é inicializado.
-   - Busca em `GET {VITE_API_URL}/session/clinics` para obter `selectedClinicId` e `selectedProfessionalUnitId`.
-   - Chama `listProfessionalUnitRoles()` (do serviço em `src/services/professional-unit-roles.service.ts`).
+```typescript
+await auth.signIn.email({
+  email,
+  password,
+  callbackURL: `${window.location.origin}/admin/unidades`,
+})
+```
 
-2. **Requisição de roles ao backend**:
-   - Envia: `GET {VITE_API_URL}/professionals/professional-unit/roles`
-   - Parâmetros: `unitId` (clínica), `professionalUnitId`, `requestUserId` (identificação do profissional)
-   - Resposta: array de role keys como `["internal_alfamed", "administrative", "medic"]`
+A API valida role **`internal_alfamed`** quando `callbackURL` contém `/admin/`.
 
-3. **Armazenamento no Context** (`src/contexts/sidebar-menu-context.tsx`):
-   - Os roles são salvos em estado global via `SidebarMenuContext`.
-   - Disponível para leitura em qualquer componente via hook `useSidebarMenu()`.
+### 2. Guard interno — `InternalProtectedRoute`
 
-**Mapeamento de roles para menu:**
+Arquivo: `src/components/ProtectRoute/internal-protected-route.tsx`
 
-Arquivo: `src/components/app-sidebar.tsx`
+- Exige sessão.
+- E-mail deve terminar com **`@alfamed.com`**.
+- Falha → `/admin/login`.
 
-Roles suportados:
-- `internal_alfamed` → Cargo "Alfamed" (acesso a Profissionais, Procedimentos, Especialidades)
-- `administrative` → Cargo "Administrativo" (mesmo acesso que Alfamed)
-- `medic` → Cargo "Médico" (acesso a Agendamentos e Agendas)
-- `administrative_assistant` → Cargo "Assistente administrativo" (acesso a Agendas)
+### 3. Rotas admin — `src/app.tsx`
 
-Qualquer outro role desconhecido é **ignorado** (filtro `allowedRoleKeys`).
+- `/admin/unidades`, `/admin/upm`, etc.
+- Layout `Default` sem carregar roles clínicos na área `/admin`.
 
-**Montagem do menu:**
+Serviços: `src/services/admin/admin-units.service.ts`, `admin-upm.service.ts`.
 
-1. Para cada role no `menuRoles`, obtém seus itens em `menuItemsByRole[role]`.
-2. Combina itens de múltiplos roles (deduplica por URL).
-3. Resultado: array final de itens únicos a exibir na sidebar.
-4. O rótulo do cargo atual é exibido no footer (primeiro role reconhecido).
+---
 
-**Nota sobre múltiplos roles:**
-Embora o sistema suporte múltiplos roles por profissional em uma unidade, **o ideal é que haja apenas um role por profissional por unidade profissional**. Isso será garantido no cadastro de profissionais, simplificando a experiência do usuário e evitando confusão com permissões sobrepostas.
+## Reset de senha
 
-**Exemplo (caso padrão):**
-- Usuário com um único role: `["medic"]`
-- Menu renderizado: Início, Agendamentos, Agendas
+- Modal: `src/components/auth/forgot-password-dialog.tsx` → `POST /auth/forgot-password`
+- Página: `/reset-password?token=...` → `src/pages/ResetPassword/reset-password.tsx`
 
-**Extensão:**
+---
 
-Para adicionar novo role:
-1. Adicionar chave em `MENU_ROLE_KEYS`
-2. Adicionar rótulo em `roleLabels`
-3. Mapear itens em `menuItemsByRole`
-4. Backend retornará a nova role key ao usuário
+## Redirecionamentos (resumo)
 
-## Deploy (Vercel)
+| Situação | Destino |
+|----------|---------|
+| Sem sessão (área clínica) | `/login` |
+| Com sessão, sem clínica selecionada | `/session` |
+| Service Desk sem sessão / e-mail inválido | `/admin/login` |
 
-O frontend é implantado separadamente do backend, resultando em domínios diferentes.
+---
 
-### Configuração de CORS
+## CORS e deploy
 
-O backend **deve** estar configurado para aceitar requisições cross-origin do(s) frontend(ns).
+O backend deve liberar origens com `credentials: true` (ver `trustedOrigins` na API):
 
-**Origens recomendadas para liberar no backend:**
+- `http://localhost:5173`
+- `https://dev-alfamed.vercel.app`
+- `https://web-alfamed.vercel.app`
 
-- `http://localhost:5173` (dev local)
-- `https://dev-alfamed.vercel.app` (dev preview)
-- `https://web-alfamed.vercel.app` (produção)
+Deploy: `vercel.json` (SPA rewrite para `index.html`).
 
-**Regras importantes:**
+## Estrutura resumida
 
-- Manter protocolo (`http://` / `https://`)
-- Não usar barra final (`/`)
-- Responder com `Access-Control-Allow-Origin` em **todas** as respostas (incluindo erros 4xx/5xx)
-- Permitir método `OPTIONS` para preflight requests
-- Manter `Access-Control-Allow-Credentials: true` para requisições com cookies/sessão
+```text
+src/
+  app.tsx              # rotas
+  lib/auth.ts          # Better Auth client
+  components/ProtectRoute/
+  pages/SignIn/        # login clínico + admin
+  pages/SelecaoUnidade/
+  pages/ServiceDesk/
+  services/            # fetch → API
+  contexts/            # sidebar menu
+```
 
-## Observações
+## Licença
 
-- `.env` está no `.gitignore`.
-- Sempre que alterar variáveis no Vercel, faça novo deploy para refletir no build.
+Projeto interno — Alfamed.
