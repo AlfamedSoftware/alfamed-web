@@ -12,10 +12,12 @@ import {
     FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/components/ui/password-input"
 import { useState } from "react"
 import { Loader2 } from "lucide-react"
 import loginLogo from "@/assets/auth/login.svg"
 import { useNavigate } from "react-router"
+import { ForgotPasswordDialog } from "@/components/auth/forgot-password-dialog"
 
 const signInSchema = z.object({
     email: z.string(),
@@ -26,6 +28,7 @@ type signInSchemaType = z.infer<typeof signInSchema>
 
 export function SignIn() {
     const [isLoading, setIsLoading] = useState(false)
+    const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false)
     const navigate = useNavigate()
 
     const form = useForm<signInSchemaType>({
@@ -46,7 +49,19 @@ export function SignIn() {
             })
 
             if (response?.error) {
-                if (response.error.status === 401 || response.error.status === 400) {
+                if (response.error.status === 401) {
+                    // Check if the error message indicates account is inactive
+                    const errorMessage = response.error.message || "";
+                    if (errorMessage.includes("inactive")) {
+                        form.setError("root", {
+                            message: "Sua conta foi desativada.",
+                        })
+                    } else {
+                        form.setError("root", {
+                            message: "Email ou senha inválidos",
+                        })
+                    }
+                } else if (response.error.status === 400) {
                     form.setError("root", {
                         message: "Email ou senha inválidos",
                     })
@@ -55,7 +70,7 @@ export function SignIn() {
             }
 
             navigate("/session", { replace: true })
-        } catch (error) {
+        } catch {
             form.setError("root", {
                 message: "Ocorreu um erro inesperado. Tente novamente.",
             })
@@ -96,7 +111,7 @@ export function SignIn() {
                                     <FormItem>
                                         <FormLabel>Senha</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="insira sua senha" type="password" {...field} />
+                                            <PasswordInput placeholder="insira sua senha" {...field} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -120,21 +135,30 @@ export function SignIn() {
                         </form>
                     </Form>
                     <div className="text-center">
-                        <Button variant="link" className="text-primary cursor-pointer text-base">
+                        <Button
+                            variant="link"
+                            className="text-primary cursor-pointer text-base"
+                            onClick={() => setForgotPasswordOpen(true)}
+                        >
                             Esqueceu sua senha?
                         </Button>
                     </div>
                 </div>
             </div>
             <div className="hidden lg:flex items-center justify-start pl-20 h-full">
-                <div className="w-full max-w-[600px] pb-24">
+                <div className="w-full max-w-[600px] pb-24]shadow-[0_30px_100px_-50px_rgba(0,0,0,0.95)] backdrop-blur-sm">
                     <img
                         src={loginLogo}
                         alt="Image"
-                        className="h-full w-full object-contain dark:brightness-[0.2] dark:grayscale"
+                        className="h-full w-full object-contain"
                     />
                 </div>
             </div>
+
+            <ForgotPasswordDialog
+                open={forgotPasswordOpen}
+                onOpenChange={setForgotPasswordOpen}
+            />
         </div>
     )
 }

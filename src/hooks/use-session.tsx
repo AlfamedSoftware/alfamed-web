@@ -1,9 +1,17 @@
 import { useEffect, useState } from "react"
 import { auth } from "@/lib/auth"
 
+type SessionData = Awaited<ReturnType<typeof auth.getSession>>["data"]
+type SessionUser = NonNullable<SessionData>["user"]
+type SessionInfo = NonNullable<SessionData>["session"]
+
+export function isInternalAlfamedEmail(email?: string | null) {
+    return !!email?.toLowerCase().endsWith("@alfamed.com")
+}
+
 export function useSession() {
-    const [session, setSession] = useState<any>(null)
-    const [user, setUser] = useState<any>(null)
+    const [session, setSession] = useState<SessionInfo | null>(null)
+    const [user, setUser] = useState<SessionUser | null>(null)
     const [isLoading, setIsLoading] = useState(true)
 
     useEffect(() => {
@@ -28,5 +36,6 @@ export function useSession() {
         session,
         user,
         isLoading,
+        isInternalUser: isInternalAlfamedEmail(user?.email),
     }
 }

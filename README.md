@@ -1,166 +1,149 @@
 # Alfamed Web
 
-Frontend da aplicação Alfamed, construído com React + TypeScript + Vite.
+Frontend da aplicação Alfamed, construído com **React 19 + TypeScript + Vite**.
+
+## Resumo
+
+Aplicação SPA para fluxo clínico e área interna do Service Desk. O frontend consome a API do Alfamed via REST e usa Better Auth com sessão em cookie.
 
 ## Requisitos
 
-- Node.js 20+
-- npm 10+
+- Node.js 20+.
+- npm 10+.
 
 ## Instalação
 
 ```bash
+git clone <repo>
+cd alfamed-web
 npm install
 ```
 
-## Variáveis de ambiente
+Crie um arquivo `.env` na raiz, tomando `.env.example` como base.
 
-Use o arquivo `.env.example` como referência.
+## Variáveis de Ambiente
 
-Configuração atual suportada:
+| Variável | Uso | Valor padrão |
+|----------|-----|--------------|
+| `VITE_API_URL` | URL base usada pelo cliente de autenticação e pelos serviços | `http://localhost:3333` em localhost; `https://alfamed-api-dev.vercel.app` fora dele |
+| `VITE_API_PROXY_TARGET` | Alvo do proxy do Vite em desenvolvimento | `https://alfamed-api-dev.vercel.app` |
 
-```env
-VITE_API_URL=
-VITE_API_PROXY_TARGET=http://localhost:3000
-```
-
-Significado:
-
-- `VITE_API_URL`: URL base usada pelo client de auth (`src/lib/auth.ts`).
-- `VITE_API_PROXY_TARGET`: alvo do proxy local do Vite em desenvolvimento.
-
-### Usar backend local ou backend dev web
-
-Você pode alternar no `.env` conforme o cenário.
-
-Backend local:
+Exemplo local:
 
 ```env
-VITE_API_URL=
-VITE_API_PROXY_TARGET=http://localhost:3000
+VITE_API_URL=http://localhost:3333
+VITE_API_PROXY_TARGET=http://localhost:3333
 ```
 
-Backend dev hospedado:
+## Scripts
 
-```env
-VITE_API_URL=
-VITE_API_PROXY_TARGET=https://alfamed-api-dev.vercel.app
+```bash
+npm run dev
+npm run build
+npm run lint
+npm run preview
 ```
 
-## Execução local (desenvolvimento)
+## Execução
 
 ```bash
 npm run dev
 ```
 
-Em desenvolvimento, o projeto usa proxy no Vite (`vite.config.ts`) para encaminhar:
+O app sobe em `http://localhost:5173`.
 
-- `/api` para `VITE_API_PROXY_TARGET`
-- `/health` para `VITE_API_PROXY_TARGET`
-
-Isso ajuda a evitar erro de CORS no ambiente local.
-
-## Build de produção
+No modo de desenvolvimento, o Vite faz proxy de `/api` e `/health` para o backend configurado em `VITE_API_PROXY_TARGET`.
 
 ```bash
 npm run build
 ```
 
-## Preview da build
+Gera a build de produção em `dist/`.
 
 ```bash
 npm run preview
 ```
 
-## Scripts
+Serve localmente a build gerada.
 
-- `npm run dev`: sobe a aplicação em modo desenvolvimento
-- `npm run build`: type-check + build de produção
-- `npm run preview`: serve a build localmente
-- `npm run lint`: executa o lint
+## Fluxo da Aplicação
 
-## Conexão com API
+### Login clínico
 
-O client de autenticação está em `src/lib/auth.ts` e usa `VITE_API_URL` como base.
+1. A rota `/login` usa `src/pages/SignIn/sign-in.tsx`.
+2. O login chama `auth.signIn.email(...)` com `callbackURL` para `/session`.
+3. A sessão é mantida por cookie, não por Bearer token.
+4. Em sucesso, o usuário segue para a seleção de unidade.
 
-Além disso, na inicialização (`src/main.tsx`), a aplicação chama `GET /health` e registra no console:
+### Seleção de unidade
 
-- `API online` quando retornar `{ "status": "ok" }`
-- `API offline` em falha de rede, status HTTP inválido ou resposta diferente
+1. A rota `/session` usa `src/pages/SelecaoUnidade/selecao-unidade.tsx`.
+2. O frontend busca `GET /session/units` com `credentials: "include"`.
+3. Se houver uma única unidade, a seleção é automática.
+4. Se houver mais de uma, o usuário escolhe a unidade e envia `POST /session/select-unit` com `{ unitId }`.
+5. Depois disso o backend grava `selectedUnitId` e `selectedProfessionalUnitId` em cookies.
 
-## How It Works (Login -> Home)
+### Rotas internas
 
-Este é o fluxo atual de autenticação e seleção de unidade até chegar na Home.
+As rotas internas ficam sob `/` e são protegidas por `ProtectedRoute` e `UnitProtectedRoute`.
 
-### 1. Login (`/login`)
+Rotas atuais em `src/app.tsx`:
 
-- Arquivo: `src/pages/SignIn/sign-in.tsx`
-- Ao enviar e-mail/senha, o frontend chama `auth.signIn.email(...)`.
-- Em sucesso, redireciona para `/session`.
-- Em falha `400/401`, exibe `Email ou senha inválidos`.
+- `/home`
+- `/profissionais`
+- `/profissionais/vinculo-especialidades`
+- `/profissionais/:id`
+- `/cadastro-profissionais`
+- `/procedimentos`
+- `/especialidades`
+- `/agendas`
+- `/agendamentos`
+- `/perfil`
 
-### 2. Validação de sessão (guard global)
+### Área administrativa
 
-- Arquivo: `src/components/ProtectRoute/protected-route.tsx`
-- Rotas protegidas só renderizam com sessão válida (`useSession`).
-- Se não houver sessão, redireciona para `/login`.
+As rotas de Service Desk ficam em `/admin/*`.
 
-### 3. Seleção de unidade (`/session`)
+Rotas atuais:
 
-- Arquivo: `src/pages/SelecaoUnidade/selecao-unidade.tsx`
-- Busca unidades em `GET {VITE_API_URL}/units/by-user` com:
-	- `Authorization: Bearer <token da sessão>`
-	- `credentials: include`
+- `/admin/login`
+- `/admin/unidades`
+- `/admin/unidades/:id`
+- `/admin/upm`
+- `/admin/upm/usuarios/:id`
 
-Tratamento de retorno:
+## Autenticação e API
 
-- `200`: renderiza lista de unidades no select.
-- `401`: mostra mensagem de não autenticado.
-- `500`: mostra mensagem de erro interno.
-- sem unidades: mostra mensagem de que o usuário não tem vínculo.
+- O cliente de autenticação está em `src/lib/auth.ts`.
+- Requisições autenticadas usam `credentials: "include"`.
+- Não há uso de `Authorization: Bearer` para a sessão do Better Auth.
+- Não existe header `x-unit-id` no frontend.
+- Serviços HTTP ficam em `src/Servicos/*.service.ts`.
 
-Regras de navegação nesta etapa:
+## Estrutura Principal
 
-- Se vier **apenas 1 unidade**, ela é selecionada automaticamente, salva e o usuário é redirecionado para `/home`.
-- Se vier **mais de 1 unidade**, o usuário escolhe no select e clica em `Ir para Home`.
-- Há botão `Sair` para encerrar sessão e voltar para `/login`.
+```
+src/
+├── components/     # UI, guards de rota, sidebar, auth e loading
+├── contexts/       # Contexto do menu lateral
+├── hooks/          # Hooks de sessão e utilitários
+├── layouts/        # Layout padrão e layout com sidebar
+├── lib/            # Cliente de auth, fetch e utilitários
+├── pages/          # Telas da aplicação
+├── Servicos/       # Chamadas HTTP para API
+├── app.tsx         # Definição das rotas
+└── main.tsx        # Bootstrap da aplicação
+```
 
-### 4. Persistência da unidade ativa
+## Validação
 
-- Arquivo: `src/lib/selected-unit.ts`
-- A unidade escolhida é salva no `localStorage` por usuário:
-	- chave: `alfamed:selected-unit:<userId>`
-	- valor: `{ id, name }`
+Na verificação executada neste workspace:
 
-### 5. Acesso à Home e rotas filhas
-
-- Arquivo: `src/components/ProtectRoute/unit-protected-route.tsx`
-- Além de sessão válida, exige unidade ativa salva para acessar `/home` e demais rotas internas.
-- Se não houver unidade selecionada, redireciona para `/session`.
-
-### 6. Resumo de exceções de redirecionamento
-
-- Sem sessão: qualquer rota protegida -> `/login`
-- Com sessão, sem unidade ativa: rotas internas (`/home` e filhas) -> `/session`
-- Com sessão e unidade ativa: acesso normal às páginas internas
-
-## Deploy (Vercel)
-
-Para frontend e backend em domínios diferentes, configure CORS no backend.
-
-Origens recomendadas para liberar no backend:
-
-- `http://localhost:5173`
-- `https://dev-alfamed.vercel.app`
-- `https://web-alfamed.vercel.app`
-
-Regras:
-
-- manter protocolo (`http://` / `https://`)
-- não usar barra final
-- aplicar no formato de configuração que seu backend utiliza atualmente
+- `npm run build` passou.
+- `npm run lint` falhou por problemas já existentes no código, principalmente `react-hooks/set-state-in-effect` em `src/components/app-sidebar.tsx` e alguns `no-unused-vars`.
 
 ## Observações
 
-- `.env` está no `.gitignore`.
-- Sempre que alterar variáveis no Vercel, faça novo deploy para refletir no build.
+- O backend local padrão usa a porta `3333`, não `3000`.
+- O fluxo de unidade e menu depende de cookies da sessão.
+- O app usa React 19, não React 18.

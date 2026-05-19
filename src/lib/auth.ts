@@ -7,6 +7,7 @@ const defaultAuthBaseUrl =
         : "https://alfamed-api-dev.vercel.app"
 
 export const authBaseUrl = (import.meta.env.VITE_API_URL ?? defaultAuthBaseUrl).trim().replace(/\/+$/, "")
+export const API_URL = authBaseUrl
 
 export const auth = createAuthClient({
     baseURL: authBaseUrl,
