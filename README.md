@@ -192,14 +192,14 @@ VITE_API_PROXY_TARGET=https://alfamed-api-dev.vercel.app
 VITE_API_URL=https://alfamed-api.vercel.app
 ```
 
-### Health Check na inicialização
+---
 
 Na inicialização (`src/main.tsx`), a aplicação tenta conectar à API e registra no console:
 
 - `✓ API online` → status 200 com `{ "status": "ok" }`
 - `✗ API offline` → falha de rede, status inválido ou resposta diferente
 
-Este check é **informativo** e não bloqueia o carregamento do app.
+Arquivo: `src/pages/SignIn/sign-in.tsx`
 
 ## Papéis (Roles) e Menu Dinâmico
 
