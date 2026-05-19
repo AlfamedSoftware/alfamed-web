@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { useNavigate, useParams } from "react-router"
+import { useSession } from "@/hooks/use-session"
 import {
     Loader2,
     Save,
@@ -13,29 +14,28 @@ import PasswordInput from "@/components/ui/password-input"
 import { PageHeader } from "@/components/page-header"
 import { authBaseUrl } from "@/lib/auth"
 import { cn } from "@/lib/utils"
-import {
-    professionalsService,
-    type ProfessionalUnitFullData,
-    type UpdateProfessionalInput,
-    professionalFullSchema,
-    professionalProfileSchema,
-    type ProfessionalFullForm,
-    type ProfessionalProfileForm,
-    formatCpf,
-    formatPhone,
-    digitsOnly,
-} from "@/Servicos/professionals.service"
+import { professionalsService, type ProfessionalUnitFullData } from "@/Servicos/professionals.service"
+import * as z from "zod"
 import { ToastContainer, useToast } from "./Componentes/Toast"
 import { AlteracaoProfissionaisSkeleton } from "./Componentes/Skeleton/alteracao-profissionais-skeleton"
 
-type ProfessionalEditForm = ProfessionalFullForm | ProfessionalProfileForm
+// ============================================================================
+// FORM VALUE TYPE - valores usados pelo formulário (UI)
+// Usamos um único schema de validação para todos os modos (create/update/profile)
+// ============================================================================
+
+type ProfessionalFormValues = z.infer<typeof professionalFormBaseSchema> & {
+    roleId?: string
+    crmState?: string
+    crmNumber?: string
+    professionalUnitStatus?: boolean
+    patientStatus?: boolean
+}
 
 type ProfessionalRole = {
     id: string
     description: string
 }
-
-type ProfessionalProfileData = ProfessionalUnitFullData
 
 // ============================================================================
 // UI HELPERS - Formatação e utilidades de interface
@@ -68,19 +68,29 @@ function formatDateInput(value?: string) {
     return date.toISOString().slice(0, 10)
 }
 
+const sexOptions = [
+    { value: "M", label: "Masculino" },
+    { value: "F", label: "Feminino" },
+    { value: "O", label: "Outros" },
+] as const
+
 function ToggleSwitch({
     checked,
     onClick,
+    disabled = false,
 }: {
     checked: boolean
     onClick: () => void
+    disabled?: boolean
 }) {
     return (
         <button
             type="button"
-            onClick={onClick}
+            onClick={disabled ? undefined : onClick}
+            disabled={disabled}
             className={cn(
                 "relative inline-flex h-8 w-14 items-center rounded-full p-1 transition-colors",
+                disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer",
                 checked ? "bg-primary" : "bg-muted",
             )}
             aria-pressed={checked}
@@ -139,50 +149,56 @@ function firstRecord(value: unknown): Record<string, unknown> | undefined {
     return item && typeof item === "object" ? item as Record<string, unknown> : undefined
 }
 
-function getPrimaryUser(data: ProfessionalProfileData) {
+function getIdFromNode(node: unknown): string | undefined {
+    const record = firstRecord(node)
+    const id = record?.id
+    return typeof id === "string" && id.length > 0 ? id : undefined
+}
+
+function getPrimaryUser(data: ProfessionalUnitFullData) {
     return firstItem(data.users)
 }
 
-function getProfessionalName(data?: ProfessionalProfileData | null): string | undefined {
+function getProfessionalName(data?: ProfessionalUnitFullData | null): string | undefined {
     if (!data) return undefined
-    const payload = data as ProfessionalProfileData & { name?: unknown }
+    const payload = data as ProfessionalUnitFullData & { name?: unknown }
     if (typeof payload.name === "string") return payload.name
     return getPrimaryUser(data)?.name
 }
 
-function getProfessionalEmail(data: ProfessionalProfileData): string {
-    const payload = data as ProfessionalProfileData & { email?: unknown }
+function getProfessionalEmail(data: ProfessionalUnitFullData): string {
+    const payload = data as ProfessionalUnitFullData & { email?: unknown }
     if (typeof payload.email === "string") return payload.email
     return getPrimaryUser(data)?.email ?? ""
 }
 
-function getProfessionalSocialName(data: ProfessionalProfileData): string {
-    const payload = data as ProfessionalProfileData & { socialName?: unknown }
+function getProfessionalSocialName(data: ProfessionalUnitFullData): string {
+    const payload = data as ProfessionalUnitFullData & { socialName?: unknown }
     const user = getPrimaryUser(data) as { socialName?: unknown } | undefined
     if (typeof payload.socialName === "string") return payload.socialName
     return typeof user?.socialName === "string" ? user.socialName : ""
 }
 
-function getProfessionalCpf(data: ProfessionalProfileData): string {
-    const payload = data as ProfessionalProfileData & { cpf?: unknown }
+function getProfessionalCpf(data: ProfessionalUnitFullData): string {
+    const payload = data as ProfessionalUnitFullData & { cpf?: unknown }
     if (typeof payload.cpf === "string") return payload.cpf
     return getPrimaryUser(data)?.cpf ?? ""
 }
 
-function getProfessionalBirthdate(data: ProfessionalProfileData): string | undefined {
-    const payload = data as ProfessionalProfileData & { birthdate?: unknown }
+function getProfessionalBirthdate(data: ProfessionalUnitFullData): string | undefined {
+    const payload = data as ProfessionalUnitFullData & { birthdate?: unknown }
     if (typeof payload.birthdate === "string") return payload.birthdate
     return getPrimaryUser(data)?.birthdate
 }
 
-function getProfessionalPhone(data: ProfessionalProfileData): string {
-    const payload = data as ProfessionalProfileData & { phone?: unknown }
+function getProfessionalPhone(data: ProfessionalUnitFullData): string {
+    const payload = data as ProfessionalUnitFullData & { phone?: unknown }
     if (typeof payload.phone === "string") return payload.phone
     return getPrimaryUser(data)?.phone ?? ""
 }
 
-function getProfessionalSex(data: ProfessionalProfileData): ProfessionalEditForm["sex"] {
-    const payload = data as ProfessionalProfileData & { sex?: unknown }
+function getProfessionalSex(data: ProfessionalUnitFullData): ProfessionalFormValues["sex"] {
+    const payload = data as ProfessionalUnitFullData & { sex?: unknown }
     const user = getPrimaryUser(data) as { sex?: unknown } | undefined
     const value =
         typeof payload.sex === "string"
@@ -191,15 +207,15 @@ function getProfessionalSex(data: ProfessionalProfileData): ProfessionalEditForm
                 ? user.sex
                 : ""
 
-    if (value === "F" || value === "M") {
+    if (value === "F" || value === "M" || value === "O") {
         return value
     }
 
     return ""
 }
 
-function getProfessionalCrm(data: ProfessionalProfileData): string {
-    const payload = data as ProfessionalProfileData & {
+function getProfessionalCrm(data: ProfessionalUnitFullData): string {
+    const payload = data as ProfessionalUnitFullData & {
         crm?: unknown
         crmNumber?: unknown
         professional?: { crm?: unknown; crmNumber?: unknown } | null
@@ -217,8 +233,8 @@ function getProfessionalCrm(data: ProfessionalProfileData): string {
     return ""
 }
 
-function getProfessionalUnitStatus(data: ProfessionalProfileData): boolean {
-    const payload = data as ProfessionalProfileData & {
+function getProfessionalUnitStatus(data: ProfessionalUnitFullData): boolean {
+    const payload = data as ProfessionalUnitFullData & {
         professionalUnitStatus?: unknown
         professional?: { isActive?: unknown } | null
         professionals?: unknown
@@ -228,8 +244,8 @@ function getProfessionalUnitStatus(data: ProfessionalProfileData): boolean {
     return toBooleanStatus(payload.professionalUnitStatus ?? data.isActive ?? payload.professional?.isActive ?? professional?.isActive, true)
 }
 
-function getPatientStatus(data: ProfessionalProfileData): boolean {
-    const payload = data as ProfessionalProfileData & {
+function getPatientStatus(data: ProfessionalUnitFullData): boolean {
+    const payload = data as ProfessionalUnitFullData & {
         patientStatus?: unknown
         patient?: { isActive?: unknown } | null
         patients?: unknown
@@ -239,8 +255,8 @@ function getPatientStatus(data: ProfessionalProfileData): boolean {
     return toBooleanStatus(payload.patientStatus ?? payload.patient?.isActive ?? patient?.isActive, true)
 }
 
-function getProfessionalRoleId(data: ProfessionalProfileData): string {
-    const payload = data as ProfessionalProfileData & {
+function getProfessionalRoleId(data: ProfessionalUnitFullData): string {
+    const payload = data as ProfessionalUnitFullData & {
         roleId?: unknown
         role?: { id?: unknown } | null
         roles?: unknown
@@ -254,47 +270,26 @@ function getProfessionalRoleId(data: ProfessionalProfileData): string {
     return ""
 }
 
+function getProfessionalUnitRoleId(data: ProfessionalUnitFullData): string {
+    const payload = data as ProfessionalUnitFullData & {
+        professionalUnitRoleId?: unknown
+        professionalUnitRole?: { id?: unknown } | null
+        professionalUnitRoles?: unknown
+    }
+    const unitRole = firstRecord(payload.professionalUnitRoles)
+
+    if (typeof payload.professionalUnitRoleId === "string") return payload.professionalUnitRoleId
+    if (typeof payload.professionalUnitRole?.id === "string") return payload.professionalUnitRole.id
+    if (typeof unitRole?.id === "string") return unitRole.id
+
+    return ""
+}
+
 // ============================================================================
 // RESPONSE PARSING - Extrai dados de respostas específicas da API
 // ============================================================================
 
-function extractCreatedUserId(data: unknown): string | null {
-    if (!data || typeof data !== "object") {
-        return null
-    }
 
-    const payload = data as Record<string, unknown>
-    const directId = payload.id
-    if (typeof directId === "string" && directId.length > 0) {
-        return directId
-    }
-
-    const user = payload.user
-    if (user && typeof user === "object") {
-        const userId = (user as Record<string, unknown>).id
-        if (typeof userId === "string" && userId.length > 0) {
-            return userId
-        }
-    }
-
-    const dataNode = payload.data
-    if (dataNode && typeof dataNode === "object") {
-        const dataId = (dataNode as Record<string, unknown>).id
-        if (typeof dataId === "string" && dataId.length > 0) {
-            return dataId
-        }
-
-        const dataUser = (dataNode as Record<string, unknown>).user
-        if (dataUser && typeof dataUser === "object") {
-            const nestedId = (dataUser as Record<string, unknown>).id
-            if (typeof nestedId === "string" && nestedId.length > 0) {
-                return nestedId
-            }
-        }
-    }
-
-    return null
-}
 
 interface ProfessionalProfileProps {
     professionalUnitId?: string
@@ -311,39 +306,205 @@ interface ProfessionalProfileProps {
 // ============================================================================
 // Estas funções preparam os dados do formulário no formato esperado pela API
 
-function buildRegisterPayload(values: ProfessionalFullForm | ProfessionalProfileForm) {
-    const v = values as ProfessionalFullForm
-    return {
-        name: v.name?.trim(),
-        email: v.email?.trim(),
-        password: v.password,
-        cpf: (v.cpf ?? "").replace(/\D/g, ""),
-        phone: (v.phone ?? "").replace(/\D/g, ""),
-        birthdate: v.birthdate ? new Date(`${v.birthdate}T00:00:00.000Z`).toISOString() : undefined,
-        crm: v.crmState && v.crmNumber ? `${v.crmState}${v.crmNumber}` : undefined,
-        sex: v.sex || undefined,
+// --- Schemas e tipos (movidos do service)
+export const professionalFormFieldsSchema = z.object({
+    name: z.string().min(1, "Informe o nome completo"),
+    socialName: z.string().optional(),
+    email: z.string().email("Informe um e-mail válido"),
+    phone: z.string().regex(/^\(\d{2}\) \d{4,5}-\d{4}$/, "Telefone deve estar no formato (11) 99999-9999"),
+    cpf: z.string().regex(/^\d{3}\.\d{3}\.\d{3}-\d{2}$/, "CPF deve estar no formato 000.000.000-00"),
+    birthdate: z.string().min(1, "Informe a data de nascimento"),
+    sex: z.enum(["", "F", "M", "O"]),
+    password: z.string().optional(),
+    confirmPassword: z.string().optional(),
+})
+
+export const professionalFormBaseSchema = professionalFormFieldsSchema.superRefine((data, ctx) => {
+    const pwd = data.password
+    const cpwd = data.confirmPassword
+    if (pwd || cpwd) {
+        if (pwd && pwd.length < 8) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Senha deve ter pelo menos 8 caracteres", path: ["password"] })
+        }
+        if (!pwd) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Senha é obrigatória", path: ["password"] })
+        }
+        if (!cpwd) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Confirmação de senha é obrigatória",
+                path: ["confirmPassword"],
+            })
+        }
+        if (pwd && cpwd && pwd !== cpwd) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "As senhas devem ser iguais",
+                path: ["confirmPassword"],
+            })
+        }
     }
+})
+
+// ============================================================================
+// UI SCHEMA (comum): validação aplicada pelo formulário em todas as rotas
+// Mantém validações de campos obrigatórios e regras de senha.
+// ============================================================================
+export const professionalUiSchema = professionalFormBaseSchema.extend({
+    roleId: z.string().optional(),
+    crmState: z.string().optional(),
+    crmNumber: z.string().optional(),
+    professionalUnitStatus: z.boolean().optional(),
+    patientStatus: z.boolean().optional(),
+})
+
+export const professionalProfileSchema = professionalFormBaseSchema
+    .extend({
+        userId: z.string().optional(),
+        professionalId: z.string().optional(),
+        roleId: z.string().optional(),
+        crmState: z.string().optional(),
+        crmNumber: z.string().optional(),
+        professionalUnitStatus: z.boolean().optional(),
+        patientStatus: z.boolean().optional(),
+    })
+
+export const professionalFullSchema = professionalProfileSchema
+    .safeExtend({
+        roleId: z.string("Cargo é obrigatório").min(1, "Cargo é obrigatório"),
+        crmState: z.string().length(2, "Selecione o estado do CRM"),
+        crmNumber: z.string().regex(/^\d{4,6}$/, "O número do CRM deve conter apenas dígitos"),
+        professionalUnitId: z.string().optional(),
+        professionalUnitRoleId: z.string().optional(),
+        patientId: z.string().optional(),
+        professionalUnitStatus: z.boolean(),
+        patientStatus: z.boolean(),
+    })
+
+export const professionalRegisterPayloadSchema = professionalFormFieldsSchema
+    .pick({
+        name: true,
+        email: true,
+        phone: true,
+        cpf: true,
+        birthdate: true,
+        sex: true,
+        socialName: true,
+    })
+    .extend({
+        // backend/register usa estes campos
+        password: z.string().min(1),
+        // crm vai no formato consolidado no payload (ex.: SP + 12345)
+        crm: z.string().min(1).optional(),
+    })
+
+export type ProfessionalFullForm = z.infer<typeof professionalFullSchema>
+export type ProfessionalProfileForm = z.infer<typeof professionalProfileSchema>
+export type ProfessionalRegisterPayload = z.infer<typeof professionalRegisterPayloadSchema>
+
+export type ProfessionalUiForm = z.infer<typeof professionalUiSchema>
+
+export interface UpdateProfessionalBaseInput {
+    name?: string
+    socialName?: string
+    cpf?: string
+    email?: string
+    birthdate?: string
+    phone?: string
+    sex?: string
+    password?: string
+    crmState?: string
+    crmNumber?: string
 }
 
-function buildAdminUpdatePayload(
-    values: ProfessionalFullForm | ProfessionalProfileForm,
-    data?: ProfessionalProfileData | null,
+export interface UpdateProfessionalProfileInput extends UpdateProfessionalBaseInput {
+    userId?: string
+    professionalId?: string
+}
+
+export interface UpdateProfessionalFullInput extends UpdateProfessionalProfileInput {
+    roleId?: string
     professionalUnitId?: string
-): UpdateProfessionalInput {
+    professionalUnitRoleId?: string
+    patientId?: string
+    professionalUnitStatus?: boolean
+    patientStatus?: boolean
+}
+
+// ============================================================================
+// CREATE INTERFACE - payload para a rota `full-create`
+// ============================================================================
+export interface CreateProfessionalFullInput {
+    name: string
+    socialName?: string
+    cpf?: string
+    email?: string
+    birthdate?: string
+    phone?: string
+    sex?: string
+    password: string
+    crm?: string
+    roleId?: string
+    professionalUnitStatus?: boolean
+    patientStatus?: boolean
+}
+
+export function digitsOnly(value: string) {
+    return value.replace(/\D/g, "")
+}
+
+export function formatCpf(value: string) {
+    const digits = digitsOnly(value).slice(0, 11)
+    const part1 = digits.slice(0, 3)
+    const part2 = digits.slice(3, 6)
+    const part3 = digits.slice(6, 9)
+    const part4 = digits.slice(9, 11)
+
+    if (!part1) return ""
+    if (!part2) return part1
+    if (!part3) return `${part1}.${part2}`
+    if (!part4) return `${part1}.${part2}.${part3}`
+    return `${part1}.${part2}.${part3}-${part4}`
+}
+
+export function formatPhone(value: string) {
+    const digits = digitsOnly(value).slice(0, 11)
+    const ddd = digits.slice(0, 2)
+    const first = digits.slice(2, digits.length > 10 ? 7 : 6)
+    const second = digits.slice(digits.length > 10 ? 7 : 6, digits.length > 10 ? 11 : 10)
+
+    if (!ddd) return ""
+    if (!first) return `(${ddd}`
+    if (!second) return `(${ddd}) ${first}`
+    return `(${ddd}) ${first}-${second}`
+}
+
+
+
+function buildFullUpdatePayload(
+    values: ProfessionalFullForm,
+    data?: ProfessionalUnitFullData | null,
+): UpdateProfessionalFullInput {
     const v = values as ProfessionalFullForm
-    const fullData = data as ProfessionalUnitFullData | undefined
+    const fullData = data as (ProfessionalUnitFullData & {
+        user?: unknown
+        professional?: unknown
+        patient?: unknown
+    }) | undefined
 
-    // Extrair IDs do data
-    const userRecord = Array.isArray(fullData?.users) ? fullData.users[0] : fullData?.users as any
-    const professionalRecord = Array.isArray(fullData?.professionals) ? fullData.professionals[0] : undefined
-    const patientRecord = Array.isArray(fullData?.patients) ? fullData.patients[0] : undefined
+    // Extrai IDs vindos da API, aceitando formato objeto, array ou chave singular.
+    const userId = getIdFromNode(fullData?.users ?? fullData?.user)
+    const professionalId = getIdFromNode(fullData?.professionals ?? fullData?.professional)
+    const patientId = getIdFromNode(fullData?.patients ?? fullData?.patient)
+    const professionalUnitRoleId = fullData ? getProfessionalUnitRoleId(fullData) || undefined : undefined
 
-    const payload: UpdateProfessionalInput = {
+    const payload: UpdateProfessionalFullInput = {
         // IDs das tabelas
-        professionalUnitId: fullData?.id || professionalUnitId,
-        userId: typeof userRecord?.id === "string" ? userRecord.id : undefined,
-        professionalId: typeof professionalRecord?.id === "string" ? professionalRecord.id : undefined,
-        patientId: typeof patientRecord?.id === "string" ? patientRecord.id : undefined,
+        professionalUnitId: fullData?.id || undefined,
+        userId,
+        professionalId,
+        patientId,
+        roleId: v.roleId || undefined,
         // Dados de usuário
         name: v.name,
         socialName: v.socialName,
@@ -357,7 +518,7 @@ function buildAdminUpdatePayload(
         crmNumber: v.crmNumber || undefined,
         professionalUnitStatus: v.professionalUnitStatus ?? true,
         // Unidade
-        roleId: v.roleId || undefined,
+        professionalUnitRoleId,
         // Paciente
         patientStatus: v.patientStatus ?? true,
     }
@@ -366,23 +527,49 @@ function buildAdminUpdatePayload(
     return payload
 }
 
+/**
+ * Build payload for single-step creation endpoint `/professional-units/full-create`.
+ * Constrói um objeto com os campos necessários para criar usuário/profissional/unidade.
+ */
+function buildFullCreatePayload(values: ProfessionalFormValues): CreateProfessionalFullInput {
+    const v = values as ProfessionalFormValues
+
+    const payload: CreateProfessionalFullInput = {
+        name: v.name.trim(),
+        socialName: v.socialName?.trim(),
+        cpf: v.cpf?.replace(/\D/g, ""),
+        email: v.email?.trim(),
+        birthdate: v.birthdate ? new Date(`${v.birthdate}T00:00:00.000Z`).toISOString() : undefined,
+        phone: v.phone?.replace(/\D/g, ""),
+        sex: v.sex || undefined,
+        password: v.password ?? "",
+        crm: v.crmState && v.crmNumber ? `${v.crmState}${v.crmNumber}` : undefined,
+        roleId: v.roleId || undefined,
+        professionalUnitStatus: v.professionalUnitStatus ?? true,
+        patientStatus: v.patientStatus ?? true,
+    }
+
+    return payload
+}
+
 function buildProfileUpdatePayload(
-    values: ProfessionalFullForm | ProfessionalProfileForm,
-    data?: ProfessionalProfileData | null,
-    professionalUnitId?: string
-): UpdateProfessionalInput {
+    values: ProfessionalProfileForm,
+    data?: ProfessionalUnitFullData | null,
+): UpdateProfessionalProfileInput {
     const v = values as ProfessionalProfileForm
-    const fullData = data as ProfessionalUnitFullData | undefined
+    const fullData = data as (ProfessionalUnitFullData & {
+        user?: unknown
+        professional?: unknown
+    }) | undefined
 
-    // Extrair IDs do data
-    const userRecord = Array.isArray(fullData?.users) ? fullData.users[0] : fullData?.users as any
-    const professionalRecord = Array.isArray(fullData?.professionals) ? fullData.professionals[0] : undefined
+    // Extrai IDs vindos da API, aceitando formato objeto, array ou chave singular.
+    const userId = getIdFromNode(fullData?.users ?? fullData?.user)
+    const professionalId = getIdFromNode(fullData?.professionals ?? fullData?.professional)
 
-    const payload: UpdateProfessionalInput = {
+    const payload: UpdateProfessionalProfileInput = {
         // IDs das tabelas
-        professionalUnitId: fullData?.id || professionalUnitId,
-        userId: typeof userRecord?.id === "string" ? userRecord.id : undefined,
-        professionalId: typeof professionalRecord?.id === "string" ? professionalRecord.id : undefined,
+        userId,
+        professionalId,
         // Dados de usuário
         name: v.name,
         socialName: v.socialName,
@@ -391,6 +578,9 @@ function buildProfileUpdatePayload(
         birthdate: v.birthdate ? new Date(`${v.birthdate}T00:00:00.000Z`).toISOString() : undefined,
         phone: v.phone?.replace(/\D/g, ""),
         sex: v.sex || undefined,
+        // Profissional (opcionais no profile)
+        crmState: v.crmState || undefined,
+        crmNumber: v.crmNumber || undefined,
     }
 
     if (v.password) payload.password = v.password
@@ -414,17 +604,17 @@ export function ProfessionalProfile({
     const effectiveProfessionalUnitId = professionalUnitId ?? routeProfessionalId
     const id = effectiveProfessionalUnitId
     const navigate = useNavigate()
+    const { user: sessionUser } = useSession()
     const { toasts, dismiss, toast } = useToast()
-    const [professional, setProfessional] = useState<ProfessionalProfileData | null>(null)
+    const [professional, setProfessional] = useState<ProfessionalUnitFullData | null>(null)
     const [isLoading, setIsLoading] = useState(!isRegisterMode)
     const [isSaving, setIsSaving] = useState(false)
     const [roles, setRoles] = useState<ProfessionalRole[]>([])
     const [isRolesLoading, setIsRolesLoading] = useState(false)
     const [rolesError, setRolesError] = useState("")
-    const formSchema = isProfileView ? professionalProfileSchema : professionalFullSchema
-
-    const form = useForm<ProfessionalEditForm>({
-        resolver: zodResolver(formSchema) as Resolver<ProfessionalEditForm>,
+    // Usamos o schema comum `professionalUiSchema` para validação do formulário
+    const form = useForm<ProfessionalFormValues>({
+        resolver: zodResolver(professionalUiSchema) as Resolver<ProfessionalFormValues>,
         defaultValues: {
             name: "",
             socialName: "",
@@ -555,6 +745,11 @@ export function ProfessionalProfile({
 
     const professionalName = useMemo(() => getProfessionalName(professional), [professional])
     const initials = useMemo(() => getInitials(professionalName), [professionalName])
+    const professionalUserId = useMemo(() => {
+        const currentProfessional = professional as ProfessionalUnitFullData & { user?: unknown }
+        return getIdFromNode(currentProfessional?.users ?? currentProfessional?.user)
+    }, [professional])
+    const isEditingLoggedProfessional = !isRegisterMode && !!sessionUser?.id && professionalUserId === sessionUser.id
 
     if (isLoading) {
         return (
@@ -567,7 +762,7 @@ export function ProfessionalProfile({
         )
     }
 
-    const onSubmit = async (values: ProfessionalEditForm) => {
+    const onSubmit = async (values: ProfessionalFormValues) => {
         if (isRegisterMode) {
             if (!values.password) {
                 form.setError("password", { message: "Senha e obrigatoria" })
@@ -591,96 +786,26 @@ export function ProfessionalProfile({
 
             setIsSaving(true)
             try {
-                const payload = buildRegisterPayload(values as ProfessionalFullForm)
+                // Build payload for create (single-step).
+                const fullPayload = buildFullCreatePayload(values as ProfessionalFormValues)
 
-                const response = await fetch(`${authBaseUrl}/auth/register`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    credentials: "include",
-                    body: JSON.stringify(payload),
-                })
+                // For now: just log the payload. The real route would be:
+                // POST `${authBaseUrl}/professional-units/full-create`
+                // Example (uncomment to enable):
+                // const response = await fetch(`${authBaseUrl}/professional-units/full-create`, {
+                //   method: "POST",
+                //   headers: { "Content-Type": "application/json" },
+                //   credentials: "include",
+                //   body: JSON.stringify(fullPayload),
+                // })
+                // if (!response.ok) { /* handle error */ }
 
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => null) as { message?: string } | null
-                    toast.error(errorData?.message ?? "Nao foi possivel cadastrar o profissional")
-                    return
-                }
+                // eslint-disable-next-line no-console
+                console.log("[TEST] createFull payload:", fullPayload)
 
-                const registerData = await response.json().catch(() => null)
-                const createdUserId = extractCreatedUserId(registerData)
-                if (!createdUserId) {
-                    toast.error("Usuario criado, mas nao foi possivel identificar o ID retornado")
-                    return
-                }
-
-                const professionalResponse = await fetch(`${authBaseUrl}/professionals/link-user`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    credentials: "include",
-                    body: JSON.stringify({ userId: createdUserId, isActive: values.professionalUnitStatus }),
-                })
-
-                if (!professionalResponse.ok) {
-                    const errorData = await professionalResponse.json().catch(() => null) as { message?: string } | null
-                    toast.error(errorData?.message ?? "Usuario criado, mas nao foi possivel vincular a tabela de profissionais")
-                    return
-                }
-
-                const createdProfessional = await professionalResponse.json().catch(() => null)
-                const professionalId =
-                    createdProfessional && typeof createdProfessional === "object"
-                        ? (createdProfessional as { id?: unknown }).id
-                        : null
-                const professionalUnitId =
-                    createdProfessional && typeof createdProfessional === "object"
-                        ? (createdProfessional as { professionalUnitId?: unknown }).professionalUnitId
-                        : null
-
-                if (typeof professionalUnitId !== "string" || professionalUnitId.length === 0) {
-                    toast.error("Usuario criado, mas nao foi possivel identificar o professionalUnitId retornado")
-                    return
-                }
-
-                const patientResponse = await fetch(`${authBaseUrl}/patients`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    credentials: "include",
-                    body: JSON.stringify({ userId: createdUserId, isActive: values.patientStatus }),
-                })
-
-                if (!patientResponse.ok) {
-                    const errorData = await patientResponse.json().catch(() => null) as { message?: string } | null
-                    toast.error(errorData?.message ?? "Profissional criado, mas nao foi possivel vincular a tabela de pacientes")
-                    return
-                }
-
-                if (values.roleId) {
-                    await professionalsService.linkProfessionalUnitRole({
-                        professionalUnitId,
-                        roleId: values.roleId,
-                    })
-                }
-
-                if (typeof professionalId === "string" && professionalId.length > 0 && values.crmState && values.crmNumber) {
-                    await fetch(`${authBaseUrl}/professionals/${professionalId}`, {
-                        method: "PATCH",
-                        headers: { "Content-Type": "application/json" },
-                        credentials: "include",
-                        body: JSON.stringify({ crm: `${values.crmState}${values.crmNumber}` }),
-                    }).catch(() => null)
-                }
-
-                toast.success("Profissional cadastrado")
+                toast.success("Profissional cadastrado (simulado)")
                 onCreated?.()
-                if (afterSavePath) {
-                    navigate(afterSavePath)
-                }
+                if (afterSavePath) navigate(afterSavePath)
             } catch {
                 toast.error("Erro ao cadastrar profissional")
             } finally {
@@ -703,13 +828,35 @@ export function ProfessionalProfile({
         try {
             const isProfile = isProfileView
             const dataToSend = isProfile
-                ? buildProfileUpdatePayload(values as ProfessionalProfileForm, professional, id)
-                : buildAdminUpdatePayload(values as ProfessionalFullForm, professional, id)
+                ? buildProfileUpdatePayload(values as ProfessionalProfileForm, professional)
+                    : buildFullUpdatePayload(values as ProfessionalFullForm, professional)
 
             if (isProfile) {
-                await professionalsService.updateProfile(id, dataToSend)
+                const response = await fetch(`${authBaseUrl}/professional-units/profile-update`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify(dataToSend),
+                })
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => null) as { message?: string } | null
+                    toast.error(errorData?.message ?? "Nao foi possivel atualizar o perfil")
+                    return
+                }
             } else {
-                await professionalsService.updateFull(id, dataToSend)
+                const response = await fetch(`${authBaseUrl}/professional-units/full-update`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify(dataToSend),
+                })
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => null) as { message?: string } | null
+                    toast.error(errorData?.message ?? "Nao foi possivel atualizar o profissional")
+                    return
+                }
             }
 
             toast.success("Profissional atualizado")
@@ -806,8 +953,11 @@ export function ProfessionalProfile({
                                             {...form.register("sex")}
                                         >
                                             <option value="">Selecione uma opção</option>
-                                            <option value="F">Feminino</option>
-                                            <option value="M">Masculino</option>
+                                            {sexOptions.map((option) => (
+                                                <option key={option.value} value={option.value}>
+                                                    {option.label}
+                                                </option>
+                                            ))}
                                         </select>
                                     </label>
                                     <div />
@@ -842,10 +992,10 @@ export function ProfessionalProfile({
                             <div className="grid gap-5 sm:grid-cols-2">
                                 <label className="grid gap-2">
                                     <span className="text-sm font-medium text-foreground">Estado</span>
-                                    <select
-                                        className="h-11 rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring"
-                                        {...form.register("crmState")}
-                                    >
+                                        <select
+                                            className="h-11 rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                            {...form.register("crmState")}
+                                        >
                                         {brStates.map((state) => (
                                             <option key={state} value={state}>
                                                 {state}
@@ -871,15 +1021,16 @@ export function ProfessionalProfile({
                             </div>
                             
                             {!isProfileView && (
-                                <div className="grid gap-2 sm:grid-cols-1">
+                                <div className="grid gap-2 sm:grid-cols-1" title={isEditingLoggedProfessional ? "Não é possivel alterar as informações de acesso do profissional logado." : undefined}>
                                     <p className="text-sm font-semibold text-foreground">Profissional ativo</p>
                                     <div className="rounded-2xl border border-border bg-muted/30 px-5 py-4">
                                         <div className="flex items-center justify-between gap-4">
                                             <div>
-                                                <p className="text-xs text-muted-foreground">Desative para esse profissional não apareça nas seções de agendas e agendamentos do sistema.</p>
+                                                <p className="text-xs text-muted-foreground">Desative para esse profissional não consiga fazer login na unidade e também não apareça nas seções de agendas e agendamentos do sistema.</p>
                                             </div>
                                             <ToggleSwitch
                                                 checked={form.watch("professionalUnitStatus") ?? true}
+                                                disabled={isEditingLoggedProfessional}
                                                 onClick={() =>
                                                     form.setValue(
                                                         "professionalUnitStatus",
@@ -896,12 +1047,12 @@ export function ProfessionalProfile({
                         {!isProfileView && (
                             <section className="grid gap-4">
                                 <h3 className="text-primary text-lg font-semibold">Unidade</h3>
-                                <div className="grid gap-5 sm:grid-cols-2">
+                                <div className="grid gap-5 sm:grid-cols-2" title={isEditingLoggedProfessional ? "Não é possivel alterar as informações de acesso do profissional logado." : undefined}>
                                     <label className="grid gap-2">
                                         <span className="text-sm font-medium text-foreground">Cargo</span>
                                         <select
                                             className="h-11 rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring disabled:cursor-not-allowed disabled:opacity-50"
-                                            disabled={isRolesLoading || roles.length === 0}
+                                            disabled={isRolesLoading || roles.length === 0 || isEditingLoggedProfessional}
                                             {...form.register("roleId")}
                                         >
                                             <option value="">

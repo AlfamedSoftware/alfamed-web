@@ -46,12 +46,6 @@ export function AlteracaoProfissionaisSkeleton({ isProfileView = false }: { isPr
                                 <FieldSkeleton />
                             </div>
 
-                            {!isProfileView && (
-                                <div className="rounded-2xl border border-border bg-muted/30 px-5 py-4">
-                                    <div className="h-4 w-40 animate-pulse rounded bg-muted" />
-                                </div>
-                            )}
-
                             <div className="h-6 w-48 animate-pulse rounded bg-muted" />
 
                             <div className="grid gap-5 sm:grid-cols-2">
@@ -72,10 +66,6 @@ export function AlteracaoProfissionaisSkeleton({ isProfileView = false }: { isPr
                                     <div className="grid gap-5 sm:grid-cols-2">
                                         <FieldSkeleton />
                                         <FieldSkeleton />
-                                    </div>
-
-                                    <div className="rounded-2xl border border-border bg-muted/30 px-5 py-4">
-                                        <div className="h-4 w-40 animate-pulse rounded bg-muted" />
                                     </div>
                                 </>
                             )}

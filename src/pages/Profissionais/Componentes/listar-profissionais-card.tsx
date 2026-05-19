@@ -47,11 +47,17 @@ export function ProfessionalCard({ professional, onClick }: ProfessionalCardProp
     const usersAny = professional.users as unknown
     const rolesAny = professional.roles as unknown
 
-    const firstUser =
-        Array.isArray(usersAny) ? (usersAny[0] as ProfessionalCardProps["professional"]["users"]) : professional.users
+    // API can return users/roles as object or array; normalize to first record.
+    const firstUser = (Array.isArray(usersAny) ? usersAny[0] : usersAny) as {
+        name?: string
+        cpf?: string
+        email?: string
+        phone?: string
+    } | undefined
 
-    const firstRole =
-        Array.isArray(rolesAny) ? (rolesAny[0] as ProfessionalCardProps["professional"]["roles"]) : professional.roles
+    const firstRole = (Array.isArray(rolesAny) ? rolesAny[0] : rolesAny) as {
+        name?: string
+    } | undefined
 
     const name = firstUser?.name
     const cpf = firstUser?.cpf
