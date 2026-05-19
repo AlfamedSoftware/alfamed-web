@@ -8,7 +8,7 @@ import {
     adminUnitsService,
     type AdminProfessional,
     type AdminUnit,
-} from "@/services/admin/admin-units.service"
+} from "@/Servicos/admin/admin-units.service"
 
 type NewProfessionalForm = {
     name: string

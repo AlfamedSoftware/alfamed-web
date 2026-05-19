@@ -1,6 +1,6 @@
 import { Mail, Phone, Shield } from "lucide-react"
 import { cn } from "@/lib/utils"
-import type { AdminUpmUser } from "@/services/admin/admin-upm.service"
+import type { AdminUpmUser } from "@/Servicos/admin/admin-upm.service"
 
 interface UpmUserCardProps {
     user: AdminUpmUser

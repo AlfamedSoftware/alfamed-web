@@ -1,15 +1,13 @@
-import { Mail, Phone, Stethoscope, Users } from "lucide-react"
+import { Mail, Phone } from "lucide-react"
 import { useNavigate } from "react-router"
 import { cn } from "@/lib/utils"
-import type { Professional } from "@/services/professionals.service"
+import type { ProfessionalUnitFullData } from "@/Servicos/professionals.service"
 
 interface ProfessionalCardProps {
-    professional: Professional
-    onToggleActive: (id: string, isActive: boolean) => Promise<void>
+    professional: ProfessionalUnitFullData
     onClick?: (id: string) => void
 }
 
-/** Generates a deterministic color class from a string (userId). */
 function getAvatarColor(seed: string): string {
     const colors = [
         "bg-blue-500",
@@ -40,21 +38,39 @@ function getInitials(name?: string): string {
     return `${parts[0][0] ?? ""}${parts[parts.length - 1][0] ?? ""}`.toUpperCase()
 }
 
-export function ProfessionalCard({ professional, onToggleActive, onClick }: ProfessionalCardProps) {
-    const { id, userId, isActive, name, email, phone, crm } = professional
-    const avatarColor = getAvatarColor(name ?? userId)
-    const displayName = name?.trim() || "Profissional"
-    const displayEmail = email?.trim() || "Email não informado"
-    const displayPhone = phone?.trim() || professional.users?.[0]?.phone?.trim() || "Telefone não informado"
-    const displayCrm = crm?.trim() || "CRM não informado"
-    const initials = getInitials(name)
-
+export function ProfessionalCard({ professional, onClick }: ProfessionalCardProps) {
     const navigate = useNavigate()
 
-    const handleToggle = (e: React.MouseEvent) => {
-        e.stopPropagation()
-        onToggleActive(id, isActive)
-    }
+    const id = professional.id
+    const isActive = professional.isActive
+
+    const usersAny = professional.users as unknown
+    const rolesAny = professional.roles as unknown
+
+    // API can return users/roles as object or array; normalize to first record.
+    const firstUser = (Array.isArray(usersAny) ? usersAny[0] : usersAny) as {
+        name?: string
+        cpf?: string
+        email?: string
+        phone?: string
+    } | undefined
+
+    const firstRole = (Array.isArray(rolesAny) ? rolesAny[0] : rolesAny) as {
+        name?: string
+    } | undefined
+
+    const name = firstUser?.name
+    const cpf = firstUser?.cpf
+    const email = firstUser?.email
+    const phone = firstUser?.phone
+    const roleName = firstRole?.name
+
+    const avatarColor = getAvatarColor(name ?? cpf ?? id)
+    const displayName = name?.trim() || "Profissional"
+    const displayEmail = email?.trim() || "Email não informado"
+    const displayPhone = phone?.trim() || "Telefone não informado"
+    const displayRole = roleName?.trim() || "Cargo não informado"
+    const initials = getInitials(name)
 
     return (
         <div
@@ -65,7 +81,6 @@ export function ProfessionalCard({ professional, onToggleActive, onClick }: Prof
             )}
             onClick={() => (onClick ? onClick(id) : navigate(`/profissionais/${id}`))}
         >
-            {/* Header: Avatar + Name + Status */}
             <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3 min-w-0">
                     <div
@@ -81,17 +96,12 @@ export function ProfessionalCard({ professional, onToggleActive, onClick }: Prof
                             {displayName}
                         </p>
                         <div className="flex items-center gap-1 mt-0.5 text-muted-foreground">
-                            <Stethoscope className="w-3 h-3 flex-shrink-0" />
-                            <span className="text-xs truncate">Clínica Geral</span>
+                            <span className="text-xs truncate"> {displayRole}</span>
                         </div>
                     </div>
                 </div>
 
-                {/* Status Badge */}
                 <button
-                    id={`toggle-status-${id}`}
-                    onClick={handleToggle}
-                    title={isActive ? "Clique para desativar" : "Clique para ativar"}
                     className={cn(
                         "flex-shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium",
                         "transition-all duration-150 cursor-pointer",
@@ -106,12 +116,13 @@ export function ProfessionalCard({ professional, onToggleActive, onClick }: Prof
                             isActive ? "bg-green-500" : "bg-[var(--muted-foreground)]",
                         )}
                     />
-                    {isActive ? "Ativo" : "Desativado"}
+                    {isActive ? "Ativo" : "Inativo"}
                 </button>
             </div>
 
-            {/* Contact Info */}
-            <div className="space-y-1.5 mb-4">
+            <div className="border-t border-border mb-4" />
+
+            <div className="ml-3 space-y-1.5">
                 <div className="flex items-center gap-2 text-muted-foreground">
                     <Mail className="w-3.5 h-3.5 flex-shrink-0" />
                     <span className="text-xs truncate">{displayEmail}</span>
@@ -121,18 +132,6 @@ export function ProfessionalCard({ professional, onToggleActive, onClick }: Prof
                     <span className="text-xs truncate">{displayPhone}</span>
                 </div>
             </div>
-
-            {/* Footer: CRM + Patient count */}
-            <div className="flex items-center justify-between pt-3 border-t mt-auto text-xs text-muted-foreground border-border">
-                <span className="font-medium text-muted-foreground">{displayCrm}</span>
-                <div className="flex items-center gap-1 text-muted-foreground">
-                    <Users className="w-3.5 h-3.5" />
-                    <span className="font-semibold text-muted-foreground">—</span>
-                    <span>pacientes</span>
-                </div>
-            </div>
-
-            {/* Hover actions removed — card is clickable to open profile */}
         </div>
     )
 }

@@ -9,7 +9,7 @@ import { SidebarMenuProvider, useSidebarMenu } from "@/contexts/sidebar-menu-con
 import { useSession } from "@/hooks/use-session"
 import { authBaseUrl } from "@/lib/auth"
 import { fetchWithAuth } from "@/lib/api-client"
-import { listProfessionalUnitRoles } from "@/services/professional-unit-roles.service"
+import { listProfessionalUnitRoles } from "@/Servicos/professional-unit-roles.service"
 
 interface SessionUnitsResponse {
     units: Array<{ id: string; name: string }>

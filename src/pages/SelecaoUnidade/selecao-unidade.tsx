@@ -72,7 +72,7 @@ export function SelecaoUnidade() {
 
                 if (!context) {
                     setUnits([])
-                    setUnitsError("Erro ao carregar clínicas da sessão.")
+                    setUnitsError("Erro ao carregar unidades da sessão.")
                     return
                 }
 
@@ -83,7 +83,7 @@ export function SelecaoUnidade() {
 
                 if (!Array.isArray(context.units)) {
                     setUnits([])
-                    setUnitsError("Resposta inválida ao carregar clínicas.")
+                    setUnitsError("Resposta inválida ao carregar unidades.")
                     return
                 }
 
@@ -108,7 +108,7 @@ export function SelecaoUnidade() {
             } catch (error) {
                 if ((error as Error).name === "AbortError" || !isActive) return
                 setUnits([])
-                setUnitsError("Erro de conexão ao buscar clínicas.")
+                setUnitsError("Erro de conexão ao buscar unidades.")
             } finally {
                 if (isActive) {
                     setIsUnitsLoading(false)
