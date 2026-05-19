@@ -21,16 +21,9 @@ import { AlteracaoProfissionaisSkeleton } from "./Componentes/Skeleton/alteracao
 
 // ============================================================================
 // FORM VALUE TYPE - valores usados pelo formulário (UI)
-// Usamos um único schema de validação para todos os modos (create/update/profile)
 // ============================================================================
 
-type ProfessionalFormValues = z.infer<typeof professionalFormBaseSchema> & {
-    roleId?: string
-    crmState?: string
-    crmNumber?: string
-    professionalUnitStatus?: boolean
-    patientStatus?: boolean
-}
+type ProfessionalFormValues = z.infer<typeof professionalRegisterSchema>
 
 type ProfessionalRole = {
     id: string
@@ -319,38 +312,47 @@ export const professionalFormFieldsSchema = z.object({
     confirmPassword: z.string().optional(),
 })
 
+
 export const professionalFormBaseSchema = professionalFormFieldsSchema.superRefine((data, ctx) => {
     const pwd = data.password
     const cpwd = data.confirmPassword
-    if (pwd || cpwd) {
-        if (pwd && pwd.length < 8) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Senha deve ter pelo menos 8 caracteres", path: ["password"] })
-        }
-        if (!pwd) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Senha é obrigatória", path: ["password"] })
-        }
-        if (!cpwd) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: "Confirmação de senha é obrigatória",
-                path: ["confirmPassword"],
-            })
-        }
-        if (pwd && cpwd && pwd !== cpwd) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: "As senhas devem ser iguais",
-                path: ["confirmPassword"],
-            })
-        }
+
+    if (!pwd) {
+        return
+    }
+
+    if (pwd.length < 8) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Senha deve ter pelo menos 8 caracteres", path: ["password"] })
+    }
+
+    if (!cpwd) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Confirmação de senha é obrigatória",
+            path: ["confirmPassword"],
+        })
+        return
+    }
+
+    if (pwd !== cpwd) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "As senhas devem ser iguais",
+            path: ["confirmPassword"],
+        })
     }
 })
 
 // ============================================================================
-// UI SCHEMA (comum): validação aplicada pelo formulário em todas as rotas
-// Mantém validações de campos obrigatórios e regras de senha.
+// SCHEMAS POR MODO
+// - profile: permite cargo e dados profissionais opcionais
+// - full: exige cargo e dados profissionais
+// - register: exige senha/confirmação
 // ============================================================================
-export const professionalUiSchema = professionalFormBaseSchema.extend({
+
+export const professionalProfileSchema = professionalFormBaseSchema.extend({
+    userId: z.string().optional(),
+    professionalId: z.string().optional(),
     roleId: z.string().optional(),
     crmState: z.string().optional(),
     crmNumber: z.string().optional(),
@@ -358,28 +360,21 @@ export const professionalUiSchema = professionalFormBaseSchema.extend({
     patientStatus: z.boolean().optional(),
 })
 
-export const professionalProfileSchema = professionalFormBaseSchema
-    .extend({
-        userId: z.string().optional(),
-        professionalId: z.string().optional(),
-        roleId: z.string().optional(),
-        crmState: z.string().optional(),
-        crmNumber: z.string().optional(),
-        professionalUnitStatus: z.boolean().optional(),
-        patientStatus: z.boolean().optional(),
-    })
+export const professionalFullSchema = professionalProfileSchema.safeExtend({
+    roleId: z.string().min(1, "Cargo é obrigatório"),
+    crmState: z.string().length(2, "Selecione o estado do CRM"),
+    crmNumber: z.string().regex(/^\d{4,6}$/, "O número do CRM deve conter apenas dígitos"),
+    professionalUnitId: z.string().optional(),
+    professionalUnitRoleId: z.string().optional(),
+    patientId: z.string().optional(),
+    professionalUnitStatus: z.boolean(),
+    patientStatus: z.boolean(),
+})
 
-export const professionalFullSchema = professionalProfileSchema
-    .safeExtend({
-        roleId: z.string("Cargo é obrigatório").min(1, "Cargo é obrigatório"),
-        crmState: z.string().length(2, "Selecione o estado do CRM"),
-        crmNumber: z.string().regex(/^\d{4,6}$/, "O número do CRM deve conter apenas dígitos"),
-        professionalUnitId: z.string().optional(),
-        professionalUnitRoleId: z.string().optional(),
-        patientId: z.string().optional(),
-        professionalUnitStatus: z.boolean(),
-        patientStatus: z.boolean(),
-    })
+
+export const professionalRegisterSchema = professionalFullSchema
+
+export const professionalUiSchema = professionalProfileSchema
 
 export const professionalRegisterPayloadSchema = professionalFormFieldsSchema
     .pick({
@@ -398,10 +393,12 @@ export const professionalRegisterPayloadSchema = professionalFormFieldsSchema
         crm: z.string().min(1).optional(),
     })
 
+
+
 export type ProfessionalFullForm = z.infer<typeof professionalFullSchema>
 export type ProfessionalProfileForm = z.infer<typeof professionalProfileSchema>
+export type ProfessionalRegisterForm = z.infer<typeof professionalRegisterSchema>
 export type ProfessionalRegisterPayload = z.infer<typeof professionalRegisterPayloadSchema>
-
 export type ProfessionalUiForm = z.infer<typeof professionalUiSchema>
 
 export interface UpdateProfessionalBaseInput {
@@ -609,12 +606,16 @@ export function ProfessionalProfile({
     const [professional, setProfessional] = useState<ProfessionalUnitFullData | null>(null)
     const [isLoading, setIsLoading] = useState(!isRegisterMode)
     const [isSaving, setIsSaving] = useState(false)
+
     const [roles, setRoles] = useState<ProfessionalRole[]>([])
     const [isRolesLoading, setIsRolesLoading] = useState(false)
     const [rolesError, setRolesError] = useState("")
-    // Usamos o schema comum `professionalUiSchema` para validação do formulário
+    const formSchema = useMemo(
+        () => (isProfileView ? professionalProfileSchema : isRegisterMode ? professionalRegisterSchema : professionalFullSchema),
+        [isProfileView, isRegisterMode],
+    )
     const form = useForm<ProfessionalFormValues>({
-        resolver: zodResolver(professionalUiSchema) as Resolver<ProfessionalFormValues>,
+        resolver: zodResolver(formSchema) as Resolver<ProfessionalFormValues>,
         defaultValues: {
             name: "",
             socialName: "",
@@ -762,48 +763,27 @@ export function ProfessionalProfile({
         )
     }
 
+
     const onSubmit = async (values: ProfessionalFormValues) => {
         if (isRegisterMode) {
-            if (!values.password) {
-                form.setError("password", { message: "Senha e obrigatoria" })
-                return
-            }
-
-            if (values.password.length < 8) {
-                form.setError("password", { message: "Senha deve ter pelo menos 8 caracteres" })
-                return
-            }
-
-            if (!values.confirmPassword) {
-                form.setError("confirmPassword", { message: "Confirmacao de senha e obrigatoria" })
-                return
-            }
-
-            if (values.password !== values.confirmPassword) {
-                form.setError("confirmPassword", { message: "As senhas devem ser iguais" })
-                return
-            }
-
             setIsSaving(true)
             try {
-                // Build payload for create (single-step).
                 const fullPayload = buildFullCreatePayload(values as ProfessionalFormValues)
 
-                // For now: just log the payload. The real route would be:
-                // POST `${authBaseUrl}/professional-units/full-create`
-                // Example (uncomment to enable):
-                // const response = await fetch(`${authBaseUrl}/professional-units/full-create`, {
-                //   method: "POST",
-                //   headers: { "Content-Type": "application/json" },
-                //   credentials: "include",
-                //   body: JSON.stringify(fullPayload),
-                // })
-                // if (!response.ok) { /* handle error */ }
+                const response = await fetch(`${authBaseUrl}/professional-units/full-create`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify(fullPayload),
+                })
 
-                // eslint-disable-next-line no-console
-                console.log("[TEST] createFull payload:", fullPayload)
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => null) as { message?: string } | null
+                    toast.error(errorData?.message ?? "Nao foi possivel cadastrar profissional")
+                    return
+                }
 
-                toast.success("Profissional cadastrado (simulado)")
+                toast.success("Profissional cadastrado")
                 onCreated?.()
                 if (afterSavePath) navigate(afterSavePath)
             } catch {
