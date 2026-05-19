@@ -42,11 +42,6 @@ export function useProfessionals() {
         return updated
     }
 
-    const removeProfessional = async (id: string) => {
-        await professionalsService.remove(id)
-        setProfessionals((prev) => prev.filter((p) => p.id !== id))
-    }
-
     const toggleActive = async (id: string, currentIsActive: boolean) => {
         return updateProfessional(id, { isActive: !currentIsActive })
     }
@@ -65,7 +60,6 @@ export function useProfessionals() {
         refetch: fetchProfessionals,
         createProfessional,
         updateProfessional,
-        removeProfessional,
         toggleActive,
     }
 }

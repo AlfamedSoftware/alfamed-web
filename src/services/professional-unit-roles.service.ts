@@ -1,4 +1,5 @@
 import { authBaseUrl } from "@/lib/auth"
+import { fetchWithAuth } from "@/lib/api-client"
 
 interface ProfessionalUnitRolesResponse {
     roles?: Array<string | { key?: string; name?: string }>
@@ -68,35 +69,25 @@ export async function listProfessionalUnitRoles({
         })
     }
 
-    const response = await fetch(url.toString(), {
-        method: "GET",
-        credentials: "include",
-        cache: "no-store",
-    })
+    try {
+        const payload = await fetchWithAuth<unknown>(url.toString())
 
-    if (import.meta.env.DEV) {
-        console.debug("[professional-unit-roles] response", {
-            ok: response.ok,
-            status: response.status,
-            statusText: response.statusText,
-        })
-    }
-
-    if (!response.ok) {
         if (import.meta.env.DEV) {
-            console.debug("[professional-unit-roles] non-ok response, returning empty roles")
+            console.debug("[professional-unit-roles] payload", payload)
+        }
+
+        const roles = parseRolesResponse(payload)
+
+        if (import.meta.env.DEV) {
+            console.debug("[professional-unit-roles] parsed roles", roles)
+        }
+
+        return roles
+    } catch (error) {
+        if (import.meta.env.DEV) {
+            console.debug("[professional-unit-roles] error fetching roles", error)
         }
 
         return []
     }
-
-    const payload = await response.json().catch(() => null)
-    const roles = parseRolesResponse(payload)
-
-    if (import.meta.env.DEV) {
-        console.debug("[professional-unit-roles] payload", payload)
-        console.debug("[professional-unit-roles] parsed roles", roles)
-    }
-
-    return roles
 }

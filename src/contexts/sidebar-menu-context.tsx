@@ -3,6 +3,8 @@ import { createContext, useContext, useState, type ReactNode } from "react"
 interface SidebarMenuContextValue {
     menuRoles: string[]
     setMenuRoles: (roles: string[]) => void
+    isMenuRolesLoading: boolean
+    setIsMenuRolesLoading: (loading: boolean) => void
     selectedUnitName: string | null
     setSelectedUnitName: (name: string | null) => void
 }
@@ -11,6 +13,7 @@ const SidebarMenuContext = createContext<SidebarMenuContextValue | undefined>(un
 
 export function SidebarMenuProvider({ children }: { children: ReactNode }) {
     const [menuRoles, setMenuRoles] = useState<string[]>([])
+    const [isMenuRolesLoading, setIsMenuRolesLoading] = useState(true)
     const [selectedUnitName, setSelectedUnitName] = useState<string | null>(null)
 
     return (
@@ -18,6 +21,8 @@ export function SidebarMenuProvider({ children }: { children: ReactNode }) {
             value={{
                 menuRoles,
                 setMenuRoles,
+                isMenuRolesLoading,
+                setIsMenuRolesLoading,
                 selectedUnitName,
                 setSelectedUnitName,
             }}
