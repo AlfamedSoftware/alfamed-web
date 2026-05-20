@@ -27,9 +27,7 @@ const professionalEditSchema = z.object({
     unitName: z.string().min(1, "Informe a unidade"),
     status: z.enum(["active", "inactive"]),
     loginEnabled: z.boolean(),
-    consultationTime: z.string().min(1, "Informe o tempo da consulta"),
-    availableDays: z.string().min(1, "Informe os dias disponíveis"),
-    workingHours: z.string().min(1, "Informe o horário de atendimento"),
+    // removed consultationTime/availableDays/workingHours — use structured schedules instead
 })
 
 type ProfessionalEditForm = z.infer<typeof professionalEditSchema>
@@ -123,6 +121,14 @@ export function ProfessionalProfile() {
     const [professional, setProfessional] = useState<Professional | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [isSaving, setIsSaving] = useState(false)
+    const [schedules, setSchedules] = useState<{
+        id?: string
+        dayOfWeek: number
+        startTime: string
+        endTime: string
+        appointmentDurationMinutes: number
+        isActive?: boolean
+    }[]>([])
 
     const form = useForm<ProfessionalEditForm>({
         resolver: zodResolver(professionalEditSchema),
@@ -138,9 +144,7 @@ export function ProfessionalProfile() {
             unitName: "",
             status: "active",
             loginEnabled: true,
-            consultationTime: "30 minutos",
-            availableDays: "Segunda a sexta",
-            workingHours: "08:00 - 18:00",
+            // schedules will be used instead of free-text agenda fields
         },
     })
 
@@ -169,10 +173,21 @@ export function ProfessionalProfile() {
                     unitName: data.unit?.name ?? "",
                     status: data.isActive ? "active" : "inactive",
                     loginEnabled: true,
-                    consultationTime: "30 minutos",
-                    availableDays: "Segunda a sexta",
-                    workingHours: "08:00 - 18:00",
                 })
+                    // load schedules
+                    professionalsService.getSchedules(id).then((s) => {
+                        if (!alive) return
+                        setSchedules(
+                            (s ?? []).map((it: any) => ({
+                                id: it.id,
+                                dayOfWeek: it.dayOfWeek,
+                                startTime: (it.startTime as string)?.slice(0, 5) ?? "08:00",
+                                endTime: (it.endTime as string)?.slice(0, 5) ?? "12:00",
+                                appointmentDurationMinutes: it.appointmentDurationMinutes,
+                                isActive: it.isActive,
+                            })),
+                        )
+                    }).catch(() => {})
             })
             .catch(() => toast.error("Erro ao carregar profissional"))
             .finally(() => {
@@ -247,6 +262,18 @@ export function ProfessionalProfile() {
                 crm: `${values.crmState}${values.crmNumber}`,
                 isActive: values.status === "active",
             })
+            // persist schedules after updating professional
+            try {
+                await professionalsService.replaceSchedules(id, schedules.map((s) => ({
+                    dayOfWeek: s.dayOfWeek,
+                    startTime: `${s.startTime}:00`,
+                    endTime: `${s.endTime}:00`,
+                    appointmentDurationMinutes: Number(s.appointmentDurationMinutes),
+                    isActive: s.isActive ?? true,
+                })))
+            } catch (e) {
+                // ignore schedule save errors for now
+            }
             toast.success("Profissional atualizado")
             navigate("/profissionais")
         } catch {
@@ -387,18 +414,51 @@ export function ProfessionalProfile() {
                             <section className="grid gap-4">
                                 <h3 className="text-sm font-semibold text-foreground">Agenda</h3>
                                 <div className="grid gap-5 sm:grid-cols-3">
-                                    <label className="grid gap-2">
-                                        <span className="text-sm font-medium text-foreground">Tempo padrão de consulta</span>
-                                        <Input className="h-11 rounded-xl" {...form.register("consultationTime")} />
-                                    </label>
-                                    <label className="grid gap-2">
-                                        <span className="text-sm font-medium text-foreground">Dias disponíveis</span>
-                                        <Input className="h-11 rounded-xl" {...form.register("availableDays")} />
-                                    </label>
-                                    <label className="grid gap-2">
-                                        <span className="text-sm font-medium text-foreground">Horários atendimento</span>
-                                        <Input className="h-11 rounded-xl" {...form.register("workingHours")} />
-                                    </label>
+                                        {/* Agenda fields removed — use structured Escalas below */}
+                                    </div>
+                                </section>
+                                <section className="grid gap-4">
+                                    <h3 className="text-sm font-semibold text-foreground">Escalas</h3>
+                                    <div className="grid gap-5 sm:grid-cols-3">
+                                </div>
+                                <div className="mt-4">
+                                    <h4 className="text-sm font-semibold text-foreground mb-2">Escalas</h4>
+                                    <div className="space-y-2">
+                                        {schedules.map((row, idx) => (
+                                            <div key={row.id ?? idx} className="grid grid-cols-6 gap-2 items-center">
+                                                <select
+                                                    className="h-10 rounded-xl border border-input px-2"
+                                                    value={row.dayOfWeek}
+                                                    onChange={(e) => {
+                                                        const v = Number(e.target.value)
+                                                        setSchedules((prev) => prev.map((p, i) => i === idx ? { ...p, dayOfWeek: v } : p))
+                                                    }}
+                                                >
+                                                    <option value={0}>Domingo</option>
+                                                    <option value={1}>Segunda</option>
+                                                    <option value={2}>Terça</option>
+                                                    <option value={3}>Quarta</option>
+                                                    <option value={4}>Quinta</option>
+                                                    <option value={5}>Sexta</option>
+                                                    <option value={6}>Sábado</option>
+                                                </select>
+                                                <input type="time" className="h-10 rounded-xl border border-input px-2" value={row.startTime} onChange={(e) => setSchedules((prev) => prev.map((p, i) => i === idx ? { ...p, startTime: e.target.value } : p))} />
+                                                <input type="time" className="h-10 rounded-xl border border-input px-2" value={row.endTime} onChange={(e) => setSchedules((prev) => prev.map((p, i) => i === idx ? { ...p, endTime: e.target.value } : p))} />
+                                                <input type="number" min={1} className="h-10 rounded-xl border border-input px-2" value={row.appointmentDurationMinutes} onChange={(e) => setSchedules((prev) => prev.map((p, i) => i === idx ? { ...p, appointmentDurationMinutes: Number(e.target.value) } : p))} />
+                                                <label className="flex items-center gap-2">
+                                                    <input type="checkbox" checked={!!row.isActive} onChange={(e) => setSchedules((prev) => prev.map((p, i) => i === idx ? { ...p, isActive: e.target.checked } : p))} />
+                                                    <span className="text-sm">Ativo</span>
+                                                </label>
+                                                <button type="button" className="text-destructive" onClick={() => setSchedules((prev) => prev.filter((_, i) => i !== idx))}>Remover</button>
+                                            </div>
+                                        ))}
+
+                                        <div>
+                                            <button type="button" className="text-primary-foreground underline" onClick={() => setSchedules((prev) => [...prev, { dayOfWeek: 1, startTime: "08:00", endTime: "12:00", appointmentDurationMinutes: 30, isActive: true }])}>
+                                                + Adicionar escala
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </section>
                         </div>

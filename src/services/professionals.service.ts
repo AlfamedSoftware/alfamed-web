@@ -52,4 +52,13 @@ export const professionalsService = {
             method: "PATCH",
             body: JSON.stringify(data),
         }),
+
+    getSchedules: (professionalId: string): Promise<any[]> =>
+        fetchWithAuth<any[]>(`${BASE_URL}/${professionalId}/schedules`),
+
+    replaceSchedules: (professionalId: string, schedules: any[]): Promise<any[]> =>
+        fetchWithAuth<any[]>(`${BASE_URL}/${professionalId}/schedules`, {
+            method: "PUT",
+            body: JSON.stringify({ schedules }),
+        }),
 }

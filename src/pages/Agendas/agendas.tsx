@@ -1,67 +1,709 @@
-import { IlamyCalendar } from "@ilamy/calendar"
+import { useEffect, useMemo, useState } from "react"
+import { IlamyCalendar, type EventFormProps } from "@ilamy/calendar"
+import { CalendarDays, Check, Plus, Trash2 } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { useSession } from "@/hooks/use-session"
+import { useSidebarMenu } from "@/contexts/sidebar-menu-context"
+import { useProfessionals } from "@/hooks/use-professionals"
+import { appointmentsService, type AppointmentCalendarEvent } from "@/services/appointments.service"
+import { patientsService, type PatientListItem } from "@/services/patients.service"
 
-const agendaEvents = [
-    {
-        id: "consulta-1",
-        title: "Consulta - Dr. Silva",
-        start: "2026-05-18T09:00:00-03:00",
-        end: "2026-05-18T09:40:00-03:00",
-        color: "#2563eb",
-        backgroundColor: "#dbeafe",
-        description: "Retorno com exame de rotina",
-        location: "Sala 03",
-    },
-    {
-        id: "exame-1",
-        title: "Exame de imagem",
-        start: "2026-05-18T11:00:00-03:00",
-        end: "2026-05-18T11:30:00-03:00",
-        color: "#059669",
-        backgroundColor: "#d1fae5",
-        description: "Ultrassonografia abdominal",
-        location: "Setor de imagens",
-    },
-    {
-        id: "bloqueio-1",
-        title: "Bloco da tarde",
-        start: "2026-05-18T14:00:00-03:00",
-        end: "2026-05-18T17:00:00-03:00",
-        color: "#b45309",
-        backgroundColor: "#fef3c7",
-        description: "Reserva para encaixes e urgências",
-    },
-]
+type BookingFormState = {
+    patientId: string
+    professionalId: string
+    date: string
+    startTime: string
+    endTime: string
+    reason: string
+}
+
+const INTERNAL_ROLE_KEYS = new Set(["internal_alfamed", "administrative", "administrative_assistant"])
+
+function getTodayDateString() {
+    return new Date().toISOString().slice(0, 10)
+}
+
+function getWeekRange(dateString: string) {
+    const baseDate = new Date(`${dateString}T12:00:00`)
+    const dayOfWeek = baseDate.getDay()
+    const mondayOffset = (dayOfWeek + 6) % 7
+
+    const start = new Date(baseDate)
+    start.setDate(baseDate.getDate() - mondayOffset)
+    start.setHours(0, 0, 0, 0)
+
+    const end = new Date(start)
+    end.setDate(start.getDate() + 7)
+    end.setHours(0, 0, 0, 0)
+
+    return { start, end }
+}
+
+function toIsoWithOffset(date: string, time: string) {
+    return new Date(`${date}T${time}:00-03:00`).toISOString()
+}
 
 export function Agendas() {
+    const { user } = useSession()
+    const { menuRoles } = useSidebarMenu()
+    const { professionals, isLoading: professionalsLoading, error: professionalsError } = useProfessionals()
+
+    const [selectedDate, setSelectedDate] = useState(getTodayDateString())
+    const [selectedProfessionalIds, setSelectedProfessionalIds] = useState<string[]>([])
+    const [agendaEvents, setAgendaEvents] = useState<AppointmentCalendarEvent[]>([])
+    const [isAgendaLoading, setIsAgendaLoading] = useState(true)
+    const [agendaError, setAgendaError] = useState<string | null>(null)
+    const [isBookingOpen, setIsBookingOpen] = useState(false)
+    const [isSaving, setIsSaving] = useState(false)
+    const [isDeleting, setIsDeleting] = useState(false)
+    const [bookingError, setBookingError] = useState<string | null>(null)
+    const [availabilityWindows, setAvailabilityWindows] = useState<Array<{ start: string; end: string }>>([])
+    const [patients, setPatients] = useState<PatientListItem[]>([])
+    const [patientsLoading, setPatientsLoading] = useState(true)
+    const [patientsError, setPatientsError] = useState<string | null>(null)
+    const [hasInitializedSelection, setHasInitializedSelection] = useState(false)
+    const [editingAppointmentId, setEditingAppointmentId] = useState<string | null>(null)
+    const [viewingAppointmentId, setViewingAppointmentId] = useState<string | null>(null)
+    const [viewingAppointmentDetails, setViewingAppointmentDetails] = useState<any>(null)
+    const [isViewingOpen, setIsViewingOpen] = useState(false)
+    const [bookingForm, setBookingForm] = useState<BookingFormState>(() => ({
+        patientId: "",
+        professionalId: "",
+        date: getTodayDateString(),
+        startTime: "09:00",
+        endTime: "09:30",
+        reason: "",
+    }))
+
+    const isMedic = menuRoles.includes("medic")
+    const canChooseProfessionals = menuRoles.some((role) => INTERNAL_ROLE_KEYS.has(role))
+
+    const activeProfessionals = useMemo(() => professionals.filter((professional) => professional.isActive), [professionals])
+    const currentProfessional = useMemo(
+        () => activeProfessionals.find((professional) => professional.userId === user?.id) ?? null,
+        [activeProfessionals, user?.id],
+    )
+
+    useEffect(() => {
+        const loadPatients = async () => {
+            setPatientsLoading(true)
+            setPatientsError(null)
+
+            try {
+                const data = await patientsService.list()
+                setPatients(data.filter((patient) => patient.isActive))
+            } catch (error) {
+                setPatientsError(error instanceof Error ? error.message : "Falha ao carregar pacientes")
+            } finally {
+                setPatientsLoading(false)
+            }
+        }
+
+        void loadPatients()
+    }, [])
+
+    useEffect(() => {
+        if (professionalsLoading) {
+            return
+        }
+
+        if (isMedic) {
+            if (currentProfessional?.id) {
+                setSelectedProfessionalIds([currentProfessional.id])
+                setBookingForm((current) => ({
+                    ...current,
+                    professionalId: currentProfessional.id,
+                }))
+            }
+
+            return
+        }
+
+        if (!hasInitializedSelection && activeProfessionals.length > 0) {
+            const initialIds = activeProfessionals.map((professional) => professional.id)
+            setSelectedProfessionalIds(initialIds)
+            setHasInitializedSelection(true)
+            setBookingForm((current) => ({
+                ...current,
+                professionalId: current.professionalId || initialIds[0] || "",
+            }))
+        }
+    }, [activeProfessionals, currentProfessional?.id, hasInitializedSelection, isMedic, professionalsLoading])
+
+    useEffect(() => {
+        const loadAgendaEvents = async () => {
+            if (selectedProfessionalIds.length === 0) {
+                setAgendaEvents([])
+                setIsAgendaLoading(false)
+                return
+            }
+
+            setIsAgendaLoading(true)
+            setAgendaError(null)
+
+            const range = getWeekRange(selectedDate)
+
+            try {
+                const events = await appointmentsService.listAgendaEvents({
+                    professionalIds: selectedProfessionalIds,
+                    from: range.start.toISOString(),
+                    to: range.end.toISOString(),
+                })
+                setAgendaEvents(events)
+            } catch (error) {
+                setAgendaError(error instanceof Error ? error.message : "Falha ao carregar agenda")
+                setAgendaEvents([])
+            } finally {
+                setIsAgendaLoading(false)
+            }
+        }
+
+        void loadAgendaEvents()
+    }, [selectedDate, selectedProfessionalIds])
+
+    const visibleProfessionals = canChooseProfessionals ? activeProfessionals : currentProfessional ? [currentProfessional] : activeProfessionals.slice(0, 1)
+
+    const handleToggleProfessional = (professionalId: string) => {
+        setSelectedProfessionalIds((current) => {
+            if (current.includes(professionalId)) {
+                return current.filter((value) => value !== professionalId)
+            }
+
+            return [...current, professionalId]
+        })
+    }
+
+    const handleOpenBooking = () => {
+        const nextProfessionalId = isMedic ? currentProfessional?.id ?? "" : bookingForm.professionalId || selectedProfessionalIds[0] || ""
+
+        setBookingForm((current) => ({
+            ...current,
+            professionalId: nextProfessionalId,
+            date: selectedDate,
+        }))
+        setAvailabilityWindows([])
+        setBookingError(null)
+        setIsBookingOpen(true)
+    }
+
+    const handleSubmitBooking = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault()
+        setBookingError(null)
+        setAvailabilityWindows([])
+
+        const professionalId = isMedic ? currentProfessional?.id ?? bookingForm.professionalId : bookingForm.professionalId
+
+        if (!professionalId) {
+            setBookingError("Selecione um profissional para continuar")
+            return
+        }
+
+        if (!bookingForm.patientId) {
+            setBookingError("Selecione um paciente para continuar")
+            return
+        }
+
+        const startAt = toIsoWithOffset(bookingForm.date, bookingForm.startTime)
+        const endAt = toIsoWithOffset(bookingForm.date, bookingForm.endTime)
+
+        setIsSaving(true)
+
+        try {
+            if (editingAppointmentId) {
+                // Update existing appointment
+                await appointmentsService.update(editingAppointmentId, {
+                    patientId: bookingForm.patientId,
+                    startAt,
+                    endAt,
+                    reason: bookingForm.reason.trim() || undefined,
+                })
+            } else {
+                // Create new appointment
+                await appointmentsService.create({
+                    patientId: bookingForm.patientId,
+                    professionalId,
+                    startAt,
+                    endAt,
+                    reason: bookingForm.reason.trim() || undefined,
+                })
+            }
+
+            setIsBookingOpen(false)
+            setEditingAppointmentId(null)
+            setBookingForm((current) => ({
+                ...current,
+                patientId: "",
+                reason: "",
+            }))
+
+            const range = getWeekRange(selectedDate)
+            const events = await appointmentsService.listAgendaEvents({
+                professionalIds: selectedProfessionalIds,
+                from: range.start.toISOString(),
+                to: range.end.toISOString(),
+            })
+            setAgendaEvents(events)
+        } catch (error) {
+            const message = error instanceof Error ? error.message : (editingAppointmentId ? "Falha ao atualizar agendamento" : "Falha ao criar agendamento")
+
+            // If backend reports unavailable, fetch availability windows to show helpful info
+            if (message.toLowerCase().includes("not available") || message.toLowerCase().includes("indispon")) {
+                try {
+                    const availability = await appointmentsService.checkAvailability({
+                        professionalId,
+                        date: bookingForm.date,
+                        startAt,
+                        endAt,
+                    })
+
+                    setAvailabilityWindows(availability.windows)
+                    setBookingError("O intervalo escolhido não está disponível")
+                } catch (subError) {
+                    setBookingError(message)
+                }
+            } else {
+                setBookingError(message)
+            }
+        } finally {
+            setIsSaving(false)
+        }
+    }
+
+    // Intercept ilamy's event form and open our Sheet instead.
+    const CustomEventForm = (props: EventFormProps) => {
+        const { open, selectedEvent, onClose } = props
+
+        useEffect(() => {
+            if (!open) return
+
+            // If selectedEvent exists, prefill from it; otherwise, use a sensible default
+            if (selectedEvent) {
+                const start = new Date(selectedEvent.start as any)
+                const end = new Date(selectedEvent.end as any)
+                setBookingForm((current) => ({
+                    ...current,
+                    date: start.toISOString().slice(0, 10),
+                    startTime: start.toTimeString().slice(0, 5),
+                    endTime: end.toTimeString().slice(0, 5),
+                    reason: String(selectedEvent.description ?? ""),
+                }))
+            }
+
+            // Open our Sheet and close the library form immediately
+            setIsBookingOpen(true)
+            try {
+                onClose()
+            } catch {}
+        }, [open, selectedEvent, onClose])
+
+        return null
+    }
+
     return (
         <div className="flex min-h-0 flex-1 flex-col">
             <PageHeader title="Agendas" />
+
             <div className="flex min-h-0 flex-1 flex-col gap-4 p-4">
                 <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
-                    <div className="mb-4 space-y-1">
-                        <h2 className="text-lg font-semibold text-foreground">Agenda da unidade</h2>
-                        <p className="text-sm text-muted-foreground">
-                            Visualize consultas, exames e bloqueios de horário em uma única tela.
-                        </p>
+                    <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                        <div className="space-y-1">
+                            <h2 className="text-lg font-semibold text-foreground">Agenda da unidade</h2>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2">
+                            <Button onClick={handleOpenBooking} className="gap-2 header-booking-button">
+                                <Plus className="size-4" />
+                                Novo agendamento
+                            </Button>
+                        </div>
                     </div>
 
-                    <div className="min-h-[620px] overflow-hidden rounded-lg border border-border bg-background lg:min-h-[680px]">
-                        <IlamyCalendar
-                            events={agendaEvents}
-                            initialView="week"
-                            firstDayOfWeek="monday"
-                            initialDate="2026-05-18"
-                            businessHours={{
-                                daysOfWeek: ["monday", "tuesday", "wednesday", "thursday", "friday"],
-                                startTime: 8,
-                                endTime: 20,
-                            }}
-                            hideNonBusinessHours
-                            timeFormat="24-hour"
-                            scrollTime="08:00"
-                        />
+                    {(agendaError || professionalsError || patientsError) && (
+                        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                            {agendaError ?? professionalsError ?? patientsError}
+                        </div>
+                    )}
+
+                    <div className="mb-4 flex flex-col gap-4 lg:flex-row">
+                        <div className="w-full lg:w-72">
+                            {canChooseProfessionals ? (
+                                <div className="rounded-xl border border-border bg-background p-4">
+                                    <div className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
+                                        <CalendarDays className="size-4 text-muted-foreground" />
+                                        Profissionais
+                                    </div>
+
+                                    <div className="grid gap-2 sm:grid-cols-1">
+                                        {visibleProfessionals.map((professional) => {
+                                            const checked = selectedProfessionalIds.includes(professional.id)
+
+                                            return (
+                                                <label
+                                                    key={professional.id}
+                                                    className="flex cursor-pointer items-center gap-3 rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground transition-colors hover:bg-accent"
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={checked}
+                                                        onChange={() => handleToggleProfessional(professional.id)}
+                                                        className="size-4 rounded border-border"
+                                                    />
+                                                    <span className="flex flex-col">
+                                                        <span className="font-medium">{professional.name ?? "Profissional"}</span>
+                                                    </span>
+                                                </label>
+                                            )
+                                        })}
+                                    </div>
+                                </div>
+                            ) : currentProfessional ? (
+                                <div className="rounded-xl border border-border bg-background px-4 py-3 text-sm text-muted-foreground">
+                                    Visualizando apenas a agenda de <span className="font-medium text-foreground">{currentProfessional.name ?? "você"}</span>.
+                                </div>
+                            ) : null}
+                        </div>
+
+                        <div className="flex-1">
+                            <div className="min-h-[620px] overflow-hidden rounded-lg border border-border bg-background lg:min-h-[680px]">
+                                {isAgendaLoading ? (
+                                    <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                                        Carregando agenda...
+                                    </div>
+                                ) : (
+                                    <IlamyCalendar
+                                        events={agendaEvents}
+                                        initialView="week"
+                                        firstDayOfWeek="monday"
+                                        initialDate={selectedDate}
+                                        businessHours={{
+                                            daysOfWeek: ["monday", "tuesday", "wednesday", "thursday", "friday"],
+                                            startTime: 8,
+                                            endTime: 20,
+                                        }}
+                                        hideNonBusinessHours
+                                        timeFormat="24-hour"
+                                        scrollTime="08:00"
+                                        renderEventForm={(props) => <CustomEventForm {...props} />}
+                                        onCellClick={(info: any) => {
+                                            try {
+                                                const startDate: Date = info.start?.toDate ? info.start.toDate() : new Date(info.start)
+                                                const endDate: Date = info.end?.toDate ? info.end.toDate() : new Date(info.end)
+                                                setBookingForm((current) => ({
+                                                    ...current,
+                                                    date: startDate.toISOString().slice(0, 10),
+                                                    startTime: startDate.toTimeString().slice(0, 5),
+                                                    endTime: endDate.toTimeString().slice(0, 5),
+                                                }))
+                                                setAvailabilityWindows([])
+                                                setBookingError(null)
+                                                setIsBookingOpen(true)
+                                            } catch (e) {
+                                                // ignore
+                                            }
+                                        }}
+                                        onEventClick={(event: any) => {
+                                            try {
+                                                // If it's an appointment, load and view details
+                                                if (event.kind === "appointment" && event.id) {
+                                                    setViewingAppointmentId(event.id)
+                                                    appointmentsService
+                                                        .get(event.id)
+                                                        .then((appointment) => {
+                                                            setViewingAppointmentDetails(appointment)
+                                                            setIsViewingOpen(true)
+                                                        })
+                                                        .catch((error) => {
+                                                            setBookingError(
+                                                                error instanceof Error ? error.message : "Falha ao carregar agendamento",
+                                                            )
+                                                        })
+                                                } else {
+                                                    // If it's a block or empty slot, create new appointment
+                                                    const start = new Date(event.start)
+                                                    const end = new Date(event.end)
+                                                    setEditingAppointmentId(null)
+                                                    setBookingForm((current) => ({
+                                                        ...current,
+                                                        date: start.toISOString().slice(0, 10),
+                                                        startTime: start.toTimeString().slice(0, 5),
+                                                        endTime: end.toTimeString().slice(0, 5),
+                                                    }))
+                                                    setAvailabilityWindows([])
+                                                    setBookingError(null)
+                                                    setIsBookingOpen(true)
+                                                }
+                                            } catch (e) {
+                                                // ignore
+                                            }
+                                        }}
+                                    />
+                                )}
+                            </div>
+                        </div>
                     </div>
+
+                    <Sheet open={isBookingOpen} onOpenChange={setIsBookingOpen}>
+                <SheetContent side="right" className="w-full sm:max-w-xl">
+                    <SheetHeader>
+                        <SheetTitle>{editingAppointmentId ? "Editar agendamento" : "Novo agendamento"}</SheetTitle>
+                        <SheetDescription>
+                            {editingAppointmentId
+                                ? "Atualize os dados do agendamento."
+                                : "Selecione paciente, profissional e intervalo. A disponibilidade é validada antes de salvar."}
+                        </SheetDescription>
+                    </SheetHeader>
+
+                    <form onSubmit={handleSubmitBooking} className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4">
+                        {bookingError && (
+                            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                                {bookingError}
+                            </div>
+                        )}
+
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-foreground">Paciente</label>
+                            <select
+                                value={bookingForm.patientId}
+                                onChange={(event) => setBookingForm((current) => ({ ...current, patientId: event.target.value }))}
+                                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+                                required
+                                disabled={patientsLoading}
+                            >
+                                <option value="">Selecione um paciente</option>
+                                {patients.map((patient) => (
+                                    <option key={patient.id} value={patient.id}>
+                                        {patient.name} - {patient.email}
+                                    </option>
+                                ))}
+                            </select>
+                            {patientsLoading && <p className="text-xs text-muted-foreground">Carregando pacientes...</p>}
+                        </div>
+
+                        {!isMedic && (
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-foreground">Profissional</label>
+                                <select
+                                    value={bookingForm.professionalId}
+                                    onChange={(event) => setBookingForm((current) => ({ ...current, professionalId: event.target.value }))}
+                                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+                                    required
+                                >
+                                    <option value="">Selecione um profissional</option>
+                                    {activeProfessionals.map((professional) => (
+                                        <option key={professional.id} value={professional.id}>
+                                            {professional.name ?? "Profissional"} {professional.crm ? `- CRM ${professional.crm}` : ""}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
+                        {isMedic && currentProfessional && (
+                            <div className="rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+                                Profissional definido automaticamente: <span className="font-medium text-foreground">{currentProfessional.name ?? "você"}</span>
+                            </div>
+                        )}
+
+                        <div className="grid gap-3 sm:grid-cols-3">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-foreground">Data</label>
+                                <Input
+                                    type="date"
+                                    value={bookingForm.date}
+                                    onChange={(event) => setBookingForm((current) => ({ ...current, date: event.target.value }))}
+                                    required
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-foreground">Início</label>
+                                <Input
+                                    type="time"
+                                    value={bookingForm.startTime}
+                                    onChange={(event) => setBookingForm((current) => ({ ...current, startTime: event.target.value }))}
+                                    required
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-foreground">Fim</label>
+                                <Input
+                                    type="time"
+                                    value={bookingForm.endTime}
+                                    onChange={(event) => setBookingForm((current) => ({ ...current, endTime: event.target.value }))}
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-foreground">Observação</label>
+                            <textarea
+                                value={bookingForm.reason}
+                                onChange={(event) => setBookingForm((current) => ({ ...current, reason: event.target.value }))}
+                                className="min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+                                placeholder="Ex.: retorno com exame de rotina"
+                            />
+                        </div>
+
+                        {availabilityWindows.length > 0 && (
+                            <div className="rounded-lg border border-border bg-background px-4 py-3 text-sm">
+                                <p className="mb-2 font-medium text-foreground">Janelas livres encontradas</p>
+                                <ul className="space-y-1 text-muted-foreground">
+                                    {availabilityWindows.map((window) => (
+                                        <li key={`${window.start}-${window.end}`}>
+                                            {new Date(window.start).toLocaleString("pt-BR")} - {new Date(window.end).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+
+                        <SheetFooter className="flex gap-2">
+                            {editingAppointmentId && (
+                                <Button
+                                    type="button"
+                                    variant="destructive"
+                                    disabled={isDeleting || isSaving}
+                                    onClick={async () => {
+                                        if (!editingAppointmentId) return
+                                        if (!confirm("Tem certeza que deseja deletar este agendamento?")) return
+
+                                        setIsDeleting(true)
+                                        try {
+                                            await appointmentsService.delete(editingAppointmentId)
+                                            setIsBookingOpen(false)
+                                            setEditingAppointmentId(null)
+                                            setBookingForm((current) => ({
+                                                ...current,
+                                                patientId: "",
+                                                reason: "",
+                                            }))
+
+                                            const range = getWeekRange(selectedDate)
+                                            const events = await appointmentsService.listAgendaEvents({
+                                                professionalIds: selectedProfessionalIds,
+                                                from: range.start.toISOString(),
+                                                to: range.end.toISOString(),
+                                            })
+                                            setAgendaEvents(events)
+                                        } catch (error) {
+                                            setBookingError(error instanceof Error ? error.message : "Falha ao deletar agendamento")
+                                        } finally {
+                                            setIsDeleting(false)
+                                        }
+                                    }}
+                                    className="w-full gap-2"
+                                >
+                                    <Trash2 className="size-4" />
+                                    {isDeleting ? "Deletando..." : "Deletar"}
+                                </Button>
+                            )}
+                            <Button type="submit" disabled={isSaving || patientsLoading} className="w-full">
+                                {isSaving ? "Salvando..." : "Verificar e salvar"}
+                            </Button>
+                        </SheetFooter>
+                    </form>
+                </SheetContent>
+            </Sheet>
+
+            {/* Appointment Details Viewing Modal */}
+            <Sheet open={isViewingOpen} onOpenChange={setIsViewingOpen}>
+                <SheetContent side="right" className="w-full sm:max-w-xl">
+                    <SheetHeader>
+                        <SheetTitle>Detalhes da Consulta</SheetTitle>
+                        <SheetDescription>
+                            Visualize as informações da consulta ou abra para editar.
+                        </SheetDescription>
+                    </SheetHeader>
+
+                    {viewingAppointmentDetails && (
+                        <div className="space-y-6 py-4">
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="text-sm font-medium text-muted-foreground">Paciente</label>
+                                    <p className="text-sm text-foreground">
+                                        {patients.find((p) => p.id === viewingAppointmentDetails.patientId)?.name ?? "Carregando..."}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <label className="text-sm font-medium text-muted-foreground">Profissional</label>
+                                    <p className="text-sm text-foreground">
+                                        {professionals.find((p) => p.id === viewingAppointmentDetails.professionalId)?.name ?? "Carregando..."}
+                                    </p>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-sm font-medium text-muted-foreground">Data</label>
+                                        <p className="text-sm text-foreground">
+                                            {new Date(viewingAppointmentDetails.startAt).toLocaleDateString("pt-BR")}
+                                        </p>
+                                    </div>
+
+                                    <div>
+                                        <label className="text-sm font-medium text-muted-foreground">Horário</label>
+                                        <p className="text-sm text-foreground">
+                                            {new Date(viewingAppointmentDetails.startAt).toLocaleTimeString("pt-BR", {
+                                                hour: "2-digit",
+                                                minute: "2-digit",
+                                            })}{" "}
+                                            -{" "}
+                                            {new Date(viewingAppointmentDetails.endAt).toLocaleTimeString("pt-BR", {
+                                                hour: "2-digit",
+                                                minute: "2-digit",
+                                            })}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {viewingAppointmentDetails.reason && (
+                                    <div>
+                                        <label className="text-sm font-medium text-muted-foreground">Observações</label>
+                                        <p className="text-sm text-foreground">{viewingAppointmentDetails.reason}</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            <SheetFooter className="flex gap-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setIsViewingOpen(false)}
+                                    className="w-full"
+                                >
+                                    Fechar
+                                </Button>
+                                <Button
+                                    type="button"
+                                    onClick={() => {
+                                        const start = new Date(viewingAppointmentDetails.startAt)
+                                        const end = new Date(viewingAppointmentDetails.endAt)
+                                        setIsViewingOpen(false)
+                                        setEditingAppointmentId(viewingAppointmentDetails.id)
+                                        setBookingForm({
+                                            patientId: viewingAppointmentDetails.patientId,
+                                            professionalId: viewingAppointmentDetails.professionalId,
+                                            date: start.toISOString().slice(0, 10),
+                                            startTime: start.toTimeString().slice(0, 5),
+                                            endTime: end.toTimeString().slice(0, 5),
+                                            reason: viewingAppointmentDetails.reason ?? "",
+                                        })
+                                        setAvailabilityWindows([])
+                                        setBookingError(null)
+                                        setIsBookingOpen(true)
+                                    }}
+                                    className="w-full"
+                                >
+                                    Editar
+                                </Button>
+                            </SheetFooter>
+                        </div>
+                    )}
+                </SheetContent>
+            </Sheet>
                 </div>
             </div>
         </div>
