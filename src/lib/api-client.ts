@@ -1,4 +1,4 @@
-// Global navigation callback to handle redirects from API calls
+ // Global navigation callback to handle redirects from API calls
 let navigationCallback: ((path: string) => void) | null = null
 
 export function setNavigationCallback(callback: (path: string) => void) {
