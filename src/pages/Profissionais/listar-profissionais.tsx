@@ -8,37 +8,19 @@ import { ProfessionalFilters } from "./Componentes/ProfessionalFilters"
 import { ProfessionalSearch } from "./Componentes/ProfessionalSearch"
 import { ProfessionalGridSkeleton } from "./Componentes/Skeleton/listar-profissionais-skeleton"
 import { ProfessionalEmptyState } from "./Componentes/ProfessionalEmptyState"
-import { fetchWithAuth } from "@/lib/api-client"
-import { authBaseUrl } from "@/lib/auth"
 import { professionalsService, type ProfessionalUnitFullData } from "@/Servicos/professionals.service"
+import { useSessionUnit } from "@/contexts/session-unit-context"
 
 type ProfessionalFilter = "all" | "active" | "inactive"
 
-interface SessionUnitsResponse {
-    units: Array<{ id: string; name: string }>
-    selectedUnitId?: string
-}
-
 export function Profissionais() {
     const navigate = useNavigate()
-    const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null)
+    const { sessionUnit } = useSessionUnit()
+    const selectedUnitId = sessionUnit?.selectedUnitId ?? null
 
     const [professionals, setProfessionals] = useState<ProfessionalUnitFullData[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
-
-    useEffect(() => {
-        const fetchUnitId = async () => {
-            try {
-                const data = await fetchWithAuth<SessionUnitsResponse>(`${authBaseUrl}/session/units`)
-                if (data.selectedUnitId) setSelectedUnitId(data.selectedUnitId)
-            } catch (err) {
-                console.error("Error fetching unit id:", err)
-            }
-        }
-
-        fetchUnitId()
-    }, [])
 
     useEffect(() => {
         const fetchProfessionals = async () => {
