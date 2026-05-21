@@ -1,4 +1,4 @@
-import { StrictMode } from 'react'
+import { useEffect } from "react"
 import { createRoot } from 'react-dom/client'
 import { App } from './app'
 import './index.css'
@@ -8,9 +8,14 @@ import { setNavigationCallback } from '@/lib/api-client'
 
 function AppWithNavigation() {
   const navigate = useNavigate()
-  
-  // Configura o callback de navegação para erros de autenticação
-  setNavigationCallback((path: string) => navigate(path))
+
+  useEffect(() => {
+    setNavigationCallback((path: string) => navigate(path))
+
+    return () => {
+      setNavigationCallback(() => {})
+    }
+  }, [navigate])
   
   return (
     <ThemeProvider>
@@ -20,9 +25,7 @@ function AppWithNavigation() {
 }
 
 createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <BrowserRouter>
-      <AppWithNavigation />
-    </BrowserRouter>
-  </StrictMode>,
+  <BrowserRouter>
+    <AppWithNavigation />
+  </BrowserRouter>,
 )

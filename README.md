@@ -1,15 +1,15 @@
 # Alfamed Web
 
-Frontend da aplicação Alfamed, construído com **React 19 + TypeScript + Vite**.
+Frontend da aplicação Alfamed, construído com React 19 + TypeScript + Vite.
 
 ## Resumo
 
-Aplicação SPA para fluxo clínico e área interna do Service Desk. O frontend consome a API do Alfamed via REST e usa Better Auth com sessão em cookie.
+SPA para fluxo clínico e área interna (Service Desk). O frontend consome a API do Alfamed via REST e usa Better Auth para autenticação com sessão por cookie.
 
 ## Requisitos
 
-- Node.js 20+.
-- npm 10+.
+- Node.js 20+
+- npm 10+
 
 ## Instalação
 
@@ -19,14 +19,14 @@ cd alfamed-web
 npm install
 ```
 
-Crie um arquivo `.env` na raiz, tomando `.env.example` como base.
+Crie um arquivo `.env` na raiz (use `.env.example` como referência, se existir).
 
-## Variáveis de Ambiente
+## Variáveis de ambiente
 
 | Variável | Uso | Valor padrão |
 |----------|-----|--------------|
-| `VITE_API_URL` | URL base usada pelo cliente de autenticação e pelos serviços | `http://localhost:3333` em localhost; `https://alfamed-api-dev.vercel.app` fora dele |
-| `VITE_API_PROXY_TARGET` | Alvo do proxy do Vite em desenvolvimento | `https://alfamed-api-dev.vercel.app` |
+| VITE_API_URL | URL base usada pelo cliente de autenticação e pelos serviços | `http://localhost:3333` (desenvolvimento) |
+| VITE_API_PROXY_TARGET | Alvo do proxy do Vite em desenvolvimento | `http://localhost:3333` |
 
 Exemplo local:
 
@@ -35,115 +35,61 @@ VITE_API_URL=http://localhost:3333
 VITE_API_PROXY_TARGET=http://localhost:3333
 ```
 
-## Scripts
+## Scripts úteis
+
+```bash
+npm run dev     # roda em modo desenvolvimento (Vite)
+npm run build   # compila TypeScript e gera build do Vite
+npm run lint    # executa ESLint
+npm run preview # serve a build gerada localmente
+```
+
+## Como rodar (desenvolvimento)
 
 ```bash
 npm run dev
-npm run build
-npm run lint
-npm run preview
 ```
 
-## Execução
+O app sobe normalmente em `http://localhost:5173`.
 
-```bash
-npm run dev
-```
+No modo de desenvolvimento o Vite faz proxy de rotas para o backend conforme `VITE_API_PROXY_TARGET`.
 
-O app sobe em `http://localhost:5173`.
+## Fluxos principais
 
-No modo de desenvolvimento, o Vite faz proxy de `/api` e `/health` para o backend configurado em `VITE_API_PROXY_TARGET`.
+- Login: rota `/login` (`src/pages/SignIn/sign-in.tsx`). Usa `auth.signIn.email(...)` com `callbackURL` para `/session`. A sessão é mantida por cookie.
+- Seleção de unidade: rota `/session` (`src/pages/SelecaoUnidade/selecao-unidade.tsx`). O frontend faz chamadas com `credentials: "include"` e o backend grava cookies `selectedUnitId` / `selectedProfessionalUnitId`.
 
-```bash
-npm run build
-```
+## Rotas importantes
 
-Gera a build de produção em `dist/`.
+- Internas (protegidas): `/home`, `/profissionais`, `/cadastro-profissionais`, `/procedimentos`, `/especialidades`, `/agendas`, `/agendamentos`, `/perfil`.
+- Área administrativa (`/admin/*`): `/admin/login`, `/admin/unidades`, `/admin/upm`, etc.
 
-```bash
-npm run preview
-```
+As rotas e guards estão definidas em `src/app.tsx` e em `src/components/ProtectRoute/`.
 
-Serve localmente a build gerada.
+## Autenticação e chamadas HTTP
 
-## Fluxo da Aplicação
+- Cliente de auth: `src/lib/auth.ts`.
+- Requisições autenticadas devem usar `credentials: "include"` (cookies).
+- Não usar `Authorization: Bearer` para a sessão Better Auth.
+- O contexto de unidade é mantido via cookie no backend.
+- Centralize chamadas HTTP em `src/Servicos/*.service.ts`.
 
-### Login clínico
-
-1. A rota `/login` usa `src/pages/SignIn/sign-in.tsx`.
-2. O login chama `auth.signIn.email(...)` com `callbackURL` para `/session`.
-3. A sessão é mantida por cookie, não por Bearer token.
-4. Em sucesso, o usuário segue para a seleção de unidade.
-
-### Seleção de unidade
-
-1. A rota `/session` usa `src/pages/SelecaoUnidade/selecao-unidade.tsx`.
-2. O frontend busca `GET /session/units` com `credentials: "include"`.
-3. Se houver uma única unidade, a seleção é automática.
-4. Se houver mais de uma, o usuário escolhe a unidade e envia `POST /session/select-unit` com `{ unitId }`.
-5. Depois disso o backend grava `selectedUnitId` e `selectedProfessionalUnitId` em cookies.
-
-### Rotas internas
-
-As rotas internas ficam sob `/` e são protegidas por `ProtectedRoute` e `UnitProtectedRoute`.
-
-Rotas atuais em `src/app.tsx`:
-
-- `/home`
-- `/profissionais`
-- `/profissionais/vinculo-especialidades`
-- `/profissionais/:id`
-- `/cadastro-profissionais`
-- `/procedimentos`
-- `/especialidades`
-- `/agendas`
-- `/agendamentos`
-- `/perfil`
-
-### Área administrativa
-
-As rotas de Service Desk ficam em `/admin/*`.
-
-Rotas atuais:
-
-- `/admin/login`
-- `/admin/unidades`
-- `/admin/unidades/:id`
-- `/admin/upm`
-- `/admin/upm/usuarios/:id`
-
-## Autenticação e API
-
-- O cliente de autenticação está em `src/lib/auth.ts`.
-- Requisições autenticadas usam `credentials: "include"`.
-- Não há uso de `Authorization: Bearer` para a sessão do Better Auth.
-- Não existe header `x-unit-id` no frontend.
-- Serviços HTTP ficam em `src/Servicos/*.service.ts`.
-
-## Estrutura Principal
+## Estrutura do projeto
 
 ```
 src/
-├── components/     # UI, guards de rota, sidebar, auth e loading
-├── contexts/       # Contexto do menu lateral
-├── hooks/          # Hooks de sessão e utilitários
-├── layouts/        # Layout padrão e layout com sidebar
-├── lib/            # Cliente de auth, fetch e utilitários
-├── pages/          # Telas da aplicação
-├── Servicos/       # Chamadas HTTP para API
-├── app.tsx         # Definição das rotas
-└── main.tsx        # Bootstrap da aplicação
+├── components/
+├── contexts/
+├── hooks/
+├── layouts/
+├── lib/
+├── pages/
+├── Servicos/
+├── app.tsx
+└── main.tsx
 ```
 
-## Validação
+## Validação e status local
 
-Na verificação executada neste workspace:
-
-- `npm run build` passou.
-- `npm run lint` falhou por problemas já existentes no código, principalmente `react-hooks/set-state-in-effect` em `src/components/app-sidebar.tsx` e alguns `no-unused-vars`.
-
-## Observações
-
-- O backend local padrão usa a porta `3333`, não `3000`.
-- O fluxo de unidade e menu depende de cookies da sessão.
-- O app usa React 19, não React 18.
+- `npm run build` passou nesta verificação local.
+- `npm run lint` apresenta avisos/erros existentes (por exemplo `react-hooks/set-state-in-effect` em `src/components/app-sidebar.tsx` e alguns `no-unused-vars`). Recomenda-se rodar o lint antes de PRs.

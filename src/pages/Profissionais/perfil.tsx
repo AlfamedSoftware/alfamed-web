@@ -3,18 +3,14 @@ import { useEffect, useState } from "react"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { useSession } from "@/hooks/use-session"
-import { authBaseUrl } from "@/lib/auth"
-import { fetchWithAuth } from "@/lib/api-client"
+import { useSessionUnit } from "@/contexts/session-unit-context"
 
 import { ProfessionalProfile } from "./edicao-profissionais"
 import { AlteracaoProfissionaisSkeleton } from "./Componentes/Skeleton/alteracao-profissionais-skeleton"
 
-interface SessionUnitsResponse {
-    selectedProfessionalUnitId?: string
-}
-
 export function Perfil() {
     const { user, isLoading: isSessionLoading } = useSession()
+    const { sessionUnit } = useSessionUnit()
     const [professionalUnitId, setProfessionalUnitId] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState("")
@@ -37,13 +33,9 @@ export function Perfil() {
             setError("")
 
             try {
-                const sessionUnits = await fetchWithAuth<SessionUnitsResponse>(`${authBaseUrl}/session/units`)
                 if (!alive) return
 
-                const selectedProfessionalUnitId =
-                    typeof sessionUnits.selectedProfessionalUnitId === "string" && sessionUnits.selectedProfessionalUnitId.length > 0
-                        ? sessionUnits.selectedProfessionalUnitId
-                        : null
+                const selectedProfessionalUnitId = sessionUnit?.selectedProfessionalUnitId ?? null
 
                 if (!selectedProfessionalUnitId) {
                     setProfessionalUnitId(null)
@@ -68,7 +60,7 @@ export function Perfil() {
         return () => {
             alive = false
         }
-    }, [isSessionLoading, user?.id])
+    }, [isSessionLoading, sessionUnit?.selectedProfessionalUnitId, user?.id])
 
     if (isSessionLoading || isLoading) {
         return (

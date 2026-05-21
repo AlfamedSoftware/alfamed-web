@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input"
 import PasswordInput from "@/components/ui/password-input"
 import { PageHeader } from "@/components/page-header"
 import { authBaseUrl } from "@/lib/auth"
+import { fetchWithAuth } from "@/lib/api-client"
 import { cn } from "@/lib/utils"
 import { professionalsService, type ProfessionalUnitFullData } from "@/Servicos/professionals.service"
 import * as z from "zod"
@@ -642,16 +643,9 @@ export function ProfessionalProfile({
             setRolesError("")
 
             try {
-                const response = await fetch(`${authBaseUrl}/roles?isActive=true&internal=false`, {
-                    credentials: "include",
+                const data = await fetchWithAuth<unknown>(`${authBaseUrl}/roles?isActive=true&internal=false`, {
                     signal: controller.signal,
                 })
-
-                if (!response.ok) {
-                    throw new Error("Não foi possível carregar os cargos.")
-                }
-
-                const data = await response.json()
                 setRoles(parseProfessionalRoles(data))
             } catch (error) {
                 if ((error as Error).name === "AbortError") {
@@ -770,18 +764,10 @@ export function ProfessionalProfile({
             try {
                 const fullPayload = buildFullCreatePayload(values as ProfessionalFormValues)
 
-                const response = await fetch(`${authBaseUrl}/professional-units/full-create`, {
+                await fetchWithAuth<void>(`${authBaseUrl}/professional-units/full-create`, {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    credentials: "include",
                     body: JSON.stringify(fullPayload),
                 })
-
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => null) as { message?: string } | null
-                    toast.error(errorData?.message ?? "Nao foi possivel cadastrar profissional")
-                    return
-                }
 
                 toast.success("Profissional cadastrado")
                 onCreated?.()
@@ -812,31 +798,15 @@ export function ProfessionalProfile({
                     : buildFullUpdatePayload(values as ProfessionalFullForm, professional)
 
             if (isProfile) {
-                const response = await fetch(`${authBaseUrl}/professional-units/profile-update`, {
+                    await fetchWithAuth<void>(`${authBaseUrl}/professional-units/profile-update`, {
                     method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
-                    credentials: "include",
                     body: JSON.stringify(dataToSend),
                 })
-
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => null) as { message?: string } | null
-                    toast.error(errorData?.message ?? "Nao foi possivel atualizar o perfil")
-                    return
-                }
             } else {
-                const response = await fetch(`${authBaseUrl}/professional-units/full-update`, {
+                    await fetchWithAuth<void>(`${authBaseUrl}/professional-units/full-update`, {
                     method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
-                    credentials: "include",
                     body: JSON.stringify(dataToSend),
                 })
-
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => null) as { message?: string } | null
-                    toast.error(errorData?.message ?? "Nao foi possivel atualizar o profissional")
-                    return
-                }
             }
 
             toast.success("Profissional atualizado")
