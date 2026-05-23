@@ -14,7 +14,9 @@ export function ProfessionalCardSkeleton() {
                 <Skeleton className="h-6 w-16 rounded-full" />
             </div>
 
-            <div className="space-y-1.5 mb-4">
+            <div className="border-t border-border mb-4" />
+
+            <div className="ml-3 space-y-1.5">
                 <div className="flex items-center gap-2">
                     <Skeleton className="w-3.5 h-3.5 rounded" />
                     <Skeleton className="h-3 w-36 rounded" />
@@ -23,11 +25,6 @@ export function ProfessionalCardSkeleton() {
                     <Skeleton className="w-3.5 h-3.5 rounded" />
                     <Skeleton className="h-3 w-24 rounded" />
                 </div>
-            </div>
-
-            <div className="flex items-center justify-between pt-3 border-t border-border">
-                <Skeleton className="h-3 w-24 rounded" />
-                <Skeleton className="h-3 w-20 rounded" />
             </div>
         </div>
     )
