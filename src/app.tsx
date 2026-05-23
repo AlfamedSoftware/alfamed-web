@@ -21,6 +21,7 @@ import { ServiceDeskUnitDetails } from "@/pages/ServiceDesk/unit-details"
 import { ServiceDeskUpmUsers } from "@/pages/ServiceDesk/upm-users"
 import { UpmUserProfile } from "@/pages/ServiceDesk/upm-user-profile"
 import { SelecaoUnidade } from "@/pages/SelecaoUnidade/selecao-unidade"
+import { Unidade } from "@/pages/Unidades/Unidade"
 import { UnitProtectedRoute } from "@/components/ProtectRoute/unit-protected-route"
 import { SessionUnitProvider } from "@/contexts/session-unit-context"
 
@@ -54,6 +55,7 @@ export function App() {
           >
             <Route index element={<Navigate to="/home" replace />} />
             <Route path="home" element={<Home />} />
+            <Route path="unidade" element={<Unidade />} />
             <Route path="profissionais" element={<Profissionais />} />
             <Route path="profissionais/vinculo-especialidades" element={<ProfissionaisEspecialidades />} />
             <Route path="profissionais/:id" element={<ProfessionalProfile />} />
