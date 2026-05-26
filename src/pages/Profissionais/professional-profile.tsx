@@ -174,20 +174,20 @@ export function ProfessionalProfile() {
                     status: data.isActive ? "active" : "inactive",
                     loginEnabled: true,
                 })
-                    // load schedules
-                    professionalsService.getSchedules(id).then((s) => {
-                        if (!alive) return
-                        setSchedules(
-                            (s ?? []).map((it: any) => ({
-                                id: it.id,
-                                dayOfWeek: it.dayOfWeek,
-                                startTime: (it.startTime as string)?.slice(0, 5) ?? "08:00",
-                                endTime: (it.endTime as string)?.slice(0, 5) ?? "12:00",
-                                appointmentDurationMinutes: it.appointmentDurationMinutes,
-                                isActive: it.isActive,
-                            })),
-                        )
-                    }).catch(() => {})
+                // load schedules
+                professionalsService.getSchedules(id).then((s) => {
+                    if (!alive) return
+                    setSchedules(
+                        (s ?? []).map((it: any) => ({
+                            id: it.id,
+                            dayOfWeek: it.dayOfWeek,
+                            startTime: (it.startTime as string)?.slice(0, 5) ?? "08:00",
+                            endTime: (it.endTime as string)?.slice(0, 5) ?? "12:00",
+                            appointmentDurationMinutes: it.appointmentDurationMinutes,
+                            isActive: it.isActive,
+                        })),
+                    )
+                }).catch(() => { })
             })
             .catch(() => toast.error("Erro ao carregar profissional"))
             .finally(() => {
@@ -265,6 +265,7 @@ export function ProfessionalProfile() {
             // persist schedules after updating professional
             try {
                 await professionalsService.replaceSchedules(id, schedules.map((s) => ({
+                    id: s.id,
                     dayOfWeek: s.dayOfWeek,
                     startTime: `${s.startTime}:00`,
                     endTime: `${s.endTime}:00`,
@@ -414,12 +415,12 @@ export function ProfessionalProfile() {
                             <section className="grid gap-4">
                                 <h3 className="text-sm font-semibold text-foreground">Agenda</h3>
                                 <div className="grid gap-5 sm:grid-cols-3">
-                                        {/* Agenda fields removed — use structured Escalas below */}
-                                    </div>
-                                </section>
-                                <section className="grid gap-4">
-                                    <h3 className="text-sm font-semibold text-foreground">Escalas</h3>
-                                    <div className="grid gap-5 sm:grid-cols-3">
+                                    {/* Agenda fields removed — use structured Escalas below */}
+                                </div>
+                            </section>
+                            <section className="grid gap-4">
+                                <h3 className="text-sm font-semibold text-foreground">Escalas</h3>
+                                <div className="grid gap-5 sm:grid-cols-3">
                                 </div>
                                 <div className="mt-4">
                                     <h4 className="text-sm font-semibold text-foreground mb-2">Escalas</h4>

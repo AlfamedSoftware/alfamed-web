@@ -54,6 +54,7 @@ async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
 
     const response = await fetch(url, {
         ...options,
+        cache: "no-store",
         credentials: "include",
         headers,
     })
@@ -121,7 +122,6 @@ export const appointmentsService = {
             professionalUnitId: string
             startAt: string
             endAt: string
-            reason?: string
             professionalId: string
         }>(`${BASE_URL}/${appointmentId}`),
     update: (appointmentId: string, data: Partial<CreateAppointmentInput>) =>
