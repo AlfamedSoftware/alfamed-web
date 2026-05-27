@@ -21,14 +21,32 @@ export type CreateProcedureInput = {
     isActive?: boolean
 }
 
+export type UpdateProcedureInput = {
+    procedureId: string
+    description?: string
+    observation?: string | null
+    code?: string
+    price?: string
+    isActive?: boolean
+}
+
 export const proceduresService = {
     listByUnit: (unitId: string): Promise<ProcedureUnitFullData[]> =>
         fetchWithAuth<ProcedureUnitFullData[]>(
             `${authBaseUrl}/procedures/list-procedures-by-unit/${unitId}`,
         ),
+    getById: (procedureId: string): Promise<ProcedureUnitFullData> =>
+        fetchWithAuth<ProcedureUnitFullData>(
+            `${authBaseUrl}/procedures/${procedureId}`,
+        ),
     create: (data: CreateProcedureInput): Promise<ProcedureUnitFullData> =>
         fetchWithAuth<ProcedureUnitFullData>(`${authBaseUrl}/procedures`, {
             method: "POST",
+            body: JSON.stringify(data),
+        }),
+    update: (data: UpdateProcedureInput): Promise<ProcedureUnitFullData> =>
+        fetchWithAuth<ProcedureUnitFullData>(`${authBaseUrl}/procedures`, {
+            method: "PATCH",
             body: JSON.stringify(data),
         }),
 }
