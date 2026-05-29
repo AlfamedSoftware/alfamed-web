@@ -7,7 +7,21 @@ export type Professional = {
     userId: string
     name?: string
     email?: string
+    crm?: string
     isActive: boolean
+}
+
+type ArrayItem<T> = T extends (infer U)[] ? U : T
+
+type ProfessionalUnitUser = ArrayItem<NonNullable<ProfessionalUnitFullData["users"]>>
+type ProfessionalUnitProfessional = ArrayItem<NonNullable<ProfessionalUnitFullData["professionals"]>>
+
+function toArray<T>(value: T | T[] | null | undefined): T[] {
+    if (!value) {
+        return []
+    }
+
+    return Array.isArray(value) ? value : [value]
 }
 
 export function useProfessionals() {
@@ -17,9 +31,9 @@ export function useProfessionals() {
     const [error, setError] = useState<string | null>(null)
 
     const fetchProfessionals = useCallback(async () => {
-        const professionalUnitId = sessionUnit?.selectedProfessionalUnitId || sessionUnit?.selectedUnitId
+        const unitId = sessionUnit?.selectedUnitId
 
-        if (!professionalUnitId) {
+        if (!unitId) {
             setProfessionals([])
             return
         }
@@ -28,31 +42,59 @@ export function useProfessionals() {
         setError(null)
 
         try {
-            // Try to fetch full data for the professional unit
-            const data: ProfessionalUnitFullData = await professionalsService.getFullDataByProfessionalUnitId(professionalUnitId)
-
             const results: Professional[] = []
 
-            // Prefer using the `users` array when present since it contains userId and profile info
-            if (data.users) {
-                const usersArray = Array.isArray(data.users) ? data.users : [data.users]
-                for (const u of usersArray) {
-                    results.push({
-                        id: u.id,
-                        userId: u.id,
-                        name: (u as any).name,
-                        email: (u as any).email,
-                        isActive: (u as any).isActive ?? true,
-                    })
+            try {
+                const list = await professionalsService.listByUnit(unitId)
+
+                for (const entry of list) {
+                    const usersArray = toArray<ProfessionalUnitUser>(entry.users)
+                    const profsArray = toArray<ProfessionalUnitProfessional>(entry.professionals)
+                    const primaryUser = usersArray[0]
+
+                    for (const professional of profsArray) {
+                        results.push({
+                            id: professional.id,
+                            userId: primaryUser?.id ?? professional.id,
+                            name: primaryUser?.name ?? undefined,
+                            email: primaryUser?.email ?? undefined,
+                            isActive: professional.isActive ?? true,
+                        })
+                    }
                 }
-            } else if (data.professionals) {
-                const profs = Array.isArray(data.professionals) ? data.professionals : [data.professionals]
-                for (const p of profs) {
-                    results.push({ id: p.id, userId: p.id, isActive: p.isActive ?? true })
+            } catch {
+                const professionalUnitId = sessionUnit?.selectedProfessionalUnitId || unitId
+                const data: ProfessionalUnitFullData = await professionalsService.getFullDataByProfessionalUnitId(professionalUnitId)
+
+                if (data.professionals) {
+                    const profs = toArray<ProfessionalUnitProfessional>(data.professionals)
+                    const usersArray = toArray<ProfessionalUnitUser>(data.users)
+                    const primaryUser = usersArray[0]
+
+                    for (const professional of profs) {
+                        results.push({
+                            id: professional.id,
+                            userId: primaryUser?.id ?? professional.id,
+                            name: primaryUser?.name ?? undefined,
+                            email: primaryUser?.email ?? undefined,
+                            isActive: professional.isActive ?? true,
+                        })
+                    }
+                } else if (data.users) {
+                    const usersArray = toArray<ProfessionalUnitUser>(data.users)
+                    for (const user of usersArray) {
+                        results.push({
+                            id: user.id,
+                            userId: user.id,
+                            name: user.name,
+                            email: user.email,
+                            isActive: user.isActive ?? true,
+                        })
+                    }
                 }
             }
 
-            setProfessionals(results)
+            setProfessionals(Array.from(new Map(results.map((professional) => [professional.id, professional])).values()))
         } catch (err) {
             setError(err instanceof Error ? err.message : String(err))
             setProfessionals([])
@@ -72,5 +114,3 @@ export function useProfessionals() {
         refetch: fetchProfessionals,
     }
 }
-
-export default useProfessionals

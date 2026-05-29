@@ -90,9 +90,9 @@ export const appointmentsService = {
         url.searchParams.set("professionalId", data.professionalId)
         url.searchParams.set("date", data.date)
 
-        if (typeof data.durationMinutes === "number") {
-            url.searchParams.set("durationMinutes", String(data.durationMinutes))
-        }
+        // Default duration to 60 minutes for MVP if not provided
+        const duration = typeof data.durationMinutes === "number" ? data.durationMinutes : 60
+        url.searchParams.set("durationMinutes", String(duration))
 
         if (data.startAt) {
             url.searchParams.set("startAt", data.startAt)
@@ -122,6 +122,7 @@ export const appointmentsService = {
             professionalUnitId: string
             startAt: string
             endAt: string
+            reason?: string | null
             professionalId: string
         }>(`${BASE_URL}/${appointmentId}`),
     update: (appointmentId: string, data: Partial<CreateAppointmentInput>) =>

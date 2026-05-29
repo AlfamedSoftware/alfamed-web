@@ -7,9 +7,9 @@ import { Input } from "@/components/ui/input"
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useSession } from "@/hooks/use-session"
 import { useSidebarMenu } from "@/contexts/sidebar-menu-context"
-import { useProfessionals } from "@/hooks/use-professionals"
-import { appointmentsService, type AppointmentCalendarEvent } from "@/services/appointments.service"
-import { patientsService, type PatientListItem } from "@/services/patients.service"
+import { useProfessionals } from "../../hooks/use-professionals"
+import { appointmentsService, type AppointmentCalendarEvent } from "../../services/appointments.service"
+import { patientsService, type PatientListItem } from "../../services/patients.service"
 
 type BookingFormState = {
     patientId: string
@@ -20,7 +20,14 @@ type BookingFormState = {
     reason: string
 }
 
-const INTERNAL_ROLE_KEYS = new Set(["internal_alfamed", "administrative", "administrative_assistant"])
+const INTERNAL_ROLE_KEYS = new Set([
+    "internal_alfamed",
+    "alfamed",
+    "alfamed interno",
+    "alfamed_interno",
+    "administrative",
+    "administrative_assistant",
+])
 const CLINIC_TIME_ZONE = "America/Sao_Paulo"
 
 const APPOINTMENT_COLOR_PALETTE = [
@@ -128,7 +135,7 @@ function toIsoWithOffset(date: string, time: string) {
 }
 
 export function Agendas() {
-    const { user } = useSession()
+    const { user, isInternalUser } = useSession()
     const { menuRoles } = useSidebarMenu()
     const { professionals, isLoading: professionalsLoading, error: professionalsError } = useProfessionals()
 
@@ -153,7 +160,7 @@ export function Agendas() {
         professionalUnitId: string
         startAt: string
         endAt: string
-        reason?: string
+        reason?: string | null
         professionalId: string
     } | null>(null)
     const [isViewingOpen, setIsViewingOpen] = useState(false)
@@ -167,7 +174,7 @@ export function Agendas() {
     }))
 
     const isMedic = menuRoles.includes("medic")
-    const canChooseProfessionals = menuRoles.some((role) => INTERNAL_ROLE_KEYS.has(role))
+    const canChooseProfessionals = isInternalUser || menuRoles.some((role) => INTERNAL_ROLE_KEYS.has(role))
 
     const activeProfessionals = useMemo(() => professionals.filter((professional) => professional.isActive), [professionals])
     const currentProfessional = useMemo(
@@ -253,6 +260,7 @@ export function Agendas() {
     }, [selectedDate, selectedProfessionalIds])
 
     const visibleProfessionals = canChooseProfessionals ? activeProfessionals : currentProfessional ? [currentProfessional] : activeProfessionals.slice(0, 1)
+    const currentProfessionalLabel = currentProfessional?.name ?? user?.name ?? "você"
 
     const professionalColorMap = useProfessionalColorMap(visibleProfessionals, agendaEvents)
 
@@ -438,7 +446,10 @@ export function Agendas() {
                     .get(eventId)
                     .then((appointment) => {
                         console.log("[agendas] Appointment loaded:", appointment)
-                        setViewingAppointmentDetails(appointment)
+                        setViewingAppointmentDetails({
+                            ...appointment,
+                            reason: appointment.reason ?? undefined,
+                        })
                         setIsViewingOpen(true)
                     })
                     .catch((error) => {
@@ -571,7 +582,7 @@ export function Agendas() {
                                 </div>
                             ) : currentProfessional ? (
                                 <div className="rounded-xl border border-border bg-background px-4 py-3 text-sm text-muted-foreground">
-                                    Visualizando apenas a agenda de <span className="font-medium text-foreground">{currentProfessional.name ?? "você"}</span>.
+                                    Visualizando apenas a agenda de <span className="font-medium text-foreground">{currentProfessionalLabel}</span>.
                                 </div>
                             ) : null}
                         </div>
@@ -636,7 +647,10 @@ export function Agendas() {
                                                         .get(event.id)
                                                         .then((appointment) => {
                                                             console.log("[agendas-calendar] Appointment fetched:", appointment)
-                                                            setViewingAppointmentDetails(appointment)
+                                                            setViewingAppointmentDetails({
+                                                                ...appointment,
+                                                                reason: appointment.reason ?? undefined,
+                                                            })
                                                             setIsViewingOpen(true)
                                                         })
                                                         .catch((error: Error | unknown) => {
@@ -729,7 +743,7 @@ export function Agendas() {
 
                                 {isMedic && currentProfessional && !canChooseProfessionals && (
                                     <div className="rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
-                                        Profissional definido automaticamente: <span className="font-medium text-foreground">{currentProfessional.name ?? "você"}</span>
+                                        Profissional definido automaticamente: <span className="font-medium text-foreground">{currentProfessionalLabel}</span>
                                     </div>
                                 )}
 
@@ -910,7 +924,7 @@ export function Agendas() {
                                                 date: formatClinicDate(start),
                                                 startTime: formatClinicTime(start),
                                                 endTime: formatClinicTime(end),
-                                                reason: "",
+                                                reason: viewingAppointmentDetails.reason ?? "",
                                             })
                                             setAvailabilityWindows([])
                                             setBookingError(null)
