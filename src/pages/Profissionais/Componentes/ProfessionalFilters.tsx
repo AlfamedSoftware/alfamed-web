@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils"
-import type { ProfessionalFilter } from "@/hooks/use-professionals"
+
+type ProfessionalFilter = "all" | "active" | "inactive"
 
 interface ProfessionalFiltersProps {
     activeFilter: ProfessionalFilter

@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { PageHeader } from "@/components/page-header"
 import { cn } from "@/lib/utils"
-import { adminUpmService, type AdminUpmUser } from "@/services/admin/admin-upm.service"
+import { adminUpmService, type AdminUpmUser } from "@/Servicos/admin/admin-upm.service"
 
 const upmUserEditSchema = z.object({
     name: z.string().min(1, "Nome é obrigatório"),

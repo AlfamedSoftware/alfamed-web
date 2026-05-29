@@ -1,4 +1,4 @@
-// Global navigation callback to handle redirects from API calls
+ // Global navigation callback to handle redirects from API calls
 let navigationCallback: ((path: string) => void) | null = null
 
 export function setNavigationCallback(callback: (path: string) => void) {
@@ -9,12 +9,16 @@ export async function fetchWithAuth<T>(
     url: string,
     options?: RequestInit
 ): Promise<T> {
+    const method = (options?.method ?? "GET").toUpperCase()
+    const hasBody = options?.body !== undefined && options?.body !== null
+    const shouldSendJsonContentType = hasBody && method !== "GET" && method !== "HEAD"
+
     const response = await fetch(url, {
         ...options,
         credentials: "include",
         headers: {
-            "Content-Type": "application/json",
             ...(options?.headers ?? {}),
+            ...(shouldSendJsonContentType ? { "Content-Type": "application/json" } : {}),
         },
     })
 

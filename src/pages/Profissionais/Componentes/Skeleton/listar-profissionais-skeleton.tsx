@@ -3,7 +3,6 @@ import { Skeleton } from "@/components/ui/skeleton"
 export function ProfessionalCardSkeleton() {
     return (
         <div className="flex flex-col rounded-2xl shadow-sm border border-border p-5 bg-card">
-            {/* Header */}
             <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
                     <Skeleton className="w-10 h-10 rounded-full" />
@@ -15,8 +14,9 @@ export function ProfessionalCardSkeleton() {
                 <Skeleton className="h-6 w-16 rounded-full" />
             </div>
 
-            {/* Contact */}
-            <div className="space-y-1.5 mb-4">
+            <div className="border-t border-border mb-4" />
+
+            <div className="ml-3 space-y-1.5">
                 <div className="flex items-center gap-2">
                     <Skeleton className="w-3.5 h-3.5 rounded" />
                     <Skeleton className="h-3 w-36 rounded" />
@@ -26,17 +26,11 @@ export function ProfessionalCardSkeleton() {
                     <Skeleton className="h-3 w-24 rounded" />
                 </div>
             </div>
-
-            {/* Footer */}
-            <div className="flex items-center justify-between pt-3 border-t border-border">
-                <Skeleton className="h-3 w-24 rounded" />
-                <Skeleton className="h-3 w-20 rounded" />
-            </div>
         </div>
     )
 }
 
-export function ProfessionalGridSkeleton({ count = 8 }: { count?: number }) {
+export function ProfessionalGridSkeleton({ count = 24 }: { count?: number }) {
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {Array.from({ length: count }).map((_, i) => (

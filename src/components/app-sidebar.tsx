@@ -30,10 +30,9 @@ import {
     User,
 } from "lucide-react"
 import { useSession } from "@/hooks/use-session"
-import { useEffect, useState } from "react"
 import { auth } from "@/lib/auth"
 import { useSidebarMenu } from "@/contexts/sidebar-menu-context"
-import { Skeleton } from "@/components/ui/skeleton"
+import { useSessionUnit } from "@/contexts/session-unit-context"
 import { Link, useLocation, useNavigate } from "react-router"
 import type { LucideIcon } from "lucide-react"
 
@@ -70,12 +69,14 @@ const roleLabels: Record<RoleMenuKey, string> = {
 const menuItemsByRole: Record<RoleMenuKey, SidebarMenuItemConfig[]> = {
     [MENU_ROLE_KEYS.alfamed]: [
         { title: "Início", icon: HomeIcon, url: "/home" },
+        { title: "Unidade", icon: Lock, url: "/unidade" },
         { title: "Profissionais", icon: Stethoscope, url: "/profissionais" },
         { title: "Procedimentos", icon: ClipboardList, url: "/procedimentos" },
         { title: "Especialidades", icon: ClipboardList, url: "/especialidades" },
     ],
     [MENU_ROLE_KEYS.administrative]: [
         { title: "Início", icon: HomeIcon, url: "/home" },
+        { title: "Unidade", icon: Lock, url: "/unidade" },
         { title: "Profissionais", icon: Stethoscope, url: "/profissionais" },
         { title: "Procedimentos", icon: ClipboardList, url: "/procedimentos" },
         { title: "Especialidades", icon: ClipboardList, url: "/especialidades" },
@@ -93,7 +94,6 @@ const menuItemsByRole: Record<RoleMenuKey, SidebarMenuItemConfig[]> = {
 
 const professionalsSubmenu: SidebarMenuSubItemConfig[] = [
     { title: "Vínculo de Especialidades", icon: ClipboardList, url: "/profissionais/vinculo-especialidades" },
-    { title: "Vínculo de Cargos", icon: ClipboardList, url: "/profissionais/vinculo-cargos" },
 ]
 
 export function AppSidebar() {
@@ -101,7 +101,13 @@ export function AppSidebar() {
     const navigate = useNavigate()
     const location = useLocation()
     const isAdminArea = location.pathname.startsWith("/admin")
-    const { menuRoles, isMenuRolesLoading, selectedUnitName } = useSidebarMenu()
+    const { sessionUnit, isLoading: isSessionUnitLoading } = useSessionUnit()
+    const { menuRoles, isMenuRolesLoading } = useSidebarMenu()
+    const isSidebarDataLoading = isLoading || isSessionUnitLoading
+
+    if (isSidebarDataLoading) {
+        return null
+    }
 
     const menuItemsForRoles = menuRoles.flatMap((role) =>
         allowedRoleKeys.has(role as RoleMenuKey)
@@ -112,12 +118,6 @@ export function AppSidebar() {
     const activeRoleKey = menuRoles.find((role) => allowedRoleKeys.has(role as RoleMenuKey)) as RoleMenuKey | undefined
     const currentRoleLabel = activeRoleKey ? roleLabels[activeRoleKey] : null
     const hasMenuItems = menuItems.length > 0
-
-    const [showUnitSkeleton, setShowUnitSkeleton] = useState<boolean>(!selectedUnitName)
-
-    useEffect(() => {
-        if (selectedUnitName) setShowUnitSkeleton(false)
-    }, [selectedUnitName])
 
     const handleLogout = async () => {
         await auth.signOut()
@@ -238,17 +238,9 @@ export function AppSidebar() {
                                                 ServiceDesk
                                             </span>
                                         ) : (
-                                            <>
-                                                {showUnitSkeleton ? (
-                                                    <div className="w-36">
-                                                        <Skeleton variant="text" size="sm" className="w-36" />
-                                                    </div>
-                                                ) : (
-                                                    <span className="w-full truncate text-xs opacity-70 leading-tight">
-                                                        {selectedUnitName || ""}
-                                                    </span>
-                                                )}
-                                            </>
+                                            <span className="w-full truncate text-xs opacity-70 leading-tight">
+                                                {isSessionUnitLoading ? "Carregando unidade..." : sessionUnit?.selectedUnitName || "Unidade selecionada"}
+                                            </span>
                                         )}
                                     </div>
                                     <ChevronsUpDown className="ml-auto h-4 w-4 group-data-[collapsible=icon]:hidden" />
@@ -270,26 +262,18 @@ export function AppSidebar() {
                                                 ServiceDesk
                                             </span>
                                         ) : (
-                                            <>
-                                                {showUnitSkeleton ? (
-                                                    <div className="w-36">
-                                                        <Skeleton variant="text" size="sm" className="w-36" />
-                                                    </div>
-                                                ) : (
-                                                    <span className="truncate text-xs text-muted-foreground">
-                                                        {selectedUnitName || ""}
-                                                    </span>
-                                                )}
-                                                {isMenuRolesLoading ? (
-                                                    <div className="w-36">
-                                                        <Skeleton variant="text" size="sm" className="w-36" />
-                                                    </div>
-                                                ) : (
-                                                    <span className="truncate text-xs text-muted-foreground">
-                                                        {currentRoleLabel ? `Cargo: ${currentRoleLabel}` : "Cargo: Não definido"}
-                                                    </span>
-                                                )}
-                                            </>
+                                            <span className="truncate text-xs text-muted-foreground">
+                                                {isSessionUnitLoading ? "Carregando unidade..." : sessionUnit?.selectedUnitName ? `Unidade: ${sessionUnit.selectedUnitName}` : "Unidade: Não selecionada"}
+                                            </span>
+                                        )}
+                                        {isAdminArea ? (
+                                            <span className="truncate text-xs text-muted-foreground">
+                                                Alfamed
+                                            </span>
+                                        ) : (
+                                            <span className="truncate text-xs text-muted-foreground">
+                                                {isMenuRolesLoading ? "Carregando cargo..." : currentRoleLabel ? `Cargo: ${currentRoleLabel}` : "Cargo: Não definido"}
+                                            </span>
                                         )}
                                     </div>
                                 </div>

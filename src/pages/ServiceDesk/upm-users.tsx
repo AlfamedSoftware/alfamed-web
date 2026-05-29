@@ -6,8 +6,8 @@ import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import PasswordInput from "@/components/ui/password-input"
-import { adminUnitsService, type AdminUnit } from "@/services/admin/admin-units.service"
-import { adminUpmService, type AdminUpmUser } from "@/services/admin/admin-upm.service"
+import { adminUnitsService, type AdminUnit } from "@/Servicos/admin/admin-units.service"
+import { adminUpmService, type AdminUpmUser } from "@/Servicos/admin/admin-upm.service"
 import { UpmUserCard } from "./components/UpmUserCard"
 
 type NewUpmUserForm = {
