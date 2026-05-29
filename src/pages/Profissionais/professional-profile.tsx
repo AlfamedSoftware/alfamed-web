@@ -116,7 +116,6 @@ function ToggleSwitch({
 export function ProfessionalProfile() {
     const { id } = useParams()
     const navigate = useNavigate()
-    const { toasts, dismiss, toast } = useToast()
     const [professional, setProfessional] = useState<Professional | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [isSaving, setIsSaving] = useState(false)
@@ -188,7 +187,7 @@ export function ProfessionalProfile() {
                     )
                 }).catch(() => { })
             })
-            .catch(() => toast.error("Erro ao carregar profissional"))
+            .catch(() => "Erro ao carregar profissional")
             .finally(() => {
                 if (alive) setIsLoading(false)
             })
@@ -196,7 +195,7 @@ export function ProfessionalProfile() {
         return () => {
             alive = false
         }
-    }, [id, form, toast])
+    }, [id, form])
 
     const initials = useMemo(() => getInitials(professional?.name), [professional?.name])
 
@@ -274,10 +273,9 @@ export function ProfessionalProfile() {
             } catch (e) {
                 // ignore schedule save errors for now
             }
-            toast.success("Profissional atualizado")
             navigate("/profissionais")
         } catch {
-            toast.error("Erro ao salvar alterações")
+            // Handle error
         } finally {
             setIsSaving(false)
         }
@@ -484,8 +482,6 @@ export function ProfessionalProfile() {
                     </form>
                 </div>
             </main>
-
-            <ToastContainer toasts={toasts} onDismiss={dismiss} />
         </div>
     )
 }
