@@ -13,7 +13,6 @@ import { Input } from "@/components/ui/input"
 import { PageHeader } from "@/components/page-header"
 import { cn } from "@/lib/utils"
 import { professionalsService, type Professional } from "@/services/professionals.service"
-import { ToastContainer, useToast } from "./components/Toast"
 
 const professionalEditSchema = z.object({
     name: z.string().min(1, "Informe o nome completo"),
