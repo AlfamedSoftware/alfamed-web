@@ -10,7 +10,9 @@ import { Profissionais } from "@/pages/Profissionais/listar-profissionais"
 import { ProfessionalProfile } from "@/pages/Profissionais/edicao-profissionais"
 import { CadastroProfissionais } from "@/pages/Profissionais/cadastro-profissionais"
 import { ProfissionaisEspecialidades } from "@/pages/Profissionais/profissionais-especialidades"
-import { Procedimentos } from "@/pages/Procedimentos/procedimentos"
+import { Procedimentos } from "@/pages/Procedimentos/listar-procedimentos"
+import { CadastroProcedimentos } from "@/pages/Procedimentos/cadastro-procedimentos"
+import { EdicaoProcedimentos } from "@/pages/Procedimentos/edicao-procedimentos"
 import { Especialidades } from "@/pages/Especialidades/especialidades"
 import { Agendamentos } from "@/pages/Agendamentos/agendamentos"
 import { Agendas } from "@/pages/Agendas/agendas"
@@ -61,6 +63,8 @@ export function App() {
             <Route path="profissionais/:id" element={<ProfessionalProfile />} />
             <Route path="cadastro-profissionais" element={<CadastroProfissionais />} />
             <Route path="procedimentos" element={<Procedimentos />} />
+            <Route path="procedimentos/:id" element={<EdicaoProcedimentos />} />
+            <Route path="cadastro-procedimentos" element={<CadastroProcedimentos />} />
             <Route path="especialidades" element={<Especialidades />} />
             <Route path="agendas" element={<Agendas />} />
             <Route path="agendamentos" element={<Agendamentos />} />
