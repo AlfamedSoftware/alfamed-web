@@ -129,7 +129,6 @@ export function ProcedureProfile({
     const [isLoading, setIsLoading] = useState(!isRegisterMode)
     const [isSaving, setIsSaving] = useState(false)
     const [loadError, setLoadError] = useState<string | null>(null)
-    const [saveMessage, setSaveMessage] = useState<string | null>(null)
 
     const form = useForm<ProcedureFormValues>({
         resolver: zodResolver(procedureFormSchema) as Resolver<ProcedureFormValues>,
@@ -213,7 +212,6 @@ export function ProcedureProfile({
 
     const handleSubmit = async (values: ProcedureFormValues) => {
         setIsSaving(true)
-        setSaveMessage(null)
         setLoadError(null)
 
         try {
@@ -226,11 +224,8 @@ export function ProcedureProfile({
                     isActive: values.isActive,
                 })
 
-                setSaveMessage("Procedimento cadastrado com sucesso.")
-
-                if (afterSavePath) {
-                    navigate(afterSavePath)
-                }
+                alert("Procedimento cadastrado com sucesso.")
+                navigate(afterSavePath ?? "/procedimentos")
                 return
             }
 
@@ -248,7 +243,8 @@ export function ProcedureProfile({
                 isActive: values.isActive,
             })
 
-            setSaveMessage("Procedimento atualizado com sucesso.")
+            alert("Procedimento atualizado com sucesso.")
+            navigate(afterSavePath ?? "/procedimentos")
         } catch (error) {
             setLoadError(error instanceof Error ? error.message : "Erro ao salvar procedimento")
         } finally {
@@ -286,89 +282,87 @@ export function ProcedureProfile({
                         ) : null}
 
                         <form onSubmit={form.handleSubmit(handleSubmit)} className="grid gap-5">
-                    <div className="grid gap-5 md:grid-cols-2">
-                        <label className="grid gap-2 md:col-span-2">
-                            <span className="text-sm font-medium">Descrição</span>
-                            <Input placeholder="Ex.: Consulta oftalmológica" {...form.register("description")} />
-                            {form.formState.errors.description ? (
-                                <span className="text-xs text-destructive">
-                                    {form.formState.errors.description.message}
-                                </span>
-                            ) : null}
-                        </label>
+                            <div className="grid gap-5 md:grid-cols-2">
+                                <label className="grid gap-2 md:col-span-2">
+                                    <span className="text-sm font-medium">Descrição</span>
+                                    <Input placeholder="Ex.: Consulta oftalmológica" {...form.register("description")} />
+                                    {form.formState.errors.description ? (
+                                        <span className="text-xs text-destructive">
+                                            {form.formState.errors.description.message}
+                                        </span>
+                                    ) : null}
+                                </label>
 
-                        <label className="grid gap-2">
-                            <span className="text-sm font-medium">Código</span>
-                            <Input
-                                maxLength={6}
-                                placeholder="Ex.: A1B2C3"
-                                {...codeField}
-                                onChange={(event) => {
-                                    event.target.value = normalizeCodeValue(event.target.value)
-                                    void codeField.onChange(event)
-                                }}
-                            />
-                            {form.formState.errors.code ? (
-                                <span className="text-xs text-destructive">{form.formState.errors.code.message}</span>
-                            ) : null}
-                        </label>
-
-                        <label className="grid gap-2">
-                            <span className="text-sm font-medium">Valor</span>
-                            <Input inputMode="decimal" placeholder="Ex.: 120,00" {...priceField} />
-                            {form.formState.errors.price ? (
-                                <span className="text-xs text-destructive">{form.formState.errors.price.message}</span>
-                            ) : null}
-                        </label>
-
-                        <label className="grid gap-2 md:col-span-2">
-                            <span className="text-sm font-medium">Observação</span>
-                            <textarea
-                                rows={4}
-                                placeholder="Observações adicionais do procedimento"
-                                className="min-h-28 rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20"
-                                {...form.register("observation")}
-                            />
-                        </label>
-
-                        <div className="grid gap-2 md:col-span-2">
-                            <p className="text-sm font-semibold text-foreground">Procedimento ativo</p>
-                            <div className="rounded-2xl border border-border bg-muted/30 px-5 py-4">
-                                <div className="flex items-center justify-between gap-4">
-                                    <div>
-                                        <p className="text-xs text-muted-foreground">
-                                            Desative para esse procedimento não aparecer nas listas padrão de seleção.
-                                        </p>
-                                    </div>
-
-                                    <input type="checkbox" className="sr-only" tabIndex={-1} aria-hidden="true" {...form.register("isActive")} />
-                                    <ToggleSwitch
-                                        checked={form.watch("isActive") ?? true}
-                                        onClick={() =>
-                                            form.setValue("isActive", !(form.watch("isActive") ?? true), { shouldDirty: true })
-                                        }
+                                <label className="grid gap-2">
+                                    <span className="text-sm font-medium">Código</span>
+                                    <Input
+                                        maxLength={6}
+                                        placeholder="Ex.: A1B2C3"
+                                        {...codeField}
+                                        onChange={(event) => {
+                                            event.target.value = normalizeCodeValue(event.target.value)
+                                            void codeField.onChange(event)
+                                        }}
                                     />
+                                    {form.formState.errors.code ? (
+                                        <span className="text-xs text-destructive">{form.formState.errors.code.message}</span>
+                                    ) : null}
+                                </label>
+
+                                <label className="grid gap-2">
+                                    <span className="text-sm font-medium">Valor</span>
+                                    <Input inputMode="decimal" placeholder="Ex.: 120,00" {...priceField} />
+                                    {form.formState.errors.price ? (
+                                        <span className="text-xs text-destructive">{form.formState.errors.price.message}</span>
+                                    ) : null}
+                                </label>
+
+                                <label className="grid gap-2 md:col-span-2">
+                                    <span className="text-sm font-medium">Observação</span>
+                                    <textarea
+                                        rows={4}
+                                        placeholder="Observações adicionais do procedimento"
+                                        className="min-h-28 rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20"
+                                        {...form.register("observation")}
+                                    />
+                                </label>
+
+                                <div className="grid gap-2 md:col-span-2">
+                                    <p className="text-sm font-semibold text-foreground">Procedimento ativo</p>
+                                    <div className="rounded-2xl border border-border bg-muted/30 px-5 py-4">
+                                        <div className="flex items-center justify-between gap-4">
+                                            <div>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Desative para esse procedimento não aparecer nas listas padrão de seleção.
+                                                </p>
+                                            </div>
+
+                                            <input type="checkbox" className="sr-only" tabIndex={-1} aria-hidden="true" {...form.register("isActive")} />
+                                            <ToggleSwitch
+                                                checked={form.watch("isActive") ?? true}
+                                                onClick={() =>
+                                                    form.setValue("isActive", !(form.watch("isActive") ?? true), { shouldDirty: true })
+                                                }
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
 
-                    <div className="flex flex-col gap-3 border-t pt-5 sm:flex-row sm:items-center sm:justify-end">
-                        <div className="flex flex-col items-start gap-2 sm:items-end">
-                            <div className="flex gap-2">
-                                <Button type="button" variant="outline" onClick={handleCancel} className="cursor-pointer">
-                                    Cancelar
-                                </Button>
+                            <div className="flex flex-col gap-3 border-t pt-5 sm:flex-row sm:items-center sm:justify-end">
+                                <div className="flex flex-col items-start gap-2 sm:items-end">
+                                    <div className="flex gap-2">
+                                        <Button type="button" variant="outline" onClick={handleCancel} className="cursor-pointer">
+                                            Cancelar
+                                        </Button>
 
-                                <Button type="submit" disabled={isLoading || isSaving} className="cursor-pointer">
-                                    <Save className="h-4 w-4" />
-                                    {isSaving ? "Salvando..." : "Salvar"}
-                                </Button>
+                                        <Button type="submit" disabled={isLoading || isSaving} className="cursor-pointer">
+                                            <Save className="h-4 w-4" />
+                                            {isSaving ? "Salvando..." : "Salvar"}
+                                        </Button>
+                                    </div>
+                                </div>
                             </div>
-
-                            {saveMessage ? <p className="text-sm font-medium text-blue-600">{saveMessage}</p> : null}
-                        </div>
-                    </div>
                         </form>
                     </>
                 )}

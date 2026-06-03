@@ -162,7 +162,7 @@ export function Unidade() {
 				method: "PATCH",
 				body: JSON.stringify(payload),
 			})
-			setSaveSuccess("Sucesso ao editar unidade")
+			alert("Unidade atualizada com sucesso.")
 		} catch (error) {
 			setSaveError(error instanceof Error ? error.message : "Erro ao editar unidade")
 		} finally {
@@ -178,7 +178,7 @@ export function Unidade() {
 				{isSessionUnitLoading || isLoading ? (
 					<UnidadeSkeleton />
 				) : (
-					<CardContent>
+					<div className="grid gap-5">
 						{loadError ? (
 							<div className="mb-6 rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
 								{loadError}
@@ -240,13 +240,11 @@ export function Unidade() {
                         </div>
 
                         <div className="flex flex-col gap-3 border-t pt-5 sm:flex-row sm:items-center sm:justify-between">
-                            <p className="text-sm text-muted-foreground">
-                                Esta tela é exclusiva para edição dos dados da unidade atual.
-                            </p>
+                            <p className="text-sm text-muted-foreground"></p>
 							<div className="flex flex-col items-start gap-2 sm:items-end">
 								<Button type="submit" disabled={isLoading || isSaving} className="cursor-pointer">
 									<Save className="h-4 w-4" />
-									{isSaving ? "Salvando..." : "Salvar alterações"}
+									{isSaving ? "Salvando..." : "Salvar"}
 								</Button>
 								{saveSuccess ? (
 									<p className="text-sm font-medium text-green-600">{saveSuccess}</p>
@@ -257,7 +255,7 @@ export function Unidade() {
 							</div>
                         </div>
 						</form>
-					</CardContent>
+					</div>
 				)}
 			</main>
 		</div>

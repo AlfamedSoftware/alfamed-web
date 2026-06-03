@@ -837,7 +837,7 @@ export function ProfessionalProfile({
                     body: JSON.stringify(fullPayload),
                 })
 
-                toast.success("Profissional cadastrado")
+                alert("Profissional cadastrado com sucesso.")
                 onCreated?.()
                 if (afterSavePath) navigate(afterSavePath)
             } catch {
@@ -877,7 +877,7 @@ export function ProfessionalProfile({
                 })
             }
 
-            toast.success("Profissional atualizado")
+            alert("Profissional atualizado com sucesso.")
             if (afterSavePath) {
                 navigate(afterSavePath)
             }
@@ -953,8 +953,8 @@ export function ProfessionalProfile({
                 <PageHeader title={isProfileView ? "Perfil" : isRegisterMode ? "Cadastro de Profissionais" : "Editar Cadastro"} />
             ) : null}
 
-            <main className="w-full h-full">
-                <div className="border-b border-border px-6 py-8 sm:px-10">
+            <main className="flex-1 px-6">
+                <div className="border-b border-border py-6">
                     <div className="flex items-center gap-4">
                         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-lg font-semibold text-primary-foreground shadow-sm">
                             {initials}
@@ -967,7 +967,7 @@ export function ProfessionalProfile({
                     </div>
                 </div>
 
-                <form onSubmit={form.handleSubmit(onSubmit)} className="px-6 py-6 sm:px-10 sm:py-8">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-5 py-6">
                     <div className="grid gap-5">
                         <section className="grid gap-4">
                             <h3 className="text-primary text-lg font-semibold">Usuário</h3>
@@ -1294,7 +1294,7 @@ export function ProfessionalProfile({
                             disabled={isSaving}
                         >
                             {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                            {isRegisterMode ? "Cadastrar profissional" : "Salvar alterações"}
+                            {"Salvar"}
                         </Button>
                     </div>
                 </form>

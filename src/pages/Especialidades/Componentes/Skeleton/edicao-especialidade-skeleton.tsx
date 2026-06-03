@@ -15,7 +15,6 @@ export function SpecialtyFormSkeleton() {
                         <div className="flex items-center justify-between gap-4">
                             <div className="grid gap-2">
                                 <Skeleton className="h-4 w-64" />
-                                <Skeleton className="h-3 w-48" />
                             </div>
                             <Skeleton className="h-8 w-14 rounded-full" />
                         </div>
