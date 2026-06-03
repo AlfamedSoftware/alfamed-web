@@ -18,11 +18,14 @@ const procedureFormSchema = z.object({
     code: z
         .string()
         .min(1, "Informe o código do procedimento")
-        .regex(/^[A-Za-z0-9]{6}$/, "Informe um código alfanumérico com 6 caracteres"),
+        .regex(/^[A-Z0-9]{6}$/, "Informe um código alfanumérico com 6 caracteres"),
     price: z
         .string()
         .min(1, "Informe o valor do procedimento")
-        .regex(/^(0|[1-9]\d*),\d{2}$/, "Informe um valor positivo ou zero no formato 0,00"),
+        .regex(
+            /^(0|[1-9]\d*|[1-9]\d{0,2}(\.\d{3})+),\d{2}$/,
+            "Informe um valor positivo ou zero no formato 0,00",
+        ),
     observation: z.string().optional(),
     isActive: z.boolean(),
 })
@@ -41,23 +44,40 @@ function normalizeValue(value?: string | null) {
     return value?.trim() ?? ""
 }
 
+function formatNumberToPrice(value: number) {
+    return new Intl.NumberFormat("pt-BR", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    }).format(value)
+}
+
 function formatPriceValue(value: string) {
-    const normalizedValue = value.trim()
+    const normalizedValue = value.trim().replace(/[^\d,.-]/g, "")
 
     if (!normalizedValue) {
         return "0,00"
     }
 
     if (/^\d+$/.test(normalizedValue)) {
-        return `${Number(normalizedValue)},00`
+        return formatNumberToPrice(Number(normalizedValue))
     }
 
-    if (/^\d+,\d$/.test(normalizedValue)) {
-        const [integerPart, decimalPart] = normalizedValue.split(",")
-        return `${Number(integerPart)},${decimalPart}0`
+    if (/^\d+\.\d{2}$/.test(normalizedValue)) {
+        return formatNumberToPrice(Number(normalizedValue))
+    }
+
+    const valueWithoutThousands = normalizedValue.replace(/\./g, "")
+
+    if (/^\d+,\d{1,2}$/.test(valueWithoutThousands)) {
+        const [integerPart, decimalPart] = valueWithoutThousands.split(",")
+        return formatNumberToPrice(Number(`${integerPart}.${decimalPart.padEnd(2, "0")}`))
     }
 
     return normalizedValue
+}
+
+function normalizeCodeValue(value: string) {
+    return value.trim().toUpperCase()
 }
 
 function getProcedureLabel(isRegisterMode: boolean) {
@@ -131,6 +151,7 @@ export function ProcedureProfile({
             })
         },
     })
+    const codeField = form.register("code")
 
     useEffect(() => {
         if (isRegisterMode) {
@@ -165,8 +186,8 @@ export function ProcedureProfile({
 
                 form.reset({
                     description: current.description,
-                    code: current.code,
-                    price: current.price,
+                    code: normalizeCodeValue(current.code),
+                    price: formatPriceValue(current.price),
                     observation: normalizeValue(current.observation),
                     isActive: current.isActive,
                 })
@@ -200,7 +221,7 @@ export function ProcedureProfile({
                 await proceduresService.create({
                     description: values.description.trim(),
                     observation: values.observation?.trim() || "",
-                    code: values.code.trim(),
+                    code: normalizeCodeValue(values.code),
                     price: values.price.trim(),
                     isActive: values.isActive,
                 })
@@ -222,7 +243,7 @@ export function ProcedureProfile({
                 procedureId: effectiveProcedureId,
                 description: values.description.trim(),
                 observation: values.observation?.trim() || null,
-                code: values.code.trim(),
+                code: normalizeCodeValue(values.code),
                 price: values.price.trim(),
                 isActive: values.isActive,
             })
@@ -278,7 +299,15 @@ export function ProcedureProfile({
 
                         <label className="grid gap-2">
                             <span className="text-sm font-medium">Código</span>
-                            <Input maxLength={6} placeholder="Ex.: A1B2C3" {...form.register("code")} />
+                            <Input
+                                maxLength={6}
+                                placeholder="Ex.: A1B2C3"
+                                {...codeField}
+                                onChange={(event) => {
+                                    event.target.value = normalizeCodeValue(event.target.value)
+                                    void codeField.onChange(event)
+                                }}
+                            />
                             {form.formState.errors.code ? (
                                 <span className="text-xs text-destructive">{form.formState.errors.code.message}</span>
                             ) : null}
