@@ -62,7 +62,7 @@ function formatPriceValue(value: string) {
         return formatNumberToPrice(Number(normalizedValue))
     }
 
-    if (/^\d+\.\d{2}$/.test(normalizedValue)) {
+    if (/^\d+\.\d{1,2}$/.test(normalizedValue)) {
         return formatNumberToPrice(Number(normalizedValue))
     }
 
