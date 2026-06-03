@@ -15,8 +15,14 @@ import { ProcedureFormSkeleton } from "./Skeleton/edicao-procedimento-skeleton"
 
 const procedureFormSchema = z.object({
     description: z.string().min(1, "Informe a descrição do procedimento"),
-    code: z.string().min(1, "Informe o código do procedimento"),
-    price: z.string().min(1, "Informe o valor do procedimento"),
+    code: z
+        .string()
+        .min(1, "Informe o código do procedimento")
+        .regex(/^[A-Za-z0-9]{6}$/, "Informe um código alfanumérico com 6 caracteres"),
+    price: z
+        .string()
+        .min(1, "Informe o valor do procedimento")
+        .regex(/^(0|[1-9]\d*),\d{2}$/, "Informe um valor positivo ou zero no formato 0,00"),
     observation: z.string().optional(),
     isActive: z.boolean(),
 })
@@ -33,6 +39,25 @@ interface ProcedureProfileProps {
 
 function normalizeValue(value?: string | null) {
     return value?.trim() ?? ""
+}
+
+function formatPriceValue(value: string) {
+    const normalizedValue = value.trim()
+
+    if (!normalizedValue) {
+        return "0,00"
+    }
+
+    if (/^\d+$/.test(normalizedValue)) {
+        return `${Number(normalizedValue)},00`
+    }
+
+    if (/^\d+,\d$/.test(normalizedValue)) {
+        const [integerPart, decimalPart] = normalizedValue.split(",")
+        return `${Number(integerPart)},${decimalPart}0`
+    }
+
+    return normalizedValue
 }
 
 function getProcedureLabel(isRegisterMode: boolean) {
@@ -91,13 +116,21 @@ export function ProcedureProfile({
         defaultValues: {
             description: "",
             code: "",
-            price: "",
+            price: "0,00",
             observation: "",
             isActive: true,
         },
     })
 
     const pageTitle = useMemo(() => getProcedureLabel(isRegisterMode), [isRegisterMode])
+    const priceField = form.register("price", {
+        onBlur: (event) => {
+            form.setValue("price", formatPriceValue(event.target.value), {
+                shouldDirty: true,
+                shouldValidate: true,
+            })
+        },
+    })
 
     useEffect(() => {
         if (isRegisterMode) {
@@ -245,7 +278,7 @@ export function ProcedureProfile({
 
                         <label className="grid gap-2">
                             <span className="text-sm font-medium">Código</span>
-                            <Input placeholder="Ex.: PROC-001" {...form.register("code")} />
+                            <Input maxLength={6} placeholder="Ex.: A1B2C3" {...form.register("code")} />
                             {form.formState.errors.code ? (
                                 <span className="text-xs text-destructive">{form.formState.errors.code.message}</span>
                             ) : null}
@@ -253,7 +286,7 @@ export function ProcedureProfile({
 
                         <label className="grid gap-2">
                             <span className="text-sm font-medium">Valor</span>
-                            <Input placeholder="Ex.: 120,00" {...form.register("price")} />
+                            <Input inputMode="decimal" placeholder="Ex.: 120,00" {...priceField} />
                             {form.formState.errors.price ? (
                                 <span className="text-xs text-destructive">{form.formState.errors.price.message}</span>
                             ) : null}
