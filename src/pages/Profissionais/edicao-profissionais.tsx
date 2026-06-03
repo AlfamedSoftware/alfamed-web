@@ -20,7 +20,7 @@ import { professionalsService, type ProfessionalUnitFullData } from "@/Servicos/
 import { professionalsService as professionalsApiService } from "@/services/professionals.service"
 import * as z from "zod"
 import { ToastContainer, useToast } from "./Componentes/Toast"
-import { AlteracaoProfissionaisSkeleton } from "./Componentes/Skeleton/alteracao-profissionais-skeleton"
+import { EdicaoProfissionalSkeleton } from "./Componentes/Skeleton/edicao-profissional-skeleton"
 
 // ============================================================================
 // FORM VALUE TYPE - valores usados pelo formulário (UI)
@@ -820,7 +820,7 @@ export function ProfessionalProfile({
                 {showPageHeader ? (
                     <PageHeader title={isProfileView ? "Perfil" : isRegisterMode ? "Cadastro de Profissionais" : "Editar Cadastro"} />
                 ) : null}
-                <AlteracaoProfissionaisSkeleton isProfileView={isProfileView} />
+                <EdicaoProfissionalSkeleton isProfileView={isProfileView} />
             </>
         )
     }

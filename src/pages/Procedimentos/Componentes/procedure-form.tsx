@@ -11,7 +11,7 @@ import { PageHeader } from "@/components/page-header"
 import { useSessionUnit } from "@/contexts/session-unit-context"
 import { proceduresService } from "@/Servicos/procedures.service"
 import { cn } from "@/lib/utils"
-import { ProcedureFormSkeleton } from "./precedure-form-skeleton"
+import { ProcedureFormSkeleton } from "./Skeleton/edicao-procedimento-skeleton"
 
 const procedureFormSchema = z.object({
     description: z.string().min(1, "Informe a descrição do procedimento"),

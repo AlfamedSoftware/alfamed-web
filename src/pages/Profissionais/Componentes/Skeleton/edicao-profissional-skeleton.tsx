@@ -2,7 +2,7 @@ function FieldSkeleton() {
     return <div className="h-11 animate-pulse rounded-xl bg-muted" />
 }
 
-export function AlteracaoProfissionaisSkeleton({ isProfileView = false }: { isProfileView?: boolean } = {}) {
+export function EdicaoProfissionalSkeleton({ isProfileView = false }: { isProfileView?: boolean } = {}) {
     return (
         <div className="min-h-screen bg-background text-foreground">
             <main className="w-full h-full">

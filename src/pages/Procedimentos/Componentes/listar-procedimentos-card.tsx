@@ -1,4 +1,4 @@
-import { Banknote, ClipboardList, FileText } from "lucide-react"
+import { Banknote, ClipboardList } from "lucide-react"
 import { useNavigate } from "react-router"
 
 import { cn } from "@/lib/utils"
@@ -23,7 +23,7 @@ function formatCurrency(value: string): string {
 
 export function ProcedureCard({ procedure, onClick }: ProcedureCardProps) {
     const navigate = useNavigate()
-    const { id, description, observation, code, price, isActive } = procedure
+    const { id, description, code, price, isActive } = procedure
 
     const handleClick = () => {
         if (onClick) {
@@ -45,10 +45,6 @@ export function ProcedureCard({ procedure, onClick }: ProcedureCardProps) {
         >
             <div className="mb-3 flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                    <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
-                        <ClipboardList className="h-3.5 w-3.5" />
-                        {code}
-                    </div>
                     <h3 className="truncate text-sm font-semibold text-foreground" title={description}>
                         {description}
                     </h3>
@@ -71,13 +67,17 @@ export function ProcedureCard({ procedure, onClick }: ProcedureCardProps) {
 
             <div className="space-y-2">
                 <div className="flex items-center gap-2 text-muted-foreground">
-                    <Banknote className="h-4 w-4 flex-shrink-0" />
-                    <span className="text-sm font-medium text-foreground">{formatCurrency(price)}</span>
+                    <ClipboardList className="h-4 w-4 flex-shrink-0" />
+                    <span className="text-sm font-medium text-foreground" title={`Código`}>
+                        {code}
+                    </span>
                 </div>
 
-                <div className="flex items-start gap-2 text-muted-foreground">
-                    <FileText className="mt-0.5 h-4 w-4 flex-shrink-0" />
-                    <p className="line-clamp-2 text-xs leading-5">{observation?.trim() || "Sem observações"}</p>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                    <Banknote className="h-4 w-4 flex-shrink-0" />
+                    <span className="text-sm font-medium text-foreground" title={`Preço`}>
+                        {formatCurrency(price)}
+                    </span>
                 </div>
             </div>
         </button>
