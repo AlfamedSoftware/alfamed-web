@@ -6,7 +6,6 @@ import { Save } from "lucide-react"
 
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
-import { CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { useSessionUnit } from "@/contexts/session-unit-context"
 import { authBaseUrl } from "@/lib/auth"
