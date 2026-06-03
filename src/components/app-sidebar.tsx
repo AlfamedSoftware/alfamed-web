@@ -72,14 +72,14 @@ const menuItemsByRole: Record<RoleMenuKey, SidebarMenuItemConfig[]> = {
         { title: "Unidade", icon: Lock, url: "/unidade" },
         { title: "Profissionais", icon: Stethoscope, url: "/profissionais" },
         { title: "Procedimentos", icon: ClipboardList, url: "/procedimentos" },
-        { title: "Especialidades", icon: ClipboardList, url: "/especialidades" },
+           { title: "Especialidades", icon: ClipboardList, url: "/especialidades" },
     ],
     [MENU_ROLE_KEYS.administrative]: [
         { title: "Início", icon: HomeIcon, url: "/home" },
         { title: "Unidade", icon: Lock, url: "/unidade" },
         { title: "Profissionais", icon: Stethoscope, url: "/profissionais" },
         { title: "Procedimentos", icon: ClipboardList, url: "/procedimentos" },
-        { title: "Especialidades", icon: ClipboardList, url: "/especialidades" },
+           { title: "Especialidades", icon: ClipboardList, url: "/especialidades" },
     ],
     [MENU_ROLE_KEYS.medic]: [
         { title: "Início", icon: HomeIcon, url: "/home" },
