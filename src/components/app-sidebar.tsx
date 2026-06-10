@@ -23,6 +23,7 @@ import {
     CalendarCheck,
     ChevronsUpDown,
     ClipboardList,
+    ClipboardPlus,
     Home as HomeIcon,
     Lock,
     LogOut,
@@ -83,6 +84,7 @@ const menuItemsByRole: Record<RoleMenuKey, SidebarMenuItemConfig[]> = {
     ],
     [MENU_ROLE_KEYS.medic]: [
         { title: "Início", icon: HomeIcon, url: "/home" },
+        { title: "Atendimentos", icon: ClipboardPlus, url: "/atendimento" },
         { title: "Agendamentos", icon: CalendarCheck, url: "/agendamentos" },
         { title: "Agendas", icon: ClipboardList, url: "/agendas" },
     ],

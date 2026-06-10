@@ -18,6 +18,8 @@ import { CadastroEspecialidades } from "@/pages/Especialidades/cadastro-especial
 import { EdicaoEspecialidades } from "@/pages/Especialidades/edicao-especialidades"
 import { Agendamentos } from "@/pages/Agendamentos/agendamentos"
 import { Agendas } from "@/pages/Agendas/agendas"
+import { Atendimento } from "@/pages/Atendimento/atendimento"
+import { AtendimentoDetalhe } from "@/pages/Atendimento/atendimento-detalhe"
 import { Perfil } from "@/pages/Profissionais/perfil"
 import { AdminSignIn } from "@/pages/SignIn/admin-sign-in"
 import { ServiceDeskUnitsList } from "@/pages/ServiceDesk/units-list"
@@ -72,6 +74,8 @@ export function App() {
            <Route path="cadastro-especialidades" element={<CadastroEspecialidades />} />
             <Route path="agendas" element={<Agendas />} />
             <Route path="agendamentos" element={<Agendamentos />} />
+            <Route path="atendimento" element={<Atendimento />} />
+            <Route path="atendimento/:scheduleId" element={<AtendimentoDetalhe />} />
             <Route path="perfil" element={<Perfil />} />
           </Route>
 
