@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react"
 import { useNavigate } from "react-router"
-import { ArrowLeft, CheckCircle2, Link2, Loader2, Search, UserPlus } from "lucide-react"
+import { CheckCircle2, Link2, Loader2, Search } from "lucide-react"
 
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { CardContent, CardDescription, CardFooter, CardHeader } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { useSessionUnit } from "@/contexts/session-unit-context"
 import { authBaseUrl } from "@/lib/auth"
