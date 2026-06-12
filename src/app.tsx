@@ -17,6 +17,7 @@ import { EdicaoProcedimentos } from "@/pages/Procedimentos/edicao-procedimentos"
 import { Especialidades } from "@/pages/Especialidades/listar-especialidades"
 import { CadastroEspecialidades } from "@/pages/Especialidades/cadastro-especialidades"
 import { EdicaoEspecialidades } from "@/pages/Especialidades/edicao-especialidades"
+import { VinculoEspecialidadesListagemProfissionais } from "@/pages/Especialidades/vinculo-especialidades-listagem-profissionais"
 import { Agendamentos } from "@/pages/Agendamentos/agendamentos"
 import { AgendaListagemProfissionais } from "@/pages/Agendas/agenda-listagem-profissionais"
 import { Agendas } from "@/pages/Agendas/agendas"
@@ -73,6 +74,7 @@ export function App() {
             <Route path="especialidades" element={<Especialidades />} />
             <Route path="especialidades/:id" element={<EdicaoEspecialidades />} />
             <Route path="cadastro-especialidades" element={<CadastroEspecialidades />} />
+            <Route path="especialidades/vinculo-listagem-profissionais" element={<VinculoEspecialidadesListagemProfissionais />} />
             <Route path="agendas" element={<Agendas />} />
             <Route path="agenda-listagem-profissionais" element={<AgendaListagemProfissionais />} />
             <Route path="agendamentos" element={<Agendamentos />} />
