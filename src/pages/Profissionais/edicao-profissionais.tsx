@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react"
-import { useNavigate, useParams } from "react-router"
+import { useNavigate, useParams, useSearchParams } from "react-router"
 import { useSession } from "@/hooks/use-session"
 import {
     Loader2,
     Save,
+    Trash2,
 } from "lucide-react"
 import { useForm, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -16,9 +17,11 @@ import { authBaseUrl } from "@/lib/auth"
 import { fetchWithAuth } from "@/lib/api-client"
 import { cn } from "@/lib/utils"
 import { professionalsService, type ProfessionalUnitFullData } from "@/Servicos/professionals.service"
+import { professionalsService as professionalsApiService } from "@/services/professionals.service"
 import * as z from "zod"
 import { ToastContainer, useToast } from "./Componentes/Toast"
-import { AlteracaoProfissionaisSkeleton } from "./Componentes/Skeleton/alteracao-profissionais-skeleton"
+import { EdicaoProfissionalSkeleton } from "./Componentes/Skeleton/edicao-profissional-skeleton"
+import { AgendaProfissionalSkeleton } from "./Componentes/Skeleton/agenda-profissional-skeleton"
 
 // ============================================================================
 // FORM VALUE TYPE - valores usados pelo formulário (UI)
@@ -279,6 +282,21 @@ function getProfessionalUnitRoleId(data: ProfessionalUnitFullData): string {
     return ""
 }
 
+function getProfessionalEntityId(data: ProfessionalUnitFullData | null): string | undefined {
+    if (!data) return undefined
+    const payload = data as ProfessionalUnitFullData & { professional?: unknown; professionals?: unknown }
+    return getIdFromNode(payload.professionals ?? payload.professional)
+}
+
+type ScheduleFormItem = {
+    id?: string
+    dayOfWeek: number
+    startTime: string
+    endTime: string
+    appointmentDurationMinutes?: number
+    isActive?: boolean
+}
+
 // ============================================================================
 // RESPONSE PARSING - Extrai dados de respostas específicas da API
 // ============================================================================
@@ -293,6 +311,7 @@ interface ProfessionalProfileProps {
     onCreated?: () => void
     showPageHeader?: boolean
     onCancel?: () => void
+    initialCpf?: string
 }
 
 // ============================================================================
@@ -597,11 +616,14 @@ export function ProfessionalProfile({
     onCreated,
     showPageHeader = true,
     onCancel,
+    initialCpf,
 }: ProfessionalProfileProps = {}) {
     const { id: routeProfessionalId } = useParams()
+    const [searchParams] = useSearchParams()
     const effectiveProfessionalUnitId = professionalUnitId ?? routeProfessionalId
     const id = effectiveProfessionalUnitId
     const navigate = useNavigate()
+    const isAgenda = searchParams.get("isAgenda") === "true"
     const { user: sessionUser } = useSession()
     const { toasts, dismiss, toast } = useToast()
     const [professional, setProfessional] = useState<ProfessionalUnitFullData | null>(null)
@@ -622,7 +644,7 @@ export function ProfessionalProfile({
             socialName: "",
             email: "",
             phone: "",
-            cpf: "",
+            cpf: formatCpf(initialCpf ?? ""),
             birthdate: "",
             roleId: "",
             password: "",
@@ -676,7 +698,7 @@ export function ProfessionalProfile({
                 socialName: "",
                 email: "",
                 phone: "",
-                cpf: "",
+                cpf: formatCpf(initialCpf ?? ""),
                 birthdate: "",
                 roleId: "",
                 password: "",
@@ -727,6 +749,9 @@ export function ProfessionalProfile({
                     password: "",
                     confirmPassword: "",
                 })
+                // after loading professional full data, load schedules for the underlying professional entity
+                const profId = getProfessionalEntityId(data)
+                void loadSchedulesForProfessional(profId)
             })
             .catch(() => toast.error("Erro ao carregar profissional"))
             .finally(() => {
@@ -736,7 +761,7 @@ export function ProfessionalProfile({
         return () => {
             alive = false
         }
-    }, [id, effectiveProfessionalUnitId, form, toast, isRegisterMode])
+    }, [id, effectiveProfessionalUnitId, form, toast, isRegisterMode, initialCpf])
 
     const professionalName = useMemo(() => getProfessionalName(professional), [professional])
     const initials = useMemo(() => getInitials(professionalName), [professionalName])
@@ -746,13 +771,70 @@ export function ProfessionalProfile({
     }, [professional])
     const isEditingLoggedProfessional = !isRegisterMode && !!sessionUser?.id && professionalUserId === sessionUser.id
 
+    // Schedules (horários)
+    const [schedules, setSchedules] = useState<ScheduleFormItem[]>([])
+    const [isSchedulesLoading, setIsSchedulesLoading] = useState(false)
+    const [isSchedulesSaving, setIsSchedulesSaving] = useState(false)
+
+    function hhmmssToInput(value?: string) {
+        if (!value) return ""
+        return value.slice(0, 5)
+    }
+
+    function inputToHhmmss(value: string) {
+        if (!value) return ""
+        return value.length === 5 ? `${value}:00` : value
+    }
+
+    function addMinutesToTime(time: string, minutes: number) {
+        if (!time) return ""
+        const parts = time.split(":").map((p) => parseInt(p, 10))
+        const hours = parts[0] || 0
+        const mins = parts[1] || 0
+        const date = new Date(1970, 0, 1, hours, mins)
+        date.setMinutes(date.getMinutes() + minutes)
+        const hh = String(date.getHours()).padStart(2, "0")
+        const mm = String(date.getMinutes()).padStart(2, "0")
+        return `${hh}:${mm}:00`
+    }
+
+    async function loadSchedulesForProfessional(professionalId?: string) {
+        if (!professionalId) return
+        setIsSchedulesLoading(true)
+        try {
+            const rows = await professionalsApiService.getSchedules(professionalId)
+            setSchedules(rows.map((r: ScheduleFormItem) => ({
+                id: r.id,
+                dayOfWeek: r.dayOfWeek,
+                startTime: r.startTime,
+                endTime: r.endTime,
+                appointmentDurationMinutes: r.appointmentDurationMinutes ?? 60,
+                isActive: r.isActive,
+            })))
+        } catch (err) {
+            console.error("Erro ao carregar schedules", err)
+            setSchedules([])
+        } finally {
+            setIsSchedulesLoading(false)
+        }
+    }
+
     if (isLoading) {
+        if (isAgenda) {
+            return (
+                <>
+                    {showPageHeader ? <PageHeader title="Agendas do Profissional" /> : null}
+                    <AgendaProfissionalSkeleton />
+                </>
+            )
+        }
+
         return (
             <>
                 {showPageHeader ? (
                     <PageHeader title={isProfileView ? "Perfil" : isRegisterMode ? "Cadastro de Profissionais" : "Editar Cadastro"} />
                 ) : null}
-                <AlteracaoProfissionaisSkeleton isProfileView={isProfileView} />
+                <EdicaoProfissionalSkeleton isProfileView={isProfileView} />
             </>
         )
     }
@@ -769,7 +851,7 @@ export function ProfessionalProfile({
                     body: JSON.stringify(fullPayload),
                 })
 
-                toast.success("Profissional cadastrado")
+                alert("Profissional cadastrado com sucesso.")
                 onCreated?.()
                 if (afterSavePath) navigate(afterSavePath)
             } catch {
@@ -795,21 +877,21 @@ export function ProfessionalProfile({
             const isProfile = isProfileView
             const dataToSend = isProfile
                 ? buildProfileUpdatePayload(values as ProfessionalProfileForm, professional)
-                    : buildFullUpdatePayload(values as ProfessionalFullForm, professional)
+                : buildFullUpdatePayload(values as ProfessionalFullForm, professional)
 
             if (isProfile) {
-                    await fetchWithAuth<void>(`${authBaseUrl}/professional-units/profile-update`, {
+                await fetchWithAuth<void>(`${authBaseUrl}/professional-units/profile-update`, {
                     method: "PATCH",
                     body: JSON.stringify(dataToSend),
                 })
             } else {
-                    await fetchWithAuth<void>(`${authBaseUrl}/professional-units/full-update`, {
+                await fetchWithAuth<void>(`${authBaseUrl}/professional-units/full-update`, {
                     method: "PATCH",
                     body: JSON.stringify(dataToSend),
                 })
             }
 
-            toast.success("Profissional atualizado")
+            alert("Profissional atualizado com sucesso.")
             if (afterSavePath) {
                 navigate(afterSavePath)
             }
@@ -820,14 +902,73 @@ export function ProfessionalProfile({
         }
     }
 
+    // Schedule handlers
+    function handleAddSchedule() {
+        setSchedules((prev) => [...prev, { dayOfWeek: 0, startTime: "", endTime: "", isActive: true }])
+    }
+
+    function handleChangeSchedule(index: number, field: string, value: string) {
+        setSchedules((prev) => {
+            const copy = [...prev]
+            const item = { ...(copy[index] ?? {}) }
+            if (field === "startTime") {
+                item.startTime = inputToHhmmss(value)
+            } else if (field === "endTime") {
+                item.endTime = inputToHhmmss(value)
+            } else if (field === "appointmentDurationMinutes") {
+                const dur = Number(value) || 0
+                item.appointmentDurationMinutes = dur
+            } else if (field === "dayOfWeek") {
+                item.dayOfWeek = Number(value)
+            } else if (field === "isActive") {
+                item.isActive = Boolean(value)
+            }
+            copy[index] = item
+            return copy
+        })
+    }
+
+    function handleDeleteSchedule(index: number) {
+        setSchedules((prev) => prev.filter((_, i) => i !== index))
+    }
+
+    async function handleSaveSchedules() {
+        const profId = getProfessionalEntityId(professional)
+        if (!profId) {
+            toast.error("Não foi possível identificar o profissional para salvar horários")
+            return
+        }
+
+        setIsSchedulesSaving(true)
+        try {
+            const payload = schedules.map((s) => ({
+                id: s.id,
+                dayOfWeek: s.dayOfWeek,
+                startTime: inputToHhmmss(hhmmssToInput(s.startTime)),
+                endTime: inputToHhmmss(hhmmssToInput(s.endTime)) || addMinutesToTime(inputToHhmmss(hhmmssToInput(s.startTime)), s.appointmentDurationMinutes ?? 60),
+                appointmentDurationMinutes: s.appointmentDurationMinutes ?? 60,
+                isActive: s.isActive ?? true,
+            }))
+
+            await professionalsApiService.replaceSchedules(profId, payload)
+            toast.success("Horários atualizados")
+            void loadSchedulesForProfessional(profId)
+        } catch (err) {
+            console.error("Erro ao salvar schedules", err)
+            toast.error("Erro ao salvar horários")
+        } finally {
+            setIsSchedulesSaving(false)
+        }
+    }
+
     return (
         <div className="min-h-screen bg-background text-foreground">
             {showPageHeader ? (
-                <PageHeader title={isProfileView ? "Perfil" : isRegisterMode ? "Cadastro de Profissionais" : "Editar Cadastro"} />
+                <PageHeader title={isAgenda ? "Agendas do Profissional" : isProfileView ? "Perfil" : isRegisterMode ? "Cadastro de Profissionais" : "Editar Cadastro"} />
             ) : null}
 
-            <main className="w-full h-full">
-                <div className="border-b border-border px-6 py-8 sm:px-10">
+            <main className="flex-1 px-6">
+                <div className="border-b border-border py-6">
                     <div className="flex items-center gap-4">
                         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-lg font-semibold text-primary-foreground shadow-sm">
                             {initials}
@@ -840,7 +981,8 @@ export function ProfessionalProfile({
                     </div>
                 </div>
 
-                <form onSubmit={form.handleSubmit(onSubmit)} className="px-6 py-6 sm:px-10 sm:py-8">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-5 py-6">
+                    {!isAgenda && (
                     <div className="grid gap-5">
                         <section className="grid gap-4">
                             <h3 className="text-primary text-lg font-semibold">Usuário</h3>
@@ -912,40 +1054,42 @@ export function ProfessionalProfile({
                                     </label>
                                     <div />
                                 </div>
-                                <div className="grid gap-5 sm:grid-cols-2">
-                                    <label className="grid gap-2">
-                                        <span className="text-sm font-medium text-foreground">Senha</span>
-                                        <PasswordInput className="h-11 rounded-xl" autoComplete="new-password" {...form.register("password")} />
-                                        {form.formState.errors.password?.message ? (
-                                            <span className="text-sm font-medium text-destructive">
-                                                {form.formState.errors.password.message}
-                                            </span>
-                                        ) : null}
-                                    </label>
-                                    <label className="grid gap-2">
-                                        <span className="text-sm font-medium text-foreground">Confirme sua senha</span>
-                                        <PasswordInput className="h-11 rounded-xl" autoComplete="new-password" {...form.register("confirmPassword")} />
-                                        {form.formState.errors.confirmPassword?.message ? (
-                                            <span className="text-sm font-medium text-destructive">
-                                                {form.formState.errors.confirmPassword.message}
-                                            </span>
-                                        ) : null}
-                                    </label>
-                                </div>
+                                {isRegisterMode ? (
+                                    <div className="grid gap-5 sm:grid-cols-2">
+                                        <label className="grid gap-2">
+                                            <span className="text-sm font-medium text-foreground">Senha</span>
+                                            <PasswordInput className="h-11 rounded-xl" autoComplete="new-password" {...form.register("password")} />
+                                            {form.formState.errors.password?.message ? (
+                                                <span className="text-sm font-medium text-destructive">
+                                                    {form.formState.errors.password.message}
+                                                </span>
+                                            ) : null}
+                                        </label>
+                                        <label className="grid gap-2">
+                                            <span className="text-sm font-medium text-foreground">Confirme sua senha</span>
+                                            <PasswordInput className="h-11 rounded-xl" autoComplete="new-password" {...form.register("confirmPassword")} />
+                                            {form.formState.errors.confirmPassword?.message ? (
+                                                <span className="text-sm font-medium text-destructive">
+                                                    {form.formState.errors.confirmPassword.message}
+                                                </span>
+                                            ) : null}
+                                        </label>
+                                    </div>
+                                ) : null}
 
                             </div>
                         </section>
 
                         <section className="grid gap-4">
                             <h3 className="text-primary text-lg font-semibold">Profissional</h3>
-                            
+
                             <div className="grid gap-5 sm:grid-cols-2">
                                 <label className="grid gap-2">
                                     <span className="text-sm font-medium text-foreground">Estado</span>
-                                        <select
-                                            className="h-11 rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring disabled:cursor-not-allowed disabled:opacity-50"
-                                            {...form.register("crmState")}
-                                        >
+                                    <select
+                                        className="h-11 rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                        {...form.register("crmState")}
+                                    >
                                         {brStates.map((state) => (
                                             <option key={state} value={state}>
                                                 {state}
@@ -969,7 +1113,7 @@ export function ProfessionalProfile({
                                     />
                                 </label>
                             </div>
-                            
+
                             {!isProfileView && (
                                 <div className="grid gap-2 sm:grid-cols-1" title={isEditingLoggedProfessional ? "Não é possivel alterar as informações de acesso do profissional logado." : undefined}>
                                     <p className="text-sm font-semibold text-foreground">Profissional ativo</p>
@@ -1057,27 +1201,139 @@ export function ProfessionalProfile({
                         )}
 
                     </div>
+                    )}
 
-                    <div className="mt-8 flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:justify-end">
-                        {!isProfileView && (
+                    {/* Schedules: horários fixos de 60 minutos (MVP) */}
+                    {!isProfileView && isAgenda && (
+                        <section className="grid gap-4">
+                            <h3 className="text-primary text-lg font-semibold">Horários de atendimento</h3>
+                            <div className="grid gap-3">
+                                {isSchedulesLoading ? (
+                                    <div>Carregando horários...</div>
+                                ) : (
+                                    schedules.map((s, idx) => (
+                                        <div
+                                            key={s.id ?? `new-${idx}`}
+                                            className="rounded-2xl border border-border bg-muted/20 p-4 shadow-sm"
+                                        >
+                                            <div className="mb-4 flex items-start justify-between gap-3">
+                                                <div>
+                                                    <p className="text-sm font-semibold text-foreground">Horário #{idx + 1}</p>
+                                                    <p className="text-xs text-muted-foreground">Defina o intervalo e a duração dos atendimentos desta faixa.</p>
+                                                </div>
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    className="h-9 gap-2 rounded-full px-3 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                                    onClick={() => handleDeleteSchedule(idx)}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                    Remover
+                                                </Button>
+                                            </div>
+
+                                            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                                                <label className="grid gap-2">
+                                                    <span className="text-xs font-medium text-muted-foreground">Dia</span>
+                                                    <select
+                                                        className="h-11 rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring"
+                                                        value={s.dayOfWeek}
+                                                        onChange={(e) => handleChangeSchedule(idx, "dayOfWeek", e.target.value)}
+                                                    >
+                                                        <option value={0}>Domingo</option>
+                                                        <option value={1}>Segunda</option>
+                                                        <option value={2}>Terça</option>
+                                                        <option value={3}>Quarta</option>
+                                                        <option value={4}>Quinta</option>
+                                                        <option value={5}>Sexta</option>
+                                                        <option value={6}>Sábado</option>
+                                                    </select>
+                                                </label>
+
+                                                <label className="grid gap-2">
+                                                    <span className="text-xs font-medium text-muted-foreground">Início</span>
+                                                    <input
+                                                        type="time"
+                                                        className="h-11 rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring"
+                                                        value={hhmmssToInput(s.startTime)}
+                                                        onChange={(e) => handleChangeSchedule(idx, "startTime", e.target.value)}
+                                                    />
+                                                </label>
+
+                                                <label className="grid gap-2">
+                                                    <span className="text-xs font-medium text-muted-foreground">Fim</span>
+                                                    <input
+                                                        type="time"
+                                                        className="h-11 rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring"
+                                                        value={hhmmssToInput(s.endTime)}
+                                                        onChange={(e) => handleChangeSchedule(idx, "endTime", e.target.value)}
+                                                    />
+                                                </label>
+
+                                                <div className="grid gap-2">
+                                                    <span className="text-xs font-medium text-muted-foreground">Duração da consulta</span>
+                                                    <div className="flex h-11 items-center rounded-xl border border-border bg-muted/30 px-3 text-sm font-medium text-foreground">
+                                                        60 min
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+
+                                <div className="flex flex-wrap gap-2">
+                                    <Button type="button" variant="outline" className="h-10 rounded-full px-4" onClick={handleAddSchedule}>
+                                        Adicionar horário
+                                    </Button>
+                                </div>
+                            </div>
+                        </section>
+                    )}
+
+                    {isAgenda && (
+                        <div className="mt-8 flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:justify-end">
                             <Button
                                 type="button"
                                 variant="outline"
                                 className="h-11 rounded-xl px-5"
-                                onClick={() => onCancel?.() ?? navigate(-1)}
+                                onClick={() => navigate("/agenda-listagem-profissionais")}
                             >
                                 Cancelar
                             </Button>
-                        )}
-                        <Button
-                            type="submit"
-                            className="h-11 rounded-xl bg-primary px-5 text-primary-foreground hover:bg-primary/90"
-                            disabled={isSaving}
-                        >
-                            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                            {isRegisterMode ? "Cadastrar profissional" : "Salvar alterações"}
-                        </Button>
-                    </div>
+                            <Button
+                                type="button"
+                                className="h-11 rounded-xl bg-primary px-5 text-primary-foreground hover:bg-primary/90"
+                                disabled={isSchedulesSaving}
+                                onClick={handleSaveSchedules}
+                            >
+                                {isSchedulesSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                                {"Salvar horários"}
+                            </Button>
+                        </div>
+                    )}
+
+                    {!isAgenda && (
+                        <div className="mt-8 flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:justify-end">
+                            {!isProfileView && (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="h-11 rounded-xl px-5"
+                                    onClick={() => onCancel?.() ?? navigate(-1)}
+                                >
+                                    Cancelar
+                                </Button>
+                            )}
+                            <Button
+                                type="submit"
+                                className="h-11 rounded-xl bg-primary px-5 text-primary-foreground hover:bg-primary/90"
+                                disabled={isSaving}
+                            >
+                                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                                {"Salvar"}
+                            </Button>
+                        </div>
+                    )}
                 </form>
             </main>
 

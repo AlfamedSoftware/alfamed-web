@@ -6,7 +6,7 @@ import { useSession } from "@/hooks/use-session"
 import { useSessionUnit } from "@/contexts/session-unit-context"
 
 import { ProfessionalProfile } from "./edicao-profissionais"
-import { AlteracaoProfissionaisSkeleton } from "./Componentes/Skeleton/alteracao-profissionais-skeleton"
+import { EdicaoProfissionalSkeleton } from "./Componentes/Skeleton/edicao-profissional-skeleton"
 
 export function Perfil() {
     const { user, isLoading: isSessionLoading } = useSession()
@@ -66,7 +66,7 @@ export function Perfil() {
         return (
             <>
                 <PageHeader title="Perfil" />
-                <AlteracaoProfissionaisSkeleton isProfileView />
+                <EdicaoProfissionalSkeleton isProfileView />
             </>
         )
     }
