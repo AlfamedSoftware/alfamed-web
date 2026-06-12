@@ -20,7 +20,7 @@ export function ProfissionaisEspecialidades() {
     const [allSpecialties, setAllSpecialties] = useState<SpecialtyUnitFullData[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [isAdding, setIsAdding] = useState(false)
-    const [isRemoving, setIsRemoving] = useState(false)
+    const [removingId, setRemovingId] = useState<string | null>(null)
     const [selectedSpecialtyId, setSelectedSpecialtyId] = useState<string>("")
 
     useEffect(() => {
@@ -71,7 +71,7 @@ export function ProfissionaisEspecialidades() {
     }
 
     const handleRemoveSpecialty = async (specialty: ProfessionalUnitSpecialty) => {
-        setIsRemoving(true)
+        setRemovingId(specialty.id)
         try {
             await professionalUnitSpecialtiesService.update({
                 id: specialty.id,
@@ -84,11 +84,12 @@ export function ProfissionaisEspecialidades() {
         } catch (error) {
             alert(error instanceof Error ? error.message : "Erro ao remover especialidade")
         } finally {
-            setIsRemoving(false)
+            setRemovingId(null)
         }
     }
 
     const availableSpecialties = allSpecialties.filter(s => {
+        if (!s.isActive) return false
         const linkedSpecialty = specialties.find(ls => ls.specialtyId === s.id)
         return !linkedSpecialty || !linkedSpecialty.isActive
     })
@@ -143,7 +144,12 @@ export function ProfissionaisEspecialidades() {
                                                     className="flex items-center justify-between gap-4 py-2"
                                                 >
                                                     <div className="flex-1">
-                                                        <p className="text-sm font-medium">{specialty.specialty.name}</p>
+                                                        <p className="text-sm font-medium">
+                                                            {specialty.specialty.name}
+                                                            {!specialty.specialty.isActive && (
+                                                                <span className="ml-2 text-sm font-medium text-destructive">(Inativo)</span>
+                                                            )}
+                                                        </p>
                                                         <p className="text-xs text-muted-foreground">
                                                             Vinculada em {new Date(specialty.createdAt).toLocaleDateString("pt-BR")}
                                                         </p>
@@ -152,15 +158,15 @@ export function ProfissionaisEspecialidades() {
                                                         variant="outline"
                                                         size="sm"
                                                         onClick={() => handleRemoveSpecialty(specialty)}
-                                                        disabled={isRemoving}
+                                                        disabled={removingId !== null}
                                                         className="cursor-pointer"
                                                     >
-                                                        {isRemoving ? (
+                                                        {removingId === specialty.id ? (
                                                             <Loader2 className="h-4 w-4 animate-spin mr-1" />
                                                         ) : (
                                                             <X className="h-4 w-4 mr-1" />
                                                         )}
-                                                        {isRemoving ? "Removendo..." : "Remover"}
+                                                        {removingId === specialty.id ? "Removendo..." : "Remover"}
                                                     </Button>
                                                 </div>
                                             ))}
