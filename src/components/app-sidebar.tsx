@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import {
     CalendarCheck,
+    CalendarDays,
     ChevronsUpDown,
     ClipboardList,
     Home as HomeIcon,
@@ -28,6 +29,9 @@ import {
     LogOut,
     Stethoscope,
     User,
+    Building2,
+    ClipboardPaste,
+    Minus,
 } from "lucide-react"
 import { useSession } from "@/hooks/use-session"
 import { auth } from "@/lib/auth"
@@ -69,31 +73,38 @@ const roleLabels: Record<RoleMenuKey, string> = {
 const menuItemsByRole: Record<RoleMenuKey, SidebarMenuItemConfig[]> = {
     [MENU_ROLE_KEYS.alfamed]: [
         { title: "Início", icon: HomeIcon, url: "/home" },
-        { title: "Unidade", icon: Lock, url: "/unidade" },
-        { title: "Profissionais", icon: Stethoscope, url: "/profissionais" },
+        { title: "Unidade", icon: Building2, url: "/unidade" },
+        { title: "Profissionais", icon: User, url: "/profissionais" },
         { title: "Procedimentos", icon: ClipboardList, url: "/procedimentos" },
-           { title: "Especialidades", icon: ClipboardList, url: "/especialidades" },
+        { title: "Especialidades", icon: Stethoscope, url: "/especialidades" },
+        { title: "", icon: Minus, url: "" },
+        { title: "Agendas", icon: CalendarDays, url: "/agenda-listagem-profissionais" },
+        { title: "Agendamentos", icon: CalendarCheck, url: "/agendas" },    
     ],
     [MENU_ROLE_KEYS.administrative]: [
         { title: "Início", icon: HomeIcon, url: "/home" },
-        { title: "Unidade", icon: Lock, url: "/unidade" },
-        { title: "Profissionais", icon: Stethoscope, url: "/profissionais" },
+        { title: "Unidade", icon: Building2, url: "/unidade" },
+        { title: "Profissionais", icon: User, url: "/profissionais" },
         { title: "Procedimentos", icon: ClipboardList, url: "/procedimentos" },
-           { title: "Especialidades", icon: ClipboardList, url: "/especialidades" },
+        { title: "Especialidades", icon: Stethoscope, url: "/especialidades" },
+        { title: "", icon: Minus, url: "" },
+        { title: "Agendas", icon: CalendarDays, url: "/agenda-listagem-profissionais" },
+        { title: "Agendamentos", icon: CalendarCheck, url: "/agendas" },  
     ],
     [MENU_ROLE_KEYS.medic]: [
         { title: "Início", icon: HomeIcon, url: "/home" },
-        { title: "Agendamentos", icon: CalendarCheck, url: "/agendamentos" },
-        { title: "Agendas", icon: ClipboardList, url: "/agendas" },
+        { title: "Agendas", icon: CalendarDays, url: "/agenda-listagem-profissionais" },
+        { title: "Agendamentos", icon: CalendarCheck, url: "/agendas" },
     ],
     [MENU_ROLE_KEYS.assistant]: [
         { title: "Início", icon: HomeIcon, url: "/home" },
-        { title: "Agendas", icon: ClipboardList, url: "/agendas" },
+        { title: "Agendas", icon: CalendarDays, url: "/agenda-listagem-profissionais" },
+        { title: "Agendamentos", icon: CalendarCheck, url: "/agendas" },
     ],
 } as const
 
 const professionalsSubmenu: SidebarMenuSubItemConfig[] = [
-    { title: "Vínculo de Especialidades", icon: ClipboardList, url: "/profissionais/vinculo-especialidades" },
+    { title: "Vínculo de Especialidades", icon: ClipboardPaste, url: "/profissionais/vinculo-especialidades" },
 ]
 
 export function AppSidebar() {
@@ -101,6 +112,9 @@ export function AppSidebar() {
     const navigate = useNavigate()
     const location = useLocation()
     const isAdminArea = location.pathname.startsWith("/admin")
+    const isProfessionalAgendaRoute =
+        location.pathname.startsWith("/profissionais/") &&
+        new URLSearchParams(location.search).get("isAgenda") === "true"
     const { sessionUnit, isLoading: isSessionUnitLoading } = useSessionUnit()
     const { menuRoles, isMenuRolesLoading } = useSidebarMenu()
     const isSidebarDataLoading = isLoading || isSessionUnitLoading
@@ -124,6 +138,14 @@ export function AppSidebar() {
         navigate("/login", { replace: true })
     }
 
+    const isMenuItemActive = (item: SidebarMenuItemConfig) => {
+        if (isProfessionalAgendaRoute) {
+            return item.url === "/agenda-listagem-profissionais"
+        }
+
+        return location.pathname === item.url || location.pathname.startsWith(`${item.url}/`)
+    }
+
     const getUserInitial = () => {
         if (!user?.name) return "U"
         return user.name.charAt(0).toUpperCase()
@@ -140,7 +162,7 @@ export function AppSidebar() {
                                 <SidebarMenuItem key={item.title}>
                                     <SidebarMenuButton
                                         asChild
-                                        isActive={location.pathname === item.url || location.pathname.startsWith(`${item.url}/`)}
+                                        isActive={isMenuItemActive(item)}
                                         tooltip={item.title}
                                     >
                                         <Link to={item.url}>
@@ -281,13 +303,13 @@ export function AppSidebar() {
                                 <div className="p-1">
                                     {!isAdminArea ? (
                                         <>
-                                            <DropdownMenuItem asChild>
+                                            <DropdownMenuItem asChild className="cursor-pointer">
                                                 <Link to="/perfil">
                                                     <User className="h-4 w-4" />
                                                     Perfil
                                                 </Link>
                                             </DropdownMenuItem>
-                                            <DropdownMenuItem asChild>
+                                            <DropdownMenuItem asChild className="cursor-pointer">
                                                 <Link to="/session">
                                                     <HomeIcon className="h-4 w-4" />
                                                     Trocar unidade
@@ -295,7 +317,7 @@ export function AppSidebar() {
                                             </DropdownMenuItem>
                                         </>
                                     ) : null}
-                                    <DropdownMenuItem variant="destructive" onClick={handleLogout}>
+                                    <DropdownMenuItem variant="destructive" onClick={handleLogout} className="cursor-pointer">
                                         <LogOut className="h-4 w-4" />
                                         Sair
                                     </DropdownMenuItem>

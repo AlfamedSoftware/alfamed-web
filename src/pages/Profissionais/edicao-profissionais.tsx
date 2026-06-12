@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import { useNavigate, useParams } from "react-router"
+import { useNavigate, useParams, useSearchParams } from "react-router"
 import { useSession } from "@/hooks/use-session"
 import {
     Loader2,
@@ -21,6 +21,7 @@ import { professionalsService as professionalsApiService } from "@/services/prof
 import * as z from "zod"
 import { ToastContainer, useToast } from "./Componentes/Toast"
 import { EdicaoProfissionalSkeleton } from "./Componentes/Skeleton/edicao-profissional-skeleton"
+import { AgendaProfissionalSkeleton } from "./Componentes/Skeleton/agenda-profissional-skeleton"
 
 // ============================================================================
 // FORM VALUE TYPE - valores usados pelo formulário (UI)
@@ -310,6 +311,7 @@ interface ProfessionalProfileProps {
     onCreated?: () => void
     showPageHeader?: boolean
     onCancel?: () => void
+    initialCpf?: string
 }
 
 // ============================================================================
@@ -614,11 +616,14 @@ export function ProfessionalProfile({
     onCreated,
     showPageHeader = true,
     onCancel,
+    initialCpf,
 }: ProfessionalProfileProps = {}) {
     const { id: routeProfessionalId } = useParams()
+    const [searchParams] = useSearchParams()
     const effectiveProfessionalUnitId = professionalUnitId ?? routeProfessionalId
     const id = effectiveProfessionalUnitId
     const navigate = useNavigate()
+    const isAgenda = searchParams.get("isAgenda") === "true"
     const { user: sessionUser } = useSession()
     const { toasts, dismiss, toast } = useToast()
     const [professional, setProfessional] = useState<ProfessionalUnitFullData | null>(null)
@@ -639,7 +644,7 @@ export function ProfessionalProfile({
             socialName: "",
             email: "",
             phone: "",
-            cpf: "",
+            cpf: formatCpf(initialCpf ?? ""),
             birthdate: "",
             roleId: "",
             password: "",
@@ -693,7 +698,7 @@ export function ProfessionalProfile({
                 socialName: "",
                 email: "",
                 phone: "",
-                cpf: "",
+                cpf: formatCpf(initialCpf ?? ""),
                 birthdate: "",
                 roleId: "",
                 password: "",
@@ -756,7 +761,7 @@ export function ProfessionalProfile({
         return () => {
             alive = false
         }
-    }, [id, effectiveProfessionalUnitId, form, toast, isRegisterMode])
+    }, [id, effectiveProfessionalUnitId, form, toast, isRegisterMode, initialCpf])
 
     const professionalName = useMemo(() => getProfessionalName(professional), [professional])
     const initials = useMemo(() => getInitials(professionalName), [professionalName])
@@ -815,6 +820,15 @@ export function ProfessionalProfile({
     }
 
     if (isLoading) {
+        if (isAgenda) {
+            return (
+                <>
+                    {showPageHeader ? <PageHeader title="Agendas do Profissional" /> : null}
+                    <AgendaProfissionalSkeleton />
+                </>
+            )
+        }
+
         return (
             <>
                 {showPageHeader ? (
@@ -950,7 +964,7 @@ export function ProfessionalProfile({
     return (
         <div className="min-h-screen bg-background text-foreground">
             {showPageHeader ? (
-                <PageHeader title={isProfileView ? "Perfil" : isRegisterMode ? "Cadastro de Profissionais" : "Editar Cadastro"} />
+                <PageHeader title={isAgenda ? "Agendas do Profissional" : isProfileView ? "Perfil" : isRegisterMode ? "Cadastro de Profissionais" : "Editar Cadastro"} />
             ) : null}
 
             <main className="flex-1 px-6">
@@ -968,6 +982,7 @@ export function ProfessionalProfile({
                 </div>
 
                 <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-5 py-6">
+                    {!isAgenda && (
                     <div className="grid gap-5">
                         <section className="grid gap-4">
                             <h3 className="text-primary text-lg font-semibold">Usuário</h3>
@@ -1186,10 +1201,11 @@ export function ProfessionalProfile({
                         )}
 
                     </div>
+                    )}
 
                     {/* Schedules: horários fixos de 60 minutos (MVP) */}
-                    {!isProfileView && (
-                        <section className="mt-6 grid gap-4">
+                    {!isProfileView && isAgenda && (
+                        <section className="grid gap-4">
                             <h3 className="text-primary text-lg font-semibold">Horários de atendimento</h3>
                             <div className="grid gap-3">
                                 {isSchedulesLoading ? (
@@ -1269,34 +1285,55 @@ export function ProfessionalProfile({
                                     <Button type="button" variant="outline" className="h-10 rounded-full px-4" onClick={handleAddSchedule}>
                                         Adicionar horário
                                     </Button>
-                                    <Button type="button" className="h-10 rounded-full bg-primary px-4 text-primary-foreground hover:bg-primary/90" onClick={handleSaveSchedules} disabled={isSchedulesSaving}>
-                                        {isSchedulesSaving ? "Salvando..." : "Salvar horários"}
-                                    </Button>
                                 </div>
                             </div>
                         </section>
                     )}
 
-                    <div className="mt-8 flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:justify-end">
-                        {!isProfileView && (
+                    {isAgenda && (
+                        <div className="mt-8 flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:justify-end">
                             <Button
                                 type="button"
                                 variant="outline"
                                 className="h-11 rounded-xl px-5"
-                                onClick={() => onCancel?.() ?? navigate(-1)}
+                                onClick={() => navigate("/agenda-listagem-profissionais")}
                             >
                                 Cancelar
                             </Button>
-                        )}
-                        <Button
-                            type="submit"
-                            className="h-11 rounded-xl bg-primary px-5 text-primary-foreground hover:bg-primary/90"
-                            disabled={isSaving}
-                        >
-                            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                            {"Salvar"}
-                        </Button>
-                    </div>
+                            <Button
+                                type="button"
+                                className="h-11 rounded-xl bg-primary px-5 text-primary-foreground hover:bg-primary/90"
+                                disabled={isSchedulesSaving}
+                                onClick={handleSaveSchedules}
+                            >
+                                {isSchedulesSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                                {"Salvar horários"}
+                            </Button>
+                        </div>
+                    )}
+
+                    {!isAgenda && (
+                        <div className="mt-8 flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:justify-end">
+                            {!isProfileView && (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="h-11 rounded-xl px-5"
+                                    onClick={() => onCancel?.() ?? navigate(-1)}
+                                >
+                                    Cancelar
+                                </Button>
+                            )}
+                            <Button
+                                type="submit"
+                                className="h-11 rounded-xl bg-primary px-5 text-primary-foreground hover:bg-primary/90"
+                                disabled={isSaving}
+                            >
+                                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                                {"Salvar"}
+                            </Button>
+                        </div>
+                    )}
                 </form>
             </main>
 
