@@ -54,12 +54,13 @@ export function ProfissionaisEspecialidades() {
 
         setIsAdding(true)
         try {
-            const newSpecialty = await professionalUnitSpecialtiesService.create({
+            await professionalUnitSpecialtiesService.create({
                 professionalUnitId,
                 specialtyId: selectedSpecialtyId,
             })
 
-            setSpecialties([...specialties, newSpecialty])
+            const linkedSpecialties = await professionalUnitSpecialtiesService.listByProfessionalUnit(professionalUnitId)
+            setSpecialties(linkedSpecialties)
             setSelectedSpecialtyId("")
 
             alert("Especialidade vinculada com sucesso")
