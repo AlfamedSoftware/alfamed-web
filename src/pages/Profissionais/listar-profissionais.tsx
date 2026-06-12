@@ -15,9 +15,10 @@ type ProfessionalFilter = "all" | "active" | "inactive"
 
 interface ProfissionaisProps {
     isAgenda?: boolean
+    isSpecialtyLink?: boolean
 }
 
-export function Profissionais({ isAgenda = false }: ProfissionaisProps) {
+export function Profissionais({ isAgenda = false, isSpecialtyLink = false }: ProfissionaisProps) {
     const navigate = useNavigate()
     const { sessionUnit } = useSessionUnit()
     const selectedUnitId = sessionUnit?.selectedUnitId ?? null
@@ -39,7 +40,7 @@ export function Profissionais({ isAgenda = false }: ProfissionaisProps) {
             try {
                 const data = await professionalsService.listByUnit(
                     selectedUnitId,
-                    isAgenda ? { isActive: true, roleKey: "medic" } : { isActive: undefined, roleKey: undefined },
+                    isAgenda || isSpecialtyLink ? { isActive: true, roleKey: "medic" } : { isActive: undefined, roleKey: undefined },
                 )
                 setProfessionals(data)
             } catch (err) {
@@ -50,7 +51,7 @@ export function Profissionais({ isAgenda = false }: ProfissionaisProps) {
         }
 
         fetchProfessionals()
-    }, [selectedUnitId, isAgenda])
+    }, [selectedUnitId, isAgenda, isSpecialtyLink])
 
     const counts = useMemo(
         () => ({
@@ -88,11 +89,13 @@ export function Profissionais({ isAgenda = false }: ProfissionaisProps) {
     const isFiltered = activeFilter !== "all" || searchQuery.trim() !== ""
     const handleProfessionalClick = isAgenda
         ? (professionalId: string) => navigate(`/profissionais/${professionalId}?isAgenda=true`)
+        : isSpecialtyLink
+        ? (professionalId: string) => navigate(`/profissionais/vinculo-especialidades?professionalUnitId=${professionalId}`)
         : undefined
 
     return (
         <div className="flex flex-col h-full min-h-screen bg-background">
-            <PageHeader title={isAgenda ? "Profissionais - Cadastro de Agendas" : "Profissionais"} />
+            <PageHeader title={isAgenda ? "Profissionais - Cadastro de Agendas" : isSpecialtyLink ? "Profissionais - Vínculo de Especialidades" : "Profissionais"} />
 
             <div className="flex flex-wrap items-center gap-3 px-6 py-4">
                 <ProfessionalFilters activeFilter={activeFilter} onFilterChange={setActiveFilter} counts={counts} />
@@ -101,7 +104,7 @@ export function Profissionais({ isAgenda = false }: ProfissionaisProps) {
 
                 <ProfessionalSearch value={searchQuery} onChange={setSearchQuery} />
 
-                {!isAgenda && (
+                {!isAgenda && !isSpecialtyLink && (
                     <Button
                         id="new-professional-btn"
                         onClick={() => navigate("/profissionais/novo")}

@@ -8,8 +8,6 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
-    SidebarMenuSub,
-    SidebarMenuSubItem,
     SidebarMenuSkeleton,
 } from "@/components/ui/sidebar"
 import {
@@ -46,14 +44,7 @@ type SidebarMenuItemConfig = {
     url: string
 }
 
-type SidebarMenuSubItemConfig = {
-    title: string
-    icon: LucideIcon
-    url: string
-}
-
 const MENU_ROLE_KEYS = {
-    alfamed: "internal_alfamed",
     administrative: "administrative",
     assistant: "administrative_assistant",
     medic: "medic",
@@ -64,48 +55,34 @@ type RoleMenuKey = (typeof MENU_ROLE_KEYS)[keyof typeof MENU_ROLE_KEYS]
 const allowedRoleKeys = new Set<RoleMenuKey>(Object.values(MENU_ROLE_KEYS))
 
 const roleLabels: Record<RoleMenuKey, string> = {
-    [MENU_ROLE_KEYS.alfamed]: "Alfamed",
     [MENU_ROLE_KEYS.administrative]: "Administrativo",
     [MENU_ROLE_KEYS.assistant]: "Assistente administrativo",
     [MENU_ROLE_KEYS.medic]: "Médico",
 }
 
-const menuItemsByRole: Record<RoleMenuKey, SidebarMenuItemConfig[]> = {
-    [MENU_ROLE_KEYS.alfamed]: [
-        { title: "Início", icon: HomeIcon, url: "/home" },
-        { title: "Unidade", icon: Building2, url: "/unidade" },
-        { title: "Profissionais", icon: User, url: "/profissionais" },
-        { title: "Procedimentos", icon: ClipboardList, url: "/procedimentos" },
-        { title: "Especialidades", icon: Stethoscope, url: "/especialidades" },
-        { title: "", icon: Minus, url: "" },
-        { title: "Agendas", icon: CalendarDays, url: "/agenda-listagem-profissionais" },
-        { title: "Agendamentos", icon: CalendarCheck, url: "/agendas" },    
-    ],
-    [MENU_ROLE_KEYS.administrative]: [
-        { title: "Início", icon: HomeIcon, url: "/home" },
-        { title: "Unidade", icon: Building2, url: "/unidade" },
-        { title: "Profissionais", icon: User, url: "/profissionais" },
-        { title: "Procedimentos", icon: ClipboardList, url: "/procedimentos" },
-        { title: "Especialidades", icon: Stethoscope, url: "/especialidades" },
-        { title: "", icon: Minus, url: "" },
-        { title: "Agendas", icon: CalendarDays, url: "/agenda-listagem-profissionais" },
-        { title: "Agendamentos", icon: CalendarCheck, url: "/agendas" },  
-    ],
-    [MENU_ROLE_KEYS.medic]: [
-        { title: "Início", icon: HomeIcon, url: "/home" },
-        { title: "Agendas", icon: CalendarDays, url: "/agenda-listagem-profissionais" },
-        { title: "Agendamentos", icon: CalendarCheck, url: "/agendas" },
-    ],
-    [MENU_ROLE_KEYS.assistant]: [
-        { title: "Início", icon: HomeIcon, url: "/home" },
-        { title: "Agendas", icon: CalendarDays, url: "/agenda-listagem-profissionais" },
-        { title: "Agendamentos", icon: CalendarCheck, url: "/agendas" },
-    ],
-} as const
-
-const professionalsSubmenu: SidebarMenuSubItemConfig[] = [
-    { title: "Vínculo de Especialidades", icon: ClipboardPaste, url: "/profissionais/vinculo-especialidades" },
+const ADMINISTRATIVE_MENU_ITEMS: SidebarMenuItemConfig[] = [
+    { title: "Início", icon: HomeIcon, url: "/home" },
+    { title: "Unidade", icon: Building2, url: "/unidade" },
+    { title: "Profissionais", icon: User, url: "/profissionais" },
+    { title: "Especialidades", icon: Stethoscope, url: "/especialidades" },
+    { title: "Vínculo de Especialidades", icon: ClipboardPaste, url: "/especialidades/vinculo-listagem-profissionais" },
+    { title: "Procedimentos", icon: ClipboardList, url: "/procedimentos" },
+    { title: "", icon: Minus, url: "" },
+    { title: "Agendas", icon: CalendarDays, url: "/agenda-listagem-profissionais" },
+    { title: "Agendamentos", icon: CalendarCheck, url: "/agendas" },
 ]
+
+const CLINICAL_MENU_ITEMS: SidebarMenuItemConfig[] = [
+    { title: "Início", icon: HomeIcon, url: "/home" },
+    { title: "Agendas", icon: CalendarDays, url: "/agenda-listagem-profissionais" },
+    { title: "Agendamentos", icon: CalendarCheck, url: "/agendas" },
+]
+
+const menuItemsByRole: Record<RoleMenuKey, SidebarMenuItemConfig[]> = {
+    [MENU_ROLE_KEYS.administrative]: ADMINISTRATIVE_MENU_ITEMS,
+    [MENU_ROLE_KEYS.medic]: CLINICAL_MENU_ITEMS,
+    [MENU_ROLE_KEYS.assistant]: CLINICAL_MENU_ITEMS,
+} as const
 
 export function AppSidebar() {
     const { user, isLoading } = useSession()
@@ -115,6 +92,10 @@ export function AppSidebar() {
     const isProfessionalAgendaRoute =
         location.pathname.startsWith("/profissionais/") &&
         new URLSearchParams(location.search).get("isAgenda") === "true"
+    const isProfessionalSpecialtyLinkRoute =
+        location.pathname.startsWith("/profissionais/") &&
+        (new URLSearchParams(location.search).get("isSpecialtyLink") === "true" ||
+         location.pathname === "/profissionais/vinculo-especialidades")
     const { sessionUnit, isLoading: isSessionUnitLoading } = useSessionUnit()
     const { menuRoles, isMenuRolesLoading } = useSidebarMenu()
     const isSidebarDataLoading = isLoading || isSessionUnitLoading
@@ -123,13 +104,20 @@ export function AppSidebar() {
         return null
     }
 
-    const menuItemsForRoles = menuRoles.flatMap((role) =>
-        allowedRoleKeys.has(role as RoleMenuKey)
-            ? menuItemsByRole[role as RoleMenuKey]
-            : [],
-    )
+    const menuItemsForRoles = menuRoles.flatMap((role) => {
+        if (role === "internal_alfamed") {
+            return ADMINISTRATIVE_MENU_ITEMS
+        }
+        if (allowedRoleKeys.has(role as RoleMenuKey)) {
+            return menuItemsByRole[role as RoleMenuKey]
+        }
+        return []
+    })
     const menuItems = Array.from(new Map<string, SidebarMenuItemConfig>(menuItemsForRoles.map((item) => [item.url, item])).values())
-    const activeRoleKey = menuRoles.find((role) => allowedRoleKeys.has(role as RoleMenuKey)) as RoleMenuKey | undefined
+    const activeRoleKey = menuRoles.find((role) => {
+        if (role === "internal_alfamed") return MENU_ROLE_KEYS.administrative
+        return allowedRoleKeys.has(role as RoleMenuKey) ? (role as RoleMenuKey) : undefined
+    }) as RoleMenuKey | undefined
     const currentRoleLabel = activeRoleKey ? roleLabels[activeRoleKey] : null
     const hasMenuItems = menuItems.length > 0
 
@@ -141,6 +129,14 @@ export function AppSidebar() {
     const isMenuItemActive = (item: SidebarMenuItemConfig) => {
         if (isProfessionalAgendaRoute) {
             return item.url === "/agenda-listagem-profissionais"
+        }
+
+        if (isProfessionalSpecialtyLinkRoute) {
+            return item.url === "/especialidades/vinculo-listagem-profissionais"
+        }
+
+        if (item.url === "/especialidades") {
+            return location.pathname === item.url
         }
 
         return location.pathname === item.url || location.pathname.startsWith(`${item.url}/`)
@@ -170,21 +166,6 @@ export function AppSidebar() {
                                             <span>{item.title}</span>
                                         </Link>
                                     </SidebarMenuButton>
-
-                                    {item.title === "Profissionais" ? (
-                                        <SidebarMenuSub>
-                                            {professionalsSubmenu.map((subItem) => (
-                                                <SidebarMenuSubItem key={subItem.title}>
-                                                    <SidebarMenuButton asChild size="sm" tooltip={subItem.title}>
-                                                        <Link to={subItem.url}>
-                                                            <subItem.icon className="h-4 w-4" />
-                                                            <span>{subItem.title}</span>
-                                                        </Link>
-                                                    </SidebarMenuButton>
-                                                </SidebarMenuSubItem>
-                                            ))}
-                                        </SidebarMenuSub>
-                                    ) : null}
                                 </SidebarMenuItem>
                             ))}
                             {!isAdminArea && !hasMenuItems ? (
