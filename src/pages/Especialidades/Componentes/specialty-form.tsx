@@ -152,7 +152,6 @@ export function SpecialtyProfile({
                     isActive: values.isActive,
                 })
 
-                alert("Especialidade cadastrada com sucesso.")
                 navigate(afterSavePath ?? "/especialidades")
                 return
             }

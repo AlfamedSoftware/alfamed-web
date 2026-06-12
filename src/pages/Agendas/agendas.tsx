@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
-import { IlamyCalendar, type EventFormProps } from "@ilamy/calendar"
-import { CalendarDays, Plus, Trash2, X } from "lucide-react"
+import { IlamyCalendar, defaultTranslations, useIlamyCalendarContext, type CalendarView, type EventFormProps, type Translations } from "@ilamy/calendar"
+import "dayjs/locale/pt-br"
+import { CalendarDays, ChevronLeft, ChevronRight, Plus, Trash2, X } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -29,6 +30,176 @@ const INTERNAL_ROLE_KEYS = new Set([
     "administrative_assistant",
 ])
 const CLINIC_TIME_ZONE = "America/Sao_Paulo"
+
+const calendarTranslations: Translations = {
+    ...defaultTranslations,
+    today: "Hoje",
+    create: "Criar",
+    new: "Novo",
+    update: "Atualizar",
+    delete: "Excluir",
+    cancel: "Cancelar",
+    export: "Exportar",
+    event: "Evento",
+    events: "Eventos",
+    newEvent: "Novo evento",
+    title: "Titulo",
+    description: "Descricao",
+    location: "Local",
+    allDay: "Dia todo",
+    startDate: "Data inicial",
+    endDate: "Data final",
+    startTime: "Hora inicial",
+    searchTime: "Buscar horario...",
+    endTime: "Hora final",
+    color: "Cor",
+    createEvent: "Criar evento",
+    editEvent: "Editar evento",
+    addNewEvent: "Adicionar um novo evento ao calendario",
+    editEventDetails: "Editar detalhes do evento",
+    eventTitlePlaceholder: "Titulo do evento",
+    eventDescriptionPlaceholder: "Descricao do evento (opcional)",
+    eventLocationPlaceholder: "Local do evento (opcional)",
+    repeat: "Repetir",
+    repeats: "Repete",
+    customRecurrence: "Recorrencia personalizada",
+    daily: "Diariamente",
+    weekly: "Semanalmente",
+    monthly: "Mensalmente",
+    yearly: "Anualmente",
+    interval: "Intervalo",
+    repeatOn: "Repetir em",
+    never: "Nunca",
+    count: "Quantidade",
+    every: "A cada",
+    ends: "Termina",
+    after: "Apos",
+    occurrences: "ocorrencias",
+    on: "Em",
+    editRecurringEvent: "Editar evento recorrente",
+    deleteRecurringEvent: "Excluir evento recorrente",
+    editRecurringEventQuestion: "e um evento recorrente. Como deseja edita-lo?",
+    deleteRecurringEventQuestion: "e um evento recorrente. Como deseja exclui-lo?",
+    thisEvent: "Este evento",
+    thisEventDescription: "Alterar apenas esta ocorrencia",
+    thisAndFollowingEvents: "Este e os seguintes",
+    thisAndFollowingEventsDescription: "Editar esta e todas as proximas ocorrencias",
+    allEvents: "Todos os eventos",
+    allEventsDescription: "Editar toda a serie recorrente",
+    onlyChangeThis: "Alterar apenas esta ocorrencia",
+    changeThisAndFuture: "Alterar esta e as proximas ocorrencias",
+    changeEntireSeries: "Alterar toda a serie",
+    onlyDeleteThis: "Excluir apenas esta ocorrencia",
+    deleteThisAndFuture: "Excluir esta e as proximas ocorrencias",
+    deleteEntireSeries: "Excluir toda a serie",
+    month: "Mes",
+    week: "Semana",
+    day: "Dia",
+    year: "Ano",
+    more: "mais",
+    resources: "Recursos",
+    resource: "Recurso",
+    time: "Hora",
+    date: "Data",
+    noResourcesVisible: "Nenhum recurso visivel",
+    addResourcesOrShowExisting: "Adicione recursos ou mostre existentes",
+    sunday: "Domingo",
+    monday: "Segunda-feira",
+    tuesday: "Terca-feira",
+    wednesday: "Quarta-feira",
+    thursday: "Quinta-feira",
+    friday: "Sexta-feira",
+    saturday: "Sabado",
+    sun: "Dom",
+    mon: "Seg",
+    tue: "Ter",
+    wed: "Qua",
+    thu: "Qui",
+    fri: "Sex",
+    sat: "Sab",
+    january: "Janeiro",
+    february: "Fevereiro",
+    march: "Marco",
+    april: "Abril",
+    may: "Maio",
+    june: "Junho",
+    july: "Julho",
+    august: "Agosto",
+    september: "Setembro",
+    october: "Outubro",
+    november: "Novembro",
+    december: "Dezembro",
+}
+
+const calendarViewLabels: Record<CalendarView, string> = {
+    day: "Dia",
+    week: "Semana",
+    month: "Mês",
+    year: "Ano",
+}
+
+const monthFormatter = new Intl.DateTimeFormat("pt-BR", {
+    month: "long",
+    timeZone: CLINIC_TIME_ZONE,
+})
+
+const dayMonthFormatter = new Intl.DateTimeFormat("pt-BR", {
+    day: "numeric",
+    month: "short",
+    timeZone: CLINIC_TIME_ZONE,
+})
+
+function capitalize(value: string) {
+    return value.charAt(0).toUpperCase() + value.slice(1)
+}
+
+function AgendaCalendarHeader() {
+    const { currentDate, view, setView, prevPeriod, nextPeriod, today } = useIlamyCalendarContext()
+    const currentDateValue = currentDate.toDate()
+    const monthName = capitalize(monthFormatter.format(currentDateValue))
+    const year = currentDate.year()
+    const weekStart = currentDate.startOf("week").add(1, "day")
+    const weekEnd = weekStart.add(6, "day")
+    const rangeLabel = view === "week"
+        ? `${dayMonthFormatter.format(weekStart.toDate())} - ${dayMonthFormatter.format(weekEnd.toDate())}`
+        : view === "day"
+            ? dayMonthFormatter.format(currentDateValue)
+            : ""
+
+    return (
+        <div className="flex flex-wrap items-center justify-between gap-2 p-1">
+            <div className="flex min-w-0 flex-wrap items-center gap-2 text-sm font-semibold">
+                <CalendarDays className="size-4 shrink-0" />
+                <span>{monthName}</span>
+                <span>{year}</span>
+                {rangeLabel ? <span>{rangeLabel}</span> : null}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1">
+                <Button type="button" variant="outline" size="icon-sm" onClick={prevPeriod} aria-label="Anterior">
+                    <ChevronLeft className="size-4" />
+                </Button>
+                <Button type="button" variant="outline" size="icon-sm" onClick={nextPeriod} aria-label="Próximo">
+                    <ChevronRight className="size-4" />
+                </Button>
+                {(["day", "week", "month", "year"] as CalendarView[]).map((calendarView) => (
+                    <Button
+                        key={calendarView}
+                        type="button"
+                        variant={view === calendarView ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setView(calendarView)}
+                    >
+                        {calendarViewLabels[calendarView]}
+                    </Button>
+                ))}
+                <Button type="button" variant="outline" size="sm" onClick={today}>
+                    Hoje
+                </Button>
+            </div>
+        </div>
+    )
+}
 
 const APPOINTMENT_COLOR_PALETTE = [
     { color: "#1d4ed8", backgroundColor: "#dbeafe" },
@@ -114,6 +285,20 @@ function formatClinicTime(date: Date) {
     }).format(date)
 }
 
+function onlyDigits(value: string) {
+    return value.replace(/\D/g, "")
+}
+
+function formatCpf(value: string) {
+    const digits = onlyDigits(value).slice(0, 11)
+
+    if (digits.length <= 3) return digits
+    if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`
+    if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`
+
+    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`
+}
+
 function getWeekRange(dateString: string) {
     const baseDate = new Date(`${dateString}T12:00:00`)
     const dayOfWeek = baseDate.getDay()
@@ -150,6 +335,7 @@ export function Agendas() {
     const [bookingError, setBookingError] = useState<string | null>(null)
     const [availabilityWindows, setAvailabilityWindows] = useState<Array<{ start: string; end: string }>>([])
     const [patients, setPatients] = useState<PatientListItem[]>([])
+    const [patientCpfSearch, setPatientCpfSearch] = useState("")
     const [patientsLoading, setPatientsLoading] = useState(true)
     const [patientsError, setPatientsError] = useState<string | null>(null)
     const [hasInitializedSelection, setHasInitializedSelection] = useState(false)
@@ -181,6 +367,21 @@ export function Agendas() {
         () => activeProfessionals.find((professional) => professional.userId === user?.id) ?? null,
         [activeProfessionals, user?.id],
     )
+    const selectedPatient = useMemo(
+        () => patients.find((patient) => patient.id === bookingForm.patientId) ?? null,
+        [bookingForm.patientId, patients],
+    )
+    const matchingPatients = useMemo(() => {
+        const search = onlyDigits(patientCpfSearch)
+
+        if (search.length < 3) {
+            return []
+        }
+
+        return patients
+            .filter((patient) => patient.isActive && patient.cpf && onlyDigits(patient.cpf).includes(search))
+            .slice(0, 8)
+    }, [patientCpfSearch, patients])
 
     useEffect(() => {
         const loadPatients = async () => {
@@ -189,7 +390,7 @@ export function Agendas() {
 
             try {
                 const data = await patientsService.list()
-                setPatients(data.filter((patient) => patient.isActive))
+                setPatients(data.filter((patient) => patient.isActive && patient.cpf))
             } catch (error) {
                 setPatientsError(error instanceof Error ? error.message : "Falha ao carregar pacientes")
             } finally {
@@ -199,6 +400,21 @@ export function Agendas() {
 
         void loadPatients()
     }, [])
+
+    useEffect(() => {
+        if (!bookingForm.patientId) {
+            if (!isBookingOpen) {
+                setPatientCpfSearch("")
+            }
+
+            return
+        }
+
+        const patient = patients.find((item) => item.id === bookingForm.patientId)
+        if (patient?.cpf) {
+            setPatientCpfSearch(formatCpf(patient.cpf))
+        }
+    }, [bookingForm.patientId, isBookingOpen, patients])
 
     useEffect(() => {
         if (professionalsLoading) {
@@ -277,10 +493,33 @@ export function Agendas() {
     const handleOpenBooking = () => {
         const nextProfessionalId = isMedic && !canChooseProfessionals ? currentProfessional?.id ?? "" : bookingForm.professionalId || selectedProfessionalIds[0] || ""
 
+        setEditingAppointmentId(null)
         setBookingForm((current) => ({
             ...current,
+            patientId: "",
             professionalId: nextProfessionalId,
             date: selectedDate,
+            reason: "",
+        }))
+        setPatientCpfSearch("")
+        setAvailabilityWindows([])
+        setBookingError(null)
+        setIsBookingOpen(true)
+    }
+
+    const openNewBookingAt = (startDate: Date, endDate: Date) => {
+        const nextProfessionalId = isMedic && !canChooseProfessionals ? currentProfessional?.id ?? "" : bookingForm.professionalId || selectedProfessionalIds[0] || ""
+
+        setEditingAppointmentId(null)
+        setPatientCpfSearch("")
+        setBookingForm((current) => ({
+            ...current,
+            patientId: "",
+            professionalId: nextProfessionalId,
+            date: formatClinicDate(startDate),
+            startTime: formatClinicTime(startDate),
+            endTime: formatClinicTime(endDate),
+            reason: "",
         }))
         setAvailabilityWindows([])
         setBookingError(null)
@@ -304,7 +543,7 @@ export function Agendas() {
         }
 
         if (!bookingForm.patientId) {
-            setBookingError("Selecione um paciente para continuar")
+            setBookingError("Busque o paciente pelo CPF e selecione um resultado para continuar")
             return
         }
 
@@ -340,6 +579,7 @@ export function Agendas() {
                 patientId: "",
                 reason: "",
             }))
+            setPatientCpfSearch("")
 
             const range = getWeekRange(selectedDate)
             const events = await appointmentsService.listAgendaEvents({
@@ -496,17 +736,10 @@ export function Agendas() {
                     end = new Date(String(selectedEvent.end))
                 }
 
-                setBookingForm((current) => ({
-                    ...current,
-                    date: start.toISOString().slice(0, 10),
-                    startTime: start.toTimeString().slice(0, 5),
-                    endTime: end.toTimeString().slice(0, 5),
-                    reason: String(selectedEvent.description ?? ""),
-                }))
+                openNewBookingAt(start, end)
             }
 
             // Open our Sheet and close the library form immediately
-            setIsBookingOpen(true)
             try {
                 onClose()
             } catch {
@@ -588,7 +821,7 @@ export function Agendas() {
                         </div>
 
                         <div className="flex-1">
-                            <div className="min-h-[620px] overflow-hidden rounded-lg border border-border bg-background lg:min-h-[680px]" data-calendar>
+                            <div className="alfamed-agenda-calendar min-h-[620px] overflow-hidden rounded-lg border border-border bg-background lg:min-h-[680px]" data-calendar>
                                 {isAgendaLoading ? (
                                     <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
                                         Carregando agenda...
@@ -604,6 +837,8 @@ export function Agendas() {
                                             location: e.location || undefined,
                                         }))}
                                         initialView="week"
+                                        locale="pt-br"
+                                        translations={calendarTranslations}
                                         firstDayOfWeek="monday"
                                         initialDate={selectedDate}
                                         timezone={CLINIC_TIME_ZONE}
@@ -621,15 +856,7 @@ export function Agendas() {
                                                 if (!info) return
                                                 const startDate: Date = info.start && "toDate" in info.start ? info.start.toDate() : new Date(info.start || "")
                                                 const endDate: Date = info.end && "toDate" in info.end ? info.end.toDate() : new Date(info.end || "")
-                                                setBookingForm((current) => ({
-                                                    ...current,
-                                                    date: formatClinicDate(startDate),
-                                                    startTime: formatClinicTime(startDate),
-                                                    endTime: formatClinicTime(endDate),
-                                                }))
-                                                setAvailabilityWindows([])
-                                                setBookingError(null)
-                                                setIsBookingOpen(true)
+                                                openNewBookingAt(startDate, endDate)
                                             } catch {
                                                 // ignore
                                             }
@@ -664,16 +891,7 @@ export function Agendas() {
                                                     console.log("[agendas-calendar] Opening new booking form for event:", event)
                                                     const start = new Date(event.start || "")
                                                     const end = new Date(event.end || "")
-                                                    setEditingAppointmentId(null)
-                                                    setBookingForm((current) => ({
-                                                        ...current,
-                                                        date: formatClinicDate(start),
-                                                        startTime: formatClinicTime(start),
-                                                        endTime: formatClinicTime(end),
-                                                    }))
-                                                    setAvailabilityWindows([])
-                                                    setBookingError(null)
-                                                    setIsBookingOpen(true)
+                                                    openNewBookingAt(start, end)
                                                 }
                                             } catch (error) {
                                                 console.error("[agendas-calendar] Exception in onEventClick:", error)
@@ -705,20 +923,50 @@ export function Agendas() {
 
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium text-foreground">Paciente</label>
-                                    <select
-                                        value={bookingForm.patientId}
-                                        onChange={(event) => setBookingForm((current) => ({ ...current, patientId: event.target.value }))}
-                                        className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+                                    <Input
+                                        value={patientCpfSearch}
+                                        onChange={(event) => {
+                                            const search = onlyDigits(event.target.value).slice(0, 11)
+                                            const exactPatient = patients.find((patient) => onlyDigits(patient.cpf ?? "") === search)
+
+                                            setPatientCpfSearch(formatCpf(search))
+                                            setBookingForm((current) => ({
+                                                ...current,
+                                                patientId: exactPatient?.id ?? "",
+                                            }))
+                                        }}
+                                        inputMode="numeric"
+                                        maxLength={14}
+                                        placeholder="Digite o CPF do paciente"
                                         required
                                         disabled={patientsLoading}
-                                    >
-                                        <option value="">Selecione um paciente</option>
-                                        {patients.map((patient) => (
-                                            <option key={patient.id} value={patient.id}>
-                                                {patient.cpf ? `${patient.cpf} - ${patient.name}` : `${patient.name} - ${patient.email}`}
-                                            </option>
-                                        ))}
-                                    </select>
+                                    />
+                                    {!bookingForm.patientId && matchingPatients.length > 0 && (
+                                        <div className="max-h-48 overflow-y-auto rounded-md border border-border bg-background shadow-sm">
+                                            {matchingPatients.map((patient) => (
+                                                <button
+                                                    key={patient.id}
+                                                    type="button"
+                                                    className="flex w-full flex-col gap-0.5 border-b border-border px-3 py-2 text-left text-sm last:border-b-0 hover:bg-accent"
+                                                    onClick={() => {
+                                                        setPatientCpfSearch(formatCpf(patient.cpf ?? ""))
+                                                        setBookingForm((current) => ({ ...current, patientId: patient.id }))
+                                                    }}
+                                                >
+                                                    <span className="font-medium text-foreground">{formatCpf(patient.cpf ?? "")}</span>
+                                                    <span className="text-xs text-muted-foreground">{patient.name} - {patient.email}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {selectedPatient && (
+                                        <p className="text-xs text-muted-foreground">
+                                            Paciente selecionado: <span className="font-medium text-foreground">{selectedPatient.name}</span>
+                                        </p>
+                                    )}
+                                    {patientCpfSearch && !bookingForm.patientId && !patientsLoading && matchingPatients.length === 0 && (
+                                        <p className="text-xs text-red-600">Nenhum paciente ativo encontrado com esse CPF.</p>
+                                    )}
                                     {patientsLoading && <p className="text-xs text-muted-foreground">Carregando pacientes...</p>}
                                 </div>
 
@@ -820,6 +1068,7 @@ export function Agendas() {
                                                         patientId: "",
                                                         reason: "",
                                                     }))
+                                                    setPatientCpfSearch("")
 
                                                     const range = getWeekRange(selectedDate)
                                                     const events = await appointmentsService.listAgendaEvents({
