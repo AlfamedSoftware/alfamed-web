@@ -77,10 +77,13 @@ export interface ProfessionalCpfLookupUser {
 }
 
 export interface ProfessionalCpfLookupResponse {
+    patientId?: string
+    professionalId?: string
+    professionalUnitId?: string
+    userId?: string
     exists?: boolean
     alreadyLinkedToUnit?: boolean
     user?: ProfessionalCpfLookupUser | null
-    professionalUnitId?: string | null
     professionalUnit?: {
         id?: string
         professionalId?: string
@@ -92,7 +95,6 @@ export interface ProfessionalCpfLookupResponse {
     phone?: string
     crm?: string
     isActive?: boolean
-    userId?: string
     createdAt?: string
     updatedAt?: string
 }
@@ -129,12 +131,12 @@ export const professionalsService = {
         )
     },
 
-    linkUserToUnit: (cpf: string, options?: { roleId?: string; isActive?: boolean }): Promise<void> => {
-        const { roleId, isActive = true } = options ?? {}
+    linkUserToUnit: (cpf: string, options?: { roleId?: string; isActive?: boolean; patientExists?: boolean; professionalExists?: boolean }): Promise<void> => {
+        const { roleId, isActive = true, patientExists, professionalExists } = options ?? {}
 
         return fetchWithAuth<void>(`${authBaseUrl}/professional-units/create-by-user-cpf`, {
             method: "POST",
-            body: JSON.stringify({ cpf, isActive, ...(roleId ? { roleId } : {}) }),
+            body: JSON.stringify({ cpf, isActive, ...(roleId ? { roleId } : {}), ...(patientExists !== undefined ? { patientExists } : {}), ...(professionalExists !== undefined ? { professionalExists } : {}) }),
         })
     },
 }

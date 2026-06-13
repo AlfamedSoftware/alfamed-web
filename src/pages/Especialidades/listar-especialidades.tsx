@@ -103,7 +103,7 @@ export function Especialidades() {
                 <Button
                     id="new-specialty-btn"
                     onClick={() => navigate("/cadastro-especialidades")}
-                    className="h-9 gap-1.5 rounded-full bg-blue-600 px-4 text-white shadow-sm hover:bg-blue-700"
+                    className="h-9 gap-1.5 rounded-full bg-blue-600 px-4 text-white shadow-sm hover:bg-blue-700 cursor-pointer"
                 >
                     <Plus className="h-4 w-4" />
                     Nova Especialidade

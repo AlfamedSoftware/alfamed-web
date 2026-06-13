@@ -840,7 +840,7 @@ export function Agendas() {
                                             {isDeleting ? "Deletando..." : "Deletar"}
                                         </Button>
                                     )}
-                                    <Button type="submit" disabled={isSaving || patientsLoading} className="w-full">
+                                    <Button type="submit" disabled={isSaving || patientsLoading} className="w-full cursor-pointer">
                                         {isSaving ? "Salvando..." : "Verificar e salvar"}
                                     </Button>
                                 </SheetFooter>
