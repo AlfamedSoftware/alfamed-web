@@ -108,7 +108,7 @@ export function Profissionais({ isAgenda = false, isSpecialtyLink = false }: Pro
                     <Button
                         id="new-professional-btn"
                         onClick={() => navigate("/profissionais/novo")}
-                        className="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-4 h-9 gap-1.5 shadow-sm"
+                        className="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-4 h-9 gap-1.5 shadow-sm cursor-pointer"
                     >
                         <Plus className="w-4 h-4" />
                         Novo Profissional

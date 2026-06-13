@@ -1282,7 +1282,7 @@ export function ProfessionalProfile({
                                 )}
 
                                 <div className="flex flex-wrap gap-2">
-                                    <Button type="button" variant="outline" className="h-10 rounded-full px-4" onClick={handleAddSchedule}>
+                                    <Button type="button" variant="outline" className="h-10 rounded-full px-4 cursor-pointer" onClick={handleAddSchedule}>
                                         Adicionar horário
                                     </Button>
                                 </div>
@@ -1295,19 +1295,19 @@ export function ProfessionalProfile({
                             <Button
                                 type="button"
                                 variant="outline"
-                                className="h-11 rounded-xl px-5"
+                                className="h-11 rounded-xl px-5 cursor-pointer"
                                 onClick={() => navigate("/agenda-listagem-profissionais")}
                             >
-                                Cancelar
+                                Voltar
                             </Button>
                             <Button
                                 type="button"
-                                className="h-11 rounded-xl bg-primary px-5 text-primary-foreground hover:bg-primary/90"
+                                className="h-11 rounded-xl bg-primary px-5 text-primary-foreground hover:bg-primary/90 cursor-pointer"
                                 disabled={isSchedulesSaving}
                                 onClick={handleSaveSchedules}
                             >
                                 {isSchedulesSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                                {"Salvar horários"}
+                                {"Salvar"}
                             </Button>
                         </div>
                     )}
@@ -1318,7 +1318,7 @@ export function ProfessionalProfile({
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    className="h-11 rounded-xl px-5"
+                                    className="h-11 rounded-xl px-5 cursor-pointer"
                                     onClick={() => onCancel?.() ?? navigate(-1)}
                                 >
                                     Cancelar
@@ -1326,7 +1326,7 @@ export function ProfessionalProfile({
                             )}
                             <Button
                                 type="submit"
-                                className="h-11 rounded-xl bg-primary px-5 text-primary-foreground hover:bg-primary/90"
+                                className="h-11 rounded-xl bg-primary px-5 text-primary-foreground hover:bg-primary/90 cursor-pointer"
                                 disabled={isSaving}
                             >
                                 {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}

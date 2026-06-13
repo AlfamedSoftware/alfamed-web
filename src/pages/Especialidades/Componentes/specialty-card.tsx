@@ -28,7 +28,7 @@ export function SpecialtyCard({ specialty, onClick }: SpecialtyCardProps) {
             onClick={handleClick}
             className={cn(
                 "group flex flex-col rounded-2xl border border-border bg-card p-5 text-left shadow-sm",
-                "transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
+                "transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md cursor-pointer",
             )}
         >
             <div className="flex items-center justify-between gap-3">
