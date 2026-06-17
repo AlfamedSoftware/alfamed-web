@@ -472,7 +472,7 @@ export function ProfessionalProfile() {
                             </Button>
                             <Button
                                 type="submit"
-                                className="h-11 rounded-xl bg-primary px-5 text-primary-foreground hover:bg-primary/90"
+                                className="h-11 rounded-xl bg-primary px-5 text-primary-foreground hover:bg-primary/90 cursor-pointer"
                                 disabled={isSaving}
                             >
                                 {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}

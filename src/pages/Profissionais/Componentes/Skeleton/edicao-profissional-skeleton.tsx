@@ -32,30 +32,6 @@ function StatusSkeleton() {
     )
 }
 
-function ScheduleSkeleton({ index }: { index: number }) {
-    return (
-        <div className="rounded-2xl border border-border bg-muted/20 p-4 shadow-sm">
-            <div className="mb-4 flex items-start justify-between gap-3">
-                <div className="grid gap-2">
-                    <Pulse className="h-4 w-24" />
-                    <Pulse className="h-3 w-72 max-w-full" />
-                </div>
-                <Pulse className="h-9 w-28 rounded-full" />
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <FieldSkeleton labelWidth={index === 0 ? "w-8" : "w-12"} />
-                <FieldSkeleton labelWidth="w-12" />
-                <FieldSkeleton labelWidth="w-8" />
-                <div className="grid gap-2">
-                    <Pulse className="h-3 w-32" />
-                    <Pulse className="h-11 rounded-xl" />
-                </div>
-            </div>
-        </div>
-    )
-}
-
 export function EdicaoProfissionalSkeleton({ isProfileView = false }: { isProfileView?: boolean } = {}) {
     return (
         <div className="min-h-screen bg-background text-foreground">
@@ -124,21 +100,6 @@ export function EdicaoProfissionalSkeleton({ isProfileView = false }: { isProfil
                             </section>
                         ) : null}
                     </div>
-
-                    {!isProfileView ? (
-                        <section className="mt-6 grid gap-4">
-                            <SectionTitleSkeleton width="w-52" />
-                            <div className="grid gap-3">
-                                <ScheduleSkeleton index={0} />
-                                <ScheduleSkeleton index={1} />
-
-                                <div className="flex flex-wrap gap-2">
-                                    <Pulse className="h-10 w-36 rounded-full" />
-                                    <Pulse className="h-10 w-32 rounded-full" />
-                                </div>
-                            </div>
-                        </section>
-                    ) : null}
 
                     <div className="mt-8 flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:justify-end">
                         {!isProfileView ? <Pulse className="h-11 w-24 rounded-xl" /> : null}
