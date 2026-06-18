@@ -214,3 +214,9 @@ button.header-booking-button[data-slot="button"] svg,
   color: var(--primary-foreground) !important;
   fill: currentColor !important;
 }
+
+.alfamed-agenda-calendar [data-testid="ilamy-calendar"] > div:first-child button[aria-label="Exportar"],
+.alfamed-agenda-calendar [data-testid="ilamy-calendar"] > div:first-child button[title="Exportar"],
+.alfamed-agenda-calendar [data-testid="ilamy-calendar"] > div:first-child button:last-child {
+  display: none !important;
+}

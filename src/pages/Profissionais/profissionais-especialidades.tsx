@@ -63,7 +63,6 @@ export function ProfissionaisEspecialidades() {
             setSpecialties(linkedSpecialties)
             setSelectedSpecialtyId("")
 
-            alert("Especialidade vinculada com sucesso")
         } catch (error) {
             alert(error instanceof Error ? error.message : "Erro ao vincular especialidade")
         } finally {

@@ -21,6 +21,8 @@ import { VinculoEspecialidadesListagemProfissionais } from "@/pages/Especialidad
 import { Agendamentos } from "@/pages/Agendamentos/agendamentos"
 import { AgendaListagemProfissionais } from "@/pages/Agendas/agenda-listagem-profissionais"
 import { Agendas } from "@/pages/Agendas/agendas"
+import { Atendimento } from "@/pages/Atendimento/atendimento"
+import { AtendimentoDetalhe } from "@/pages/Atendimento/atendimento-detalhe"
 import { Perfil } from "@/pages/Profissionais/perfil"
 import { AdminSignIn } from "@/pages/SignIn/admin-sign-in"
 import { ServiceDeskUnitsList } from "@/pages/ServiceDesk/units-list"
@@ -78,6 +80,8 @@ export function App() {
             <Route path="agendas" element={<Agendas />} />
             <Route path="agenda-listagem-profissionais" element={<AgendaListagemProfissionais />} />
             <Route path="agendamentos" element={<Agendamentos />} />
+            <Route path="atendimento" element={<Atendimento />} />
+            <Route path="atendimento/:scheduleId" element={<AtendimentoDetalhe />} />
             <Route path="perfil" element={<Perfil />} />
           </Route>
 
