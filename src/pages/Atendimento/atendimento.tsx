@@ -22,55 +22,77 @@ export function Atendimento() {
     const [selectedDate, setSelectedDate] = useState(getTodayDateString())
     const [activeSpecialtyId, setActiveSpecialtyId] = useState<string | null>(null)
     const { specialties, isLoading, error } = useAttendanceSchedules(selectedDate)
-    const shouldHideControls = specialties.length <= 1
 
-    const visibleSpecialties = useMemo(() => specialties, [specialties])
+    const visibleSpecialties = useMemo(() => {
+        if (!activeSpecialtyId) return specialties
+        return specialties.filter((s) => s.id === activeSpecialtyId)
+    }, [specialties, activeSpecialtyId])
 
-    const handleSelectSpecialty = (specialtyId: string) => {
+    const totalSchedules = useMemo(
+        () => specialties.reduce((sum, s) => sum + s.schedules.length, 0),
+        [specialties],
+    )
+
+    const handleSelectSpecialty = (specialtyId: string | null) => {
         setActiveSpecialtyId(specialtyId)
-        document.getElementById(`specialty-${specialtyId}`)?.scrollIntoView({ behavior: "smooth", block: "start" })
+        if (specialtyId) {
+            requestAnimationFrame(() => {
+                document.getElementById(`specialty-${specialtyId}`)?.scrollIntoView({ behavior: "smooth", block: "start" })
+            })
+        }
     }
 
     return (
         <>
             <PageHeader title="Atendimento" />
             <main className="flex flex-1 flex-col gap-6 p-4">
-                {!shouldHideControls ? (
-                    <div className="flex flex-col gap-4 rounded-lg border border-border bg-card p-4 shadow-sm">
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <div>
-                                <h1 className="text-xl font-semibold text-foreground">Atendimento</h1>
-                                <p className="text-sm text-muted-foreground">Selecione a agenda do dia para iniciar o prontuario.</p>
-                            </div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-foreground">
-                                <CalendarDays className="size-4 text-muted-foreground" />
-                                <Input
-                                    type="date"
-                                    value={selectedDate}
-                                    onChange={(event) => setSelectedDate(event.target.value)}
-                                    className="w-40"
-                                />
-                            </label>
+                <div className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4 shadow-sm">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                            <h1 className="text-lg font-semibold text-foreground">Agenda do dia</h1>
+                            <p className="text-sm text-muted-foreground">
+                                {isLoading
+                                    ? "Carregando agendamentos…"
+                                    : totalSchedules === 0
+                                        ? "Nenhum agendamento para esta data."
+                                        : `${totalSchedules} ${totalSchedules === 1 ? "agendamento" : "agendamentos"} encontrado${totalSchedules === 1 ? "" : "s"}`}
+                            </p>
                         </div>
+                        <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+                            <CalendarDays className="size-4 shrink-0 text-muted-foreground" />
+                            <Input
+                                type="date"
+                                value={selectedDate}
+                                onChange={(e) => {
+                                    setSelectedDate(e.target.value)
+                                    setActiveSpecialtyId(null)
+                                }}
+                                className="w-40"
+                            />
+                        </label>
+                    </div>
+                    {specialties.length > 1 ? (
                         <SpecialtyFilter
                             specialties={specialties}
                             activeSpecialtyId={activeSpecialtyId}
                             onSelect={handleSelectSpecialty}
                         />
-                    </div>
-                ) : null}
+                    ) : null}
+                </div>
 
                 {error ? (
                     <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
                 ) : null}
 
                 {isLoading && specialties.length === 0 ? (
-                    <div className="space-y-4">
-                        <Skeleton className="h-8 w-56" />
-                        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                            {Array.from({ length: 6 }).map((_, index) => (
-                                <Skeleton key={index} className="h-32 rounded-lg" />
-                            ))}
+                    <div className="space-y-6">
+                        <div className="space-y-3">
+                            <Skeleton className="h-6 w-40" />
+                            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                                {Array.from({ length: 3 }).map((_, i) => (
+                                    <Skeleton key={i} className="h-28 rounded-xl" />
+                                ))}
+                            </div>
                         </div>
                     </div>
                 ) : visibleSpecialties.length > 0 ? (
@@ -80,8 +102,10 @@ export function Atendimento() {
                         ))}
                     </div>
                 ) : (
-                    <div className="rounded-lg border border-dashed border-border bg-muted/30 px-4 py-10 text-center text-sm text-muted-foreground">
-                        Nenhuma especialidade encontrada para o profissional selecionado.
+                    <div className="rounded-xl border border-dashed border-border bg-muted/30 px-4 py-12 text-center">
+                        <p className="text-sm font-medium text-muted-foreground">
+                            Nenhum agendamento para esta data.
+                        </p>
                     </div>
                 )}
             </main>

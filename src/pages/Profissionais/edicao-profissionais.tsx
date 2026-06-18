@@ -18,6 +18,8 @@ import { fetchWithAuth } from "@/lib/api-client"
 import { cn } from "@/lib/utils"
 import { professionalsService, type ProfessionalUnitFullData } from "@/Servicos/professionals.service"
 import { professionalsService as professionalsApiService } from "@/services/professionals.service"
+import { specialtiesService, type SpecialtyUnitFullData } from "@/Servicos/specialties.service"
+import { useSessionUnit } from "@/contexts/session-unit-context"
 import * as z from "zod"
 import { ToastContainer, useToast } from "./Componentes/Toast"
 import { EdicaoProfissionalSkeleton } from "./Componentes/Skeleton/edicao-profissional-skeleton"
@@ -290,6 +292,7 @@ function getProfessionalEntityId(data: ProfessionalUnitFullData | null): string 
 
 type ScheduleFormItem = {
     id?: string
+    specialtyId?: string | null
     dayOfWeek: number
     startTime: string
     endTime: string
@@ -625,6 +628,7 @@ export function ProfessionalProfile({
     const navigate = useNavigate()
     const isAgenda = searchParams.get("isAgenda") === "true"
     const { user: sessionUser } = useSession()
+    const { sessionUnit } = useSessionUnit()
     const { toasts, dismiss, toast } = useToast()
     const [professional, setProfessional] = useState<ProfessionalUnitFullData | null>(null)
     const [isLoading, setIsLoading] = useState(!isRegisterMode)
@@ -776,6 +780,17 @@ export function ProfessionalProfile({
     const [isSchedulesLoading, setIsSchedulesLoading] = useState(false)
     const [isSchedulesSaving, setIsSchedulesSaving] = useState(false)
 
+    // Especialidades da unidade (usadas no select de cada schedule)
+    const [unitSpecialties, setUnitSpecialties] = useState<SpecialtyUnitFullData[]>([])
+    const scheduleUnitId = sessionUnit?.selectedUnitId ?? null
+
+    useEffect(() => {
+        if (!scheduleUnitId || !isAgenda) return
+        specialtiesService.listByUnit(scheduleUnitId)
+            .then(setUnitSpecialties)
+            .catch(() => setUnitSpecialties([]))
+    }, [scheduleUnitId, isAgenda])
+
     function hhmmssToInput(value?: string) {
         if (!value) return ""
         return value.slice(0, 5)
@@ -805,6 +820,7 @@ export function ProfessionalProfile({
             const rows = await professionalsApiService.getSchedules(professionalId)
             setSchedules(rows.map((r: ScheduleFormItem) => ({
                 id: r.id,
+                specialtyId: r.specialtyId ?? null,
                 dayOfWeek: r.dayOfWeek,
                 startTime: r.startTime,
                 endTime: r.endTime,
@@ -904,7 +920,7 @@ export function ProfessionalProfile({
 
     // Schedule handlers
     function handleAddSchedule() {
-        setSchedules((prev) => [...prev, { dayOfWeek: 0, startTime: "", endTime: "", isActive: true }])
+        setSchedules((prev) => [...prev, { dayOfWeek: 0, startTime: "", endTime: "", specialtyId: null, isActive: true }])
     }
 
     function handleChangeSchedule(index: number, field: string, value: string) {
@@ -915,6 +931,8 @@ export function ProfessionalProfile({
                 item.startTime = inputToHhmmss(value)
             } else if (field === "endTime") {
                 item.endTime = inputToHhmmss(value)
+            } else if (field === "specialtyId") {
+                item.specialtyId = value || null
             } else if (field === "appointmentDurationMinutes") {
                 const dur = Number(value) || 0
                 item.appointmentDurationMinutes = dur
@@ -939,10 +957,17 @@ export function ProfessionalProfile({
             return
         }
 
+        const missingSpecialty = schedules.some((s) => !s.specialtyId)
+        if (missingSpecialty) {
+            toast.error("Selecione uma especialidade em todos os horários antes de salvar")
+            return
+        }
+
         setIsSchedulesSaving(true)
         try {
             const payload = schedules.map((s) => ({
                 id: s.id,
+                specialtyId: s.specialtyId ?? null,
                 dayOfWeek: s.dayOfWeek,
                 startTime: inputToHhmmss(hhmmssToInput(s.startTime)),
                 endTime: inputToHhmmss(hhmmssToInput(s.endTime)) || addMinutesToTime(inputToHhmmss(hhmmssToInput(s.startTime)), s.appointmentDurationMinutes ?? 60),
@@ -1232,7 +1257,21 @@ export function ProfessionalProfile({
                                                 </Button>
                                             </div>
 
-                                            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                                            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                                                <label className="grid gap-2">
+                                                    <span className="text-xs font-medium text-muted-foreground">Especialidade *</span>
+                                                    <select
+                                                        className={`h-11 rounded-xl border bg-background px-3 text-sm text-foreground outline-none focus:border-ring ${!s.specialtyId ? "border-destructive" : "border-input"}`}
+                                                        value={s.specialtyId ?? ""}
+                                                        onChange={(e) => handleChangeSchedule(idx, "specialtyId", e.target.value)}
+                                                    >
+                                                        <option value="">Selecione</option>
+                                                        {unitSpecialties.map((sp) => (
+                                                            <option key={sp.id} value={sp.id}>{sp.name}</option>
+                                                        ))}
+                                                    </select>
+                                                </label>
+
                                                 <label className="grid gap-2">
                                                     <span className="text-xs font-medium text-muted-foreground">Dia</span>
                                                     <select

@@ -30,6 +30,7 @@ import {
     Building2,
     ClipboardPaste,
     Minus,
+    HeartPulse,
 } from "lucide-react"
 import { useSession } from "@/hooks/use-session"
 import { auth } from "@/lib/auth"
@@ -70,12 +71,14 @@ const ADMINISTRATIVE_MENU_ITEMS: SidebarMenuItemConfig[] = [
     { title: "", icon: Minus, url: "" },
     { title: "Agendas", icon: CalendarDays, url: "/agenda-listagem-profissionais" },
     { title: "Agendamentos", icon: CalendarCheck, url: "/agendas" },
+    { title: "Atendimentos", icon: HeartPulse, url: "/atendimento" },
 ]
 
 const CLINICAL_MENU_ITEMS: SidebarMenuItemConfig[] = [
     { title: "Início", icon: HomeIcon, url: "/home" },
     { title: "Agendas", icon: CalendarDays, url: "/agenda-listagem-profissionais" },
     { title: "Agendamentos", icon: CalendarCheck, url: "/agendas" },
+    { title: "Atendimentos", icon: HeartPulse, url: "/atendimento" },
 ]
 
 const menuItemsByRole: Record<RoleMenuKey, SidebarMenuItemConfig[]> = {

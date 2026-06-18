@@ -1,8 +1,6 @@
-type TabProps = {
-    scheduleId: string
-    patientId: string
-}
+import { FileSearch } from "lucide-react"
+import { TabPlaceholder } from "./TabPlaceholder"
 
-export function SolicitacaoExames(_: TabProps) {
-    return <div className="text-sm text-muted-foreground">Em desenvolvimento</div>
+export function SolicitacaoExames(_: { scheduleId: string; patientId: string }) {
+    return <TabPlaceholder icon={FileSearch} title="Solicitação de Exames" description="A solicitação de exames ao laboratório estará disponível em breve." />
 }

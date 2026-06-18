@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils"
 type SpecialtyFilterProps = {
     specialties: AttendanceSpecialty[]
     activeSpecialtyId: string | null
-    onSelect: (specialtyId: string) => void
+    onSelect: (specialtyId: string | null) => void
 }
 
 export function SpecialtyFilter({ specialties, activeSpecialtyId, onSelect }: SpecialtyFilterProps) {
@@ -14,6 +14,18 @@ export function SpecialtyFilter({ specialties, activeSpecialtyId, onSelect }: Sp
 
     return (
         <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Especialidades">
+            <button
+                type="button"
+                onClick={() => onSelect(null)}
+                className={cn(
+                    "h-9 shrink-0 rounded-full border px-4 text-sm font-medium transition",
+                    activeSpecialtyId === null
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground",
+                )}
+            >
+                Todos
+            </button>
             {specialties.map((specialty) => (
                 <button
                     key={specialty.id}

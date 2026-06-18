@@ -1,8 +1,6 @@
-type TabProps = {
-    scheduleId: string
-    patientId: string
-}
+import { ScanLine } from "lucide-react"
+import { TabPlaceholder } from "./TabPlaceholder"
 
-export function ExamesImagem(_: TabProps) {
-    return <div className="text-sm text-muted-foreground">Em desenvolvimento</div>
+export function ExamesImagem(_: { scheduleId: string; patientId: string }) {
+    return <TabPlaceholder icon={ScanLine} title="Exames de Imagem" description="A visualização de laudos e exames de imagem estará disponível em breve." />
 }

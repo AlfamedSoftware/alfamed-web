@@ -21,6 +21,15 @@ type BookingFormState = {
     reason: string
 }
 
+type CalendarVisibleRange = {
+    start: Date
+    end: Date
+}
+
+type CalendarDateValue = {
+    toDate: () => Date
+}
+
 const INTERNAL_ROLE_KEYS = new Set([
     "internal_alfamed",
     "alfamed",
@@ -315,6 +324,10 @@ function getWeekRange(dateString: string) {
     return { start, end }
 }
 
+function getInitialVisibleRange() {
+    return getWeekRange(getTodayDateString())
+}
+
 function toIsoWithOffset(date: string, time: string) {
     return new Date(`${date}T${time}:00-03:00`).toISOString()
 }
@@ -324,7 +337,8 @@ export function Agendas() {
     const { menuRoles } = useSidebarMenu()
     const { professionals, isLoading: professionalsLoading, error: professionalsError } = useProfessionals()
 
-    const [selectedDate] = useState(getTodayDateString())
+    const [selectedDate, setSelectedDate] = useState(getTodayDateString())
+    const [visibleRange, setVisibleRange] = useState<CalendarVisibleRange>(() => getInitialVisibleRange())
     const [selectedProfessionalIds, setSelectedProfessionalIds] = useState<string[]>([])
     const [agendaEvents, setAgendaEvents] = useState<AppointmentCalendarEvent[]>([])
     const [isAgendaLoading, setIsAgendaLoading] = useState(true)
@@ -455,13 +469,11 @@ export function Agendas() {
             setIsAgendaLoading(true)
             setAgendaError(null)
 
-            const range = getWeekRange(selectedDate)
-
             try {
                 const events = await appointmentsService.listAgendaEvents({
                     professionalIds: selectedProfessionalIds,
-                    from: range.start.toISOString(),
-                    to: range.end.toISOString(),
+                    from: visibleRange.start.toISOString(),
+                    to: visibleRange.end.toISOString(),
                 })
                 setAgendaEvents(events)
             } catch (error) {
@@ -473,7 +485,7 @@ export function Agendas() {
         }
 
         void loadAgendaEvents()
-    }, [selectedDate, selectedProfessionalIds])
+    }, [selectedProfessionalIds, visibleRange])
 
     const visibleProfessionals = canChooseProfessionals ? activeProfessionals : currentProfessional ? [currentProfessional] : activeProfessionals.slice(0, 1)
     const currentProfessionalLabel = currentProfessional?.name ?? user?.name ?? "você"
@@ -581,11 +593,10 @@ export function Agendas() {
             }))
             setPatientCpfSearch("")
 
-            const range = getWeekRange(selectedDate)
             const events = await appointmentsService.listAgendaEvents({
                 professionalIds: selectedProfessionalIds,
-                from: range.start.toISOString(),
-                to: range.end.toISOString(),
+                from: visibleRange.start.toISOString(),
+                to: visibleRange.end.toISOString(),
             })
             setAgendaEvents(events)
         } catch (error) {
@@ -841,6 +852,14 @@ export function Agendas() {
                                         translations={calendarTranslations}
                                         firstDayOfWeek="monday"
                                         initialDate={selectedDate}
+                                        headerComponent={<AgendaCalendarHeader />}
+                                        onDateChange={(date: CalendarDateValue, range: { start: CalendarDateValue; end: CalendarDateValue }) => {
+                                            setSelectedDate(formatClinicDate(date.toDate()))
+                                            setVisibleRange({
+                                                start: range.start.toDate(),
+                                                end: range.end.toDate(),
+                                            })
+                                        }}
                                         timezone={CLINIC_TIME_ZONE}
                                         businessHours={{
                                             daysOfWeek: ["monday", "tuesday", "wednesday", "thursday", "friday"],
@@ -1070,11 +1089,10 @@ export function Agendas() {
                                                     }))
                                                     setPatientCpfSearch("")
 
-                                                    const range = getWeekRange(selectedDate)
                                                     const events = await appointmentsService.listAgendaEvents({
                                                         professionalIds: selectedProfessionalIds,
-                                                        from: range.start.toISOString(),
-                                                        to: range.end.toISOString(),
+                                                        from: visibleRange.start.toISOString(),
+                                                        to: visibleRange.end.toISOString(),
                                                     })
                                                     setAgendaEvents(events)
                                                 } catch (error) {

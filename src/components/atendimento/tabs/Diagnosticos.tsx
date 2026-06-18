@@ -1,8 +1,6 @@
-type TabProps = {
-    scheduleId: string
-    patientId: string
-}
+import { Activity } from "lucide-react"
+import { TabPlaceholder } from "./TabPlaceholder"
 
-export function Diagnosticos(_: TabProps) {
-    return <div className="text-sm text-muted-foreground">Em desenvolvimento</div>
+export function Diagnosticos(_: { scheduleId: string; patientId: string }) {
+    return <TabPlaceholder icon={Activity} title="Diagnósticos" description="O registro de diagnósticos e CID estará disponível em breve." />
 }
