@@ -1,4 +1,4 @@
-import { Clock, User } from "lucide-react"
+import { Clock } from "lucide-react"
 import { useNavigate } from "react-router"
 import type { AttendanceSchedule } from "@/services/attendance.service"
 import { cn } from "@/lib/utils"
