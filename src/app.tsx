@@ -76,7 +76,7 @@ export function App() {
             <Route path="procedimentos/cadastro" element={<CadastroProcedimentos />} />
            
             <Route path="especialidades" element={<Especialidades />} />
-            <Route path="especialidades/edicao" element={<EdicaoEspecialidades />} />
+            <Route path="especialidades/edicao/:id" element={<EdicaoEspecialidades />} />
             <Route path="especialidades/cadastro" element={<CadastroEspecialidades />} />
             
             <Route path="especialidades/vinculo-listagem-profissionais" element={<VinculoEspecialidadesListagemProfissionais />} />

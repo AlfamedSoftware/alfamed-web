@@ -19,7 +19,7 @@ export function SpecialtyCard({ specialty, onClick }: SpecialtyCardProps) {
             return
         }
 
-        navigate(`/especialidades/${id}`)
+        navigate(`edicao/${id}`)
     }
 
     return (
