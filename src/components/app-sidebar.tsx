@@ -18,7 +18,6 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
-    CalendarCheck,
     CalendarDays,
     ChevronsUpDown,
     ClipboardList,
@@ -28,8 +27,6 @@ import {
     Stethoscope,
     User,
     Building2,
-    ClipboardPaste,
-    Minus,
 } from "lucide-react"
 import { useSession } from "@/hooks/use-session"
 import { auth } from "@/lib/auth"
