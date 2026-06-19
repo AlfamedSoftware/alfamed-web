@@ -65,14 +65,15 @@ const ADMINISTRATIVE_MENU_ITEMS: SidebarMenuItemConfig[] = [
     { title: "Unidade", icon: Building2, url: "/unidade" },
     { title: "Profissionais", icon: User, url: "/profissionais" },
     { title: "Especialidades", icon: Stethoscope, url: "/especialidades" },
-    { title: "Vínculo de Especialidades", icon: ClipboardPaste, url: "/especialidades/vinculo-listagem-profissionais" },
+    //Vínculo ficara desativado pois não está pronto para adicionar na busca da agenda
+    //{ title: "Vínculo de Especialidades", icon: ClipboardPaste, url: "/especialidades/vinculo-listagem-profissionais" },
     { title: "Procedimentos", icon: ClipboardList, url: "/procedimentos" },
-    { title: "Agendas", icon: CalendarDays, url: "/listar-agendas" },
+    { title: "Agendas", icon: CalendarDays, url: "/agendas" },
 ]
 
 const CLINICAL_MENU_ITEMS: SidebarMenuItemConfig[] = [
     { title: "Início", icon: HomeIcon, url: "/home" },
-    { title: "Agendas", icon: CalendarDays, url: "/listar-agendas" },
+    { title: "Agendas", icon: CalendarDays, url: "/agendas" },
 ]
 
 const MEDICAL_MENU_ITEMS: SidebarMenuItemConfig[] = [

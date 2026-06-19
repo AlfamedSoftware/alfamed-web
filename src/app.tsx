@@ -18,7 +18,7 @@ import { Especialidades } from "@/pages/Especialidades/listar-especialidades"
 import { CadastroEspecialidades } from "@/pages/Especialidades/cadastro-especialidades"
 import { EdicaoEspecialidades } from "@/pages/Especialidades/edicao-especialidades"
 import { VinculoEspecialidadesListagemProfissionais } from "@/pages/Especialidades/vinculo-especialidades-listagem-profissionais"
-import { Agendamentos } from "@/pages/Agendamentos/agendamentos"
+import { Agendamentos } from "@/pages/Agendas/agendamentos"
 import { Agendas } from "@/pages/Agendas/listar-agendas"
 import { CadastrarAgendas } from "@/pages/Agendas/cadastrar-agendas"
 import { Perfil } from "@/pages/Profissionais/perfil"
@@ -62,23 +62,30 @@ export function App() {
           >
             <Route index element={<Navigate to="/home" replace />} />
             <Route path="home" element={<Home />} />
+            <Route path="perfil" element={<Perfil />} />
+
             <Route path="unidade" element={<Unidade />} />
+
             <Route path="profissionais" element={<Profissionais />} />
             <Route path="profissionais/novo" element={<NovoProfissional />} />
-            <Route path="profissionais/vinculo-especialidades" element={<ProfissionaisEspecialidades />} />
             <Route path="profissionais/:id" element={<ProfessionalProfile />} />
-            <Route path="cadastro-profissionais" element={<CadastroProfissionais />} />
+            <Route path="profissionais/cadastro" element={<CadastroProfissionais />} />
+            
             <Route path="procedimentos" element={<Procedimentos />} />
-            <Route path="procedimentos/:id" element={<EdicaoProcedimentos />} />
-            <Route path="cadastro-procedimentos" element={<CadastroProcedimentos />} />
+            <Route path="procedimentos/edicao/:id" element={<EdicaoProcedimentos />} />
+            <Route path="procedimentos/cadastro" element={<CadastroProcedimentos />} />
+           
             <Route path="especialidades" element={<Especialidades />} />
-            <Route path="especialidades/:id" element={<EdicaoEspecialidades />} />
-            <Route path="cadastro-especialidades" element={<CadastroEspecialidades />} />
+            <Route path="especialidades/edicao" element={<EdicaoEspecialidades />} />
+            <Route path="especialidades/cadastro" element={<CadastroEspecialidades />} />
+            
             <Route path="especialidades/vinculo-listagem-profissionais" element={<VinculoEspecialidadesListagemProfissionais />} />
-            <Route path="cadastrar-agendas" element={<CadastrarAgendas />} />
-            <Route path="listar-agendas" element={<Agendas />} />
-            <Route path="agendamentos" element={<Agendamentos />} />
-            <Route path="perfil" element={<Perfil />} />
+            <Route path="profissionais/vinculo-especialidades" element={<ProfissionaisEspecialidades />} />
+
+            <Route path="agendas" element={<Agendas />} />
+            <Route path="agendas/cadastro" element={<CadastrarAgendas />} />
+            <Route path="agendas/agendamentos" element={<Agendamentos />} />
+            
           </Route>
 
           <Route

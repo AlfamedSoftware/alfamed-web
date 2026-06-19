@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { PageHeader } from "@/components/page-header"
 import { useSessionUnit } from "@/contexts/session-unit-context"
 import { proceduresService } from "@/Servicos/procedures.service"
+import { specialtiesService, type SpecialtyUnitFullData } from "@/Servicos/specialties.service"
 import { cn } from "@/lib/utils"
 import { ProcedureFormSkeleton } from "./Skeleton/edicao-procedimento-skeleton"
 
@@ -19,23 +20,34 @@ const PROCEDURE_TYPES = [
     { value: "3", label: "Exame" },
 ]
 
-const procedureFormSchema = z.object({
-    description: z.string().min(1, "Informe a descrição do procedimento"),
-    code: z
-        .string()
-        .min(1, "Informe o código do procedimento")
-        .regex(/^[A-Z0-9]{10}$/, "Informe um código alfanumérico com 10 caracteres"),
-    type: z.string().min(1, "Selecione o tipo do procedimento"),
-    price: z
-        .string()
-        .min(1, "Informe o valor do procedimento")
-        .regex(
-            /^(0|[1-9]\d*|[1-9]\d{0,2}(\.\d{3})+),\d{2}$/,
-            "Informe um valor positivo ou zero no formato 0,00",
-        ),
-    observation: z.string().optional(),
-    isActive: z.boolean(),
-})
+const procedureFormSchema = z
+    .object({
+        description: z.string().min(1, "Informe a descrição do procedimento"),
+        code: z
+            .string()
+            .min(1, "Informe o código do procedimento")
+            .regex(/^[A-Z0-9]{10}$/, "Informe um código alfanumérico com 10 caracteres"),
+        type: z.string().min(1, "Selecione o tipo do procedimento"),
+        specialtyId: z.string().nullable(),
+        price: z
+            .string()
+            .min(1, "Informe o valor do procedimento")
+            .regex(
+                /^(0|[1-9]\d*|[1-9]\d{0,2}(\.\d{3})+),\d{2}$/,
+                "Informe um valor positivo ou zero no formato 0,00",
+            ),
+        observation: z.string().optional(),
+        isActive: z.boolean(),
+    })
+    .superRefine((data, ctx) => {
+        if ((data.type === "1" || data.type === "2") && !data.specialtyId) {
+            ctx.addIssue({
+                code: "custom",
+                message: "Selecione uma especialidade",
+                path: ["specialtyId"],
+            })
+        }
+    })
 
 type ProcedureFormValues = z.infer<typeof procedureFormSchema>
 
@@ -132,10 +144,12 @@ export function ProcedureProfile({
     const { id: routeProcedureId } = useParams()
     const effectiveProcedureId = procedureId ?? routeProcedureId
     const navigate = useNavigate()
-    const { isLoading: isSessionUnitLoading } = useSessionUnit()
+    const { sessionUnit, isLoading: isSessionUnitLoading } = useSessionUnit()
     const [isLoading, setIsLoading] = useState(!isRegisterMode)
     const [isSaving, setIsSaving] = useState(false)
     const [loadError, setLoadError] = useState<string | null>(null)
+    const [specialties, setSpecialties] = useState<SpecialtyUnitFullData[]>([])
+    const [isLoadingSpecialties, setIsLoadingSpecialties] = useState(false)
 
     const form = useForm<ProcedureFormValues>({
         resolver: zodResolver(procedureFormSchema) as Resolver<ProcedureFormValues>,
@@ -143,11 +157,21 @@ export function ProcedureProfile({
             description: "",
             code: "",
             type: "",
+            specialtyId: "",
             price: "0,00",
             observation: "",
             isActive: true,
         },
     })
+
+    const watchedType = form.watch("type")
+    const showSpecialty = watchedType === "1" || watchedType === "2"
+
+    useEffect(() => {
+        if (!showSpecialty) {
+            form.setValue("specialtyId", "", { shouldDirty: true })
+        }
+    }, [showSpecialty, form])
 
     const pageTitle = useMemo(() => getProcedureLabel(isRegisterMode), [isRegisterMode])
     const priceField = form.register("price", {
@@ -159,6 +183,27 @@ export function ProcedureProfile({
         },
     })
     const codeField = form.register("code")
+
+    useEffect(() => {
+        if (!sessionUnit?.selectedUnitId) return
+
+        let alive = true
+        setIsLoadingSpecialties(true)
+
+        specialtiesService
+            .listByUnit(sessionUnit.selectedUnitId, { isActive: true })
+            .then((data) => {
+                if (alive) setSpecialties(data)
+            })
+            .catch(() => {})
+            .finally(() => {
+                if (alive) setIsLoadingSpecialties(false)
+            })
+
+        return () => {
+            alive = false
+        }
+    }, [sessionUnit?.selectedUnitId])
 
     useEffect(() => {
         if (isRegisterMode) {
@@ -197,6 +242,8 @@ export function ProcedureProfile({
                     price: formatPriceValue(current.price),
                     observation: normalizeValue(current.observation),
                     isActive: current.isActive,
+                    type: String(current.type),
+                    specialtyId: current.specialtyId ?? "",
                 })
             } catch (error) {
                 if (!alive || (error as Error).name === "AbortError") {
@@ -230,6 +277,8 @@ export function ProcedureProfile({
                     code: normalizeCodeValue(values.code),
                     price: values.price.trim(),
                     isActive: values.isActive,
+                    type: Number(values.type),
+                    specialtyId: values.specialtyId || null,
                 })
 
                 alert("Procedimento cadastrado com sucesso.")
@@ -249,6 +298,8 @@ export function ProcedureProfile({
                 code: normalizeCodeValue(values.code),
                 price: values.price.trim(),
                 isActive: values.isActive,
+                type: Number(values.type),
+                specialtyId: values.specialtyId || null,
             })
 
             alert("Procedimento atualizado com sucesso.")
@@ -343,6 +394,29 @@ export function ProcedureProfile({
                                         <span className="text-xs text-destructive">{form.formState.errors.price.message}</span>
                                     ) : null}
                                 </label>
+
+                                {showSpecialty ? (
+                                    <label className="grid gap-2 md:col-span-3">
+                                        <span className="text-sm font-medium">Especialidade</span>
+                                        <select
+                                            className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:opacity-60 disabled:cursor-not-allowed"
+                                            disabled={isLoadingSpecialties}
+                                            {...form.register("specialtyId")}
+                                        >
+                                            <option value="">{isLoadingSpecialties ? "Carregando..." : "Nenhuma"}</option>
+                                            {specialties.map((s) => (
+                                                <option key={s.id} value={s.id}>
+                                                    {s.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {form.formState.errors.specialtyId ? (
+                                            <span className="text-xs text-destructive">
+                                                {form.formState.errors.specialtyId.message}
+                                            </span>
+                                        ) : null}
+                                    </label>
+                                ) : null}
 
                                 <label className="grid gap-2 md:col-span-3">
                                     <span className="text-sm font-medium">Observação</span>

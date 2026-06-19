@@ -31,7 +31,7 @@ export function ProcedureCard({ procedure, onClick }: ProcedureCardProps) {
             return
         }
 
-        navigate(`/procedimentos/${id}`)
+        navigate(`edicao/${id}`)
     }
 
     return (

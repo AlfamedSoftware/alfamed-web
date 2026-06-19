@@ -218,7 +218,7 @@ export function Agendas() {
         if (selectedProfessionalUnitId) params.set("professionalUnitId", selectedProfessionalUnitId)
         if (selectedSpecialtyId) params.set("specialtyId", selectedSpecialtyId)
         fetchWithAuth<ScheduleApiResponse[] | Record<string, never>>(
-            `${authBaseUrl}/schedules/list-full-available-schedule-slots?${params.toString()}`,
+            `${authBaseUrl}/schedules/list-full-schedule-slots?${params.toString()}`,
         )
             .then((data) => {
                 setSchedules(Array.isArray(data) ? data.map(mapApiToSchedule) : [])
@@ -265,11 +265,12 @@ export function Agendas() {
     const handleCriarAgenda = () => {
         const params = new URLSearchParams()
         if (selectedProfessionalUnitId) params.set("professionalUnitId", selectedProfessionalUnitId)
+        if (selectedSpecialtyId) params.set("specialtyId", selectedSpecialtyId)
         if (dateInput.length === 10 && isValidDateFormat(dateInput)) params.set("date", dateInput)
-        navigate(`/agendas/criar?${params.toString()}`)
+        navigate(`cadastro?${params.toString()}`)
     }
 
-    const canCreate = !!selectedProfessionalUnitId && dateInput.length === 10 && !dateError
+    const canCreate = dateInput.length === 10 && isValidDateFormat(dateInput) && !dateError
 
     return (
         <div className="flex flex-col h-full min-h-screen bg-background">
@@ -341,12 +342,10 @@ export function Agendas() {
                     </select>
                 </div>
 
-                <div className="flex-1" />
-
                 <Button
                     onClick={handleCriarAgenda}
                     disabled={!canCreate}
-                    className="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-4 h-9 gap-1.5 shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="ml-auto self-center bg-blue-600 hover:bg-blue-700 text-white rounded-full px-4 h-9 gap-1.5 shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     <Plus className="w-4 h-4" />
                     Criar Agenda
@@ -398,7 +397,7 @@ function ScheduleCard({ schedule }: { schedule: Schedule }) {
             professionalName: schedule.professionalName,
             professionalUnitId: schedule.professionalUnitId,
         })
-        navigate(`/agendamentos?${params.toString()}`)
+        navigate(`agendamentos?${params.toString()}`)
     }
 
     return (
