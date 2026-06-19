@@ -2,7 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 export function SpecialtyFormSkeleton() {
     return (
-        <div className="grid gap-5">
+        <div className="flex flex-col flex-1 gap-5">
             <div className="grid gap-5">
                 <div className="grid gap-2">
                     <Skeleton className="h-4 w-24" />
@@ -22,7 +22,7 @@ export function SpecialtyFormSkeleton() {
                 </div>
             </div>
 
-            <div className="flex flex-col gap-3 border-t pt-5 sm:flex-row sm:items-center sm:justify-end">
+            <div className="mt-auto flex flex-col gap-3 border-t pt-5 sm:flex-row sm:items-center sm:justify-end">
                 <div className="flex gap-2">
                     <Skeleton className="h-10 w-24 rounded-md" />
                     <Skeleton className="h-10 w-28 rounded-md" />

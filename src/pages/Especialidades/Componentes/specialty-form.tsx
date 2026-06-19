@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useForm, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useNavigate, useParams } from "react-router"
-import { Save } from "lucide-react"
+import { ArrowLeft, Save } from "lucide-react"
 import * as z from "zod"
 
 import { Button } from "@/components/ui/button"
@@ -195,7 +195,7 @@ export function SpecialtyProfile({
         <div className="flex min-h-screen flex-col bg-background text-foreground">
             {showPageHeader ? <PageHeader title={pageTitle} /> : null}
 
-            <main className="flex-1 px-4 py-6 md:px-6 md:py-8">
+            <main className="flex-1 flex flex-col px-4 py-6 md:px-6 md:py-8">
                 {isSessionUnitLoading || isLoading ? (
                     <SpecialtyFormSkeleton />
                 ) : (
@@ -206,7 +206,7 @@ export function SpecialtyProfile({
                             </div>
                         ) : null}
 
-                        <form onSubmit={form.handleSubmit(handleSubmit)} className="grid gap-5">
+                        <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col flex-1 gap-5">
                             <div className="grid gap-5">
                                 <label className="grid gap-2">
                                     <span className="text-sm font-medium">Descrição</span>
@@ -240,11 +240,12 @@ export function SpecialtyProfile({
                                 </div>
                             </div>
 
-                            <div className="flex flex-col gap-3 border-t pt-5 sm:flex-row sm:items-center sm:justify-end">
+                            <div className="mt-auto flex flex-col gap-3 border-t pt-5 sm:flex-row sm:items-center sm:justify-end">
                                 <div className="flex flex-col items-start gap-2 sm:items-end">
                                     <div className="flex gap-2">
                                         <Button type="button" variant="outline" onClick={handleCancel} className="cursor-pointer">
-                                            Cancelar
+                                            <ArrowLeft className="w-4 h-4" />
+                                            Voltar
                                         </Button>
 
                                         <Button type="submit" disabled={isLoading || isSaving} className="cursor-pointer">

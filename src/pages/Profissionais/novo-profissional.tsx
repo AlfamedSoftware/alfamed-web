@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react"
 import { useNavigate } from "react-router"
-import { CheckCircle2, Link2, Loader2, Search } from "lucide-react"
+import { ArrowLeft, CheckCircle2, Link2, Loader2, Search } from "lucide-react"
 
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
@@ -252,6 +252,7 @@ export function NovoProfissional() {
                                     onClick={() => navigate("/profissionais")}
                                     className="w-fit gap-2 cursor-pointer"
                                 >
+                                    <ArrowLeft className="w-4 h-4" />
                                     Voltar
                                 </Button>
 

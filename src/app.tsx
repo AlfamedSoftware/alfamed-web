@@ -19,8 +19,8 @@ import { CadastroEspecialidades } from "@/pages/Especialidades/cadastro-especial
 import { EdicaoEspecialidades } from "@/pages/Especialidades/edicao-especialidades"
 import { VinculoEspecialidadesListagemProfissionais } from "@/pages/Especialidades/vinculo-especialidades-listagem-profissionais"
 import { Agendamentos } from "@/pages/Agendamentos/agendamentos"
-import { AgendaListagemProfissionais } from "@/pages/Agendas/agenda-listagem-profissionais"
-import { Agendas } from "@/pages/Agendas/agendas"
+import { Agendas } from "@/pages/Agendas/listar-agendas"
+import { CadastrarAgendas } from "@/pages/Agendas/cadastrar-agendas"
 import { Perfil } from "@/pages/Profissionais/perfil"
 import { AdminSignIn } from "@/pages/SignIn/admin-sign-in"
 import { ServiceDeskUnitsList } from "@/pages/ServiceDesk/units-list"
@@ -75,8 +75,8 @@ export function App() {
             <Route path="especialidades/:id" element={<EdicaoEspecialidades />} />
             <Route path="cadastro-especialidades" element={<CadastroEspecialidades />} />
             <Route path="especialidades/vinculo-listagem-profissionais" element={<VinculoEspecialidadesListagemProfissionais />} />
-            <Route path="agendas" element={<Agendas />} />
-            <Route path="agenda-listagem-profissionais" element={<AgendaListagemProfissionais />} />
+            <Route path="cadastrar-agendas" element={<CadastrarAgendas />} />
+            <Route path="listar-agendas" element={<Agendas />} />
             <Route path="agendamentos" element={<Agendamentos />} />
             <Route path="perfil" element={<Perfil />} />
           </Route>

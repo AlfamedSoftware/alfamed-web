@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useForm, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useNavigate, useParams } from "react-router"
-import { Save } from "lucide-react"
+import { ArrowLeft, Save } from "lucide-react"
 import * as z from "zod"
 
 import { Button } from "@/components/ui/button"
@@ -13,12 +13,19 @@ import { proceduresService } from "@/Servicos/procedures.service"
 import { cn } from "@/lib/utils"
 import { ProcedureFormSkeleton } from "./Skeleton/edicao-procedimento-skeleton"
 
+const PROCEDURE_TYPES = [
+    { value: "1", label: "Consulta" },
+    { value: "2", label: "Retorno" },
+    { value: "3", label: "Exame" },
+]
+
 const procedureFormSchema = z.object({
     description: z.string().min(1, "Informe a descrição do procedimento"),
     code: z
         .string()
         .min(1, "Informe o código do procedimento")
-        .regex(/^[A-Z0-9]{6}$/, "Informe um código alfanumérico com 6 caracteres"),
+        .regex(/^[A-Z0-9]{10}$/, "Informe um código alfanumérico com 10 caracteres"),
+    type: z.string().min(1, "Selecione o tipo do procedimento"),
     price: z
         .string()
         .min(1, "Informe o valor do procedimento")
@@ -135,6 +142,7 @@ export function ProcedureProfile({
         defaultValues: {
             description: "",
             code: "",
+            type: "",
             price: "0,00",
             observation: "",
             isActive: true,
@@ -270,7 +278,7 @@ export function ProcedureProfile({
         <div className="flex min-h-screen flex-col bg-background text-foreground">
             {showPageHeader ? <PageHeader title={pageTitle} /> : null}
 
-            <main className="flex-1 px-4 py-6 md:px-6 md:py-8">
+            <main className="flex-1 flex flex-col px-4 py-6 md:px-6 md:py-8">
                 {isSessionUnitLoading || isLoading ? (
                     <ProcedureFormSkeleton />
                 ) : (
@@ -281,9 +289,9 @@ export function ProcedureProfile({
                             </div>
                         ) : null}
 
-                        <form onSubmit={form.handleSubmit(handleSubmit)} className="grid gap-5">
-                            <div className="grid gap-5 md:grid-cols-2">
-                                <label className="grid gap-2 md:col-span-2">
+                        <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col flex-1 gap-5">
+                            <div className="grid gap-5 md:grid-cols-3">
+                                <label className="grid gap-2 md:col-span-3">
                                     <span className="text-sm font-medium">Descrição</span>
                                     <Input placeholder="Ex.: Consulta oftalmológica" {...form.register("description")} />
                                     {form.formState.errors.description ? (
@@ -296,7 +304,8 @@ export function ProcedureProfile({
                                 <label className="grid gap-2">
                                     <span className="text-sm font-medium">Código</span>
                                     <Input
-                                        maxLength={6}
+                                        minLength={1}
+                                        maxLength={10}
                                         placeholder="Ex.: A1B2C3"
                                         {...codeField}
                                         onChange={(event) => {
@@ -310,6 +319,24 @@ export function ProcedureProfile({
                                 </label>
 
                                 <label className="grid gap-2">
+                                    <span className="text-sm font-medium">Tipo</span>
+                                    <select
+                                        className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20"
+                                        {...form.register("type")}
+                                    >
+                                        <option value="">Selecione</option>
+                                        {PROCEDURE_TYPES.map((t) => (
+                                            <option key={t.value} value={t.value}>
+                                                {t.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {form.formState.errors.type ? (
+                                        <span className="text-xs text-destructive">{form.formState.errors.type.message}</span>
+                                    ) : null}
+                                </label>
+
+                                <label className="grid gap-2">
                                     <span className="text-sm font-medium">Valor</span>
                                     <Input inputMode="decimal" placeholder="Ex.: 120,00" {...priceField} />
                                     {form.formState.errors.price ? (
@@ -317,7 +344,7 @@ export function ProcedureProfile({
                                     ) : null}
                                 </label>
 
-                                <label className="grid gap-2 md:col-span-2">
+                                <label className="grid gap-2 md:col-span-3">
                                     <span className="text-sm font-medium">Observação</span>
                                     <textarea
                                         rows={4}
@@ -327,7 +354,7 @@ export function ProcedureProfile({
                                     />
                                 </label>
 
-                                <div className="grid gap-2 md:col-span-2">
+                                <div className="grid gap-2 md:col-span-3">
                                     <p className="text-sm font-semibold text-foreground">Procedimento ativo</p>
                                     <div className="rounded-2xl border border-border bg-muted/30 px-5 py-4">
                                         <div className="flex items-center justify-between gap-4">
@@ -349,11 +376,12 @@ export function ProcedureProfile({
                                 </div>
                             </div>
 
-                            <div className="flex flex-col gap-3 border-t pt-5 sm:flex-row sm:items-center sm:justify-end">
+                            <div className="mt-auto flex flex-col gap-3 border-t pt-5 sm:flex-row sm:items-center sm:justify-end">
                                 <div className="flex flex-col items-start gap-2 sm:items-end">
                                     <div className="flex gap-2">
                                         <Button type="button" variant="outline" onClick={handleCancel} className="cursor-pointer">
-                                            Cancelar
+                                            <ArrowLeft className="w-4 h-4" />
+                                            Voltar
                                         </Button>
 
                                         <Button type="submit" disabled={isLoading || isSaving} className="cursor-pointer">

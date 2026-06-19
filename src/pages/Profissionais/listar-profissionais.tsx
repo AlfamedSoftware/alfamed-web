@@ -14,11 +14,10 @@ import { useSessionUnit } from "@/contexts/session-unit-context"
 type ProfessionalFilter = "all" | "active" | "inactive"
 
 interface ProfissionaisProps {
-    isAgenda?: boolean
     isSpecialtyLink?: boolean
 }
 
-export function Profissionais({ isAgenda = false, isSpecialtyLink = false }: ProfissionaisProps) {
+export function Profissionais({ isSpecialtyLink = false }: ProfissionaisProps) {
     const navigate = useNavigate()
     const { sessionUnit } = useSessionUnit()
     const selectedUnitId = sessionUnit?.selectedUnitId ?? null
@@ -40,7 +39,7 @@ export function Profissionais({ isAgenda = false, isSpecialtyLink = false }: Pro
             try {
                 const data = await professionalsService.listByUnit(
                     selectedUnitId,
-                    isAgenda || isSpecialtyLink ? { isActive: true, roleKey: "medic" } : { isActive: undefined, roleKey: undefined },
+                    isSpecialtyLink ? { isActive: true, roleKey: "medic" } : { isActive: undefined, roleKey: undefined },
                 )
                 setProfessionals(data)
             } catch (err) {
@@ -51,7 +50,7 @@ export function Profissionais({ isAgenda = false, isSpecialtyLink = false }: Pro
         }
 
         fetchProfessionals()
-    }, [selectedUnitId, isAgenda, isSpecialtyLink])
+    }, [selectedUnitId, isSpecialtyLink])
 
     const counts = useMemo(
         () => ({
@@ -87,15 +86,13 @@ export function Profissionais({ isAgenda = false, isSpecialtyLink = false }: Pro
     }, [professionals, activeFilter, searchQuery])
 
     const isFiltered = activeFilter !== "all" || searchQuery.trim() !== ""
-    const handleProfessionalClick = isAgenda
-        ? (professionalId: string) => navigate(`/profissionais/${professionalId}?isAgenda=true`)
-        : isSpecialtyLink
+    const handleProfessionalClick = isSpecialtyLink
         ? (professionalId: string) => navigate(`/profissionais/vinculo-especialidades?professionalUnitId=${professionalId}`)
         : undefined
 
     return (
         <div className="flex flex-col h-full min-h-screen bg-background">
-            <PageHeader title={isAgenda ? "Profissionais - Cadastro de Agendas" : isSpecialtyLink ? "Profissionais - Vínculo de Especialidades" : "Profissionais"} />
+            <PageHeader title={isSpecialtyLink ? "Profissionais - Vínculo de Especialidades" : "Profissionais"} />
 
             <div className="flex flex-wrap items-center gap-3 px-6 py-4">
                 <ProfessionalFilters activeFilter={activeFilter} onFilterChange={setActiveFilter} counts={counts} />
@@ -104,7 +101,7 @@ export function Profissionais({ isAgenda = false, isSpecialtyLink = false }: Pro
 
                 <ProfessionalSearch value={searchQuery} onChange={setSearchQuery} />
 
-                {!isAgenda && !isSpecialtyLink && (
+                {!isSpecialtyLink && (
                     <Button
                         id="new-professional-btn"
                         onClick={() => navigate("/profissionais/novo")}
