@@ -391,11 +391,9 @@ function ScheduleCard({ schedule }: { schedule: Schedule }) {
     const handleSlotClick = (slot: ScheduleSlot) => {
         const params = new URLSearchParams({
             scheduleSlotId: slot.id,
-            scheduleId: schedule.id,
-            time: slot.time,
             date: schedule.date,
             professionalName: schedule.professionalName,
-            professionalUnitId: schedule.professionalUnitId,
+            specialtyName: schedule.specialtyName,
         })
         navigate(`agendamentos?${params.toString()}`)
     }
