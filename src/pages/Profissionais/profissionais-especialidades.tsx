@@ -2,11 +2,12 @@ import { useEffect, useState } from "react"
 import { useNavigate, useSearchParams } from "react-router"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Loader2, Plus, X } from "lucide-react"
+import { Loader2, Plus, X } from "lucide-react"
 import { professionalUnitSpecialtiesService, type ProfessionalUnitSpecialty } from "@/Servicos/professional-unit-specialties.service"
 import { specialtiesService, type SpecialtyUnitFullData } from "@/Servicos/specialties.service"
 import { useSessionUnit } from "@/contexts/session-unit-context"
 import { ProfissionaisEspecialidadesSkeleton } from "./Componentes/Skeleton/profissionais-especialidades-skeleton"
+import { BackButton } from "@/components/ui/buttons"
 
 export function ProfissionaisEspecialidades() {
     const navigate = useNavigate()
@@ -188,15 +189,7 @@ export function ProfissionaisEspecialidades() {
 
                         <div className="flex flex-col gap-3 border-t pt-5 sm:flex-row sm:items-center sm:justify-end">
                             <div className="flex flex-col items-start gap-2 sm:items-end">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => navigate("/especialidades/vinculo-listagem-profissionais")}
-                                    className="cursor-pointer"
-                                >
-                                    <ArrowLeft className="w-4 h-4" />
-                                    Voltar
-                                </Button>
+                                <BackButton onClick={() => navigate("/especialidades/vinculo-listagem-profissionais")} />
                             </div>
                         </div>
                     </div>

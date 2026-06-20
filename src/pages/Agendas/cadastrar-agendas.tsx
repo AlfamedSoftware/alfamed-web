@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { useNavigate, useSearchParams } from "react-router"
-import { AlertTriangle, ArrowLeft, Clock, Info, Plus } from "lucide-react"
+import { AlertTriangle, CheckCircle2, Clock, Info, Plus } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,6 +10,7 @@ import { proceduresService, type ProcedureUnitFullData } from "@/Servicos/proced
 import { useSessionUnit } from "@/contexts/session-unit-context"
 import { fetchWithAuth } from "@/lib/api-client"
 import { authBaseUrl } from "@/lib/auth"
+import { BackButton, SaveButton } from "@/components/ui/buttons"
 
 // --- Helpers ---
 
@@ -151,6 +152,7 @@ export function CadastrarAgendas() {
     const [errors, setErrors] = useState<FormErrors>({})
     const [isSaving, setIsSaving] = useState(false)
     const [saveError, setSaveError] = useState<string | null>(null)
+    const [createSuccess, setCreateSuccess] = useState(false)
 
     useEffect(() => {
         if (!selectedUnitId) return
@@ -219,20 +221,20 @@ export function CadastrarAgendas() {
         setSaveError(null)
 
         try {
-            await fetchWithAuth(`${authBaseUrl}/schedules`, {
+            await fetchWithAuth(`${authBaseUrl}/schedules/`, {
                 method: "POST",
                 body: JSON.stringify({
                     professionalUnitId,
-                    specialtyId,
-                    procedureId,
-                    date: dateInputToApiFormat(dateInput),
+                    isActive: true,
                     startTime: timeInput,
+                    specialtyId,
                     slots: parseInt(slots, 10),
+                    date: dateInputToApiFormat(dateInput),
                     durationMinutes: parseInt(durationMinutes, 10),
+                    procedureId,
                 }),
             })
-            alert("Agenda criada com sucesso.")
-            navigate("/agendas")
+            setCreateSuccess(true)
         } catch (err) {
             setSaveError(err instanceof Error ? err.message : "Erro ao criar agenda")
         } finally {
@@ -241,17 +243,63 @@ export function CadastrarAgendas() {
     }
 
 
+    const backToAgendasUrl = (() => {
+        const params = new URLSearchParams()
+        if (professionalUnitId) params.set("professionalUnitId", professionalUnitId)
+        if (specialtyId) params.set("specialtyId", specialtyId)
+        if (dateInput.length === 10 && isValidDateFormat(dateInput)) params.set("date", dateInput)
+        const qs = params.toString()
+        return `/agendas${qs ? `?${qs}` : ""}`
+    })()
+
+    if (createSuccess) {
+        const professional = professionals.find((p) => p.id === professionalUnitId)
+        const professionalName = professional ? getProfessionalName(professional) : "Profissional"
+        const specialty = specialties.find((s) => s.id === specialtyId)
+        const procedure = procedures.find((p) => p.id === procedureId)
+
+        return (
+            <div className="flex flex-col h-full min-h-screen bg-background">
+                <PageHeader title="Criar Agenda" />
+                <div className="flex-1 flex flex-col items-center justify-center gap-4 px-6">
+                    <div className="h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                        <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
+                    </div>
+                    <h2 className="text-lg font-semibold text-foreground">Agenda criada com sucesso!</h2>
+                    <p className="text-sm text-muted-foreground text-center">
+                        {professionalName}
+                        {specialty ? ` · ${specialty.name}` : ""}
+                        {procedure ? ` · ${procedure.description}` : ""}
+                        <br />
+                        {dateInput} às {timeInput} · {slots} {parseInt(slots) === 1 ? "vaga" : "vagas"} de {durationMinutes} min
+                    </p>
+                    <div className="mt-2 flex gap-3">
+                        <BackButton onClick={() => navigate(backToAgendasUrl)}>Voltar às agendas</BackButton>
+                        <Button
+                            onClick={() => {
+                                const params = new URLSearchParams()
+                                if (professionalUnitId) params.set("professionalUnitId", professionalUnitId)
+                                if (specialtyId) params.set("specialtyId", specialtyId)
+                                if (dateInput.length === 10 && isValidDateFormat(dateInput)) params.set("date", dateInput)
+                                const qs = params.toString()
+                                navigate(`/agendas/cadastro${qs ? `?${qs}` : ""}`)
+                            }}
+                            className="cursor-pointer"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Criar outra agenda
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
     return (
         <div className="flex min-h-screen flex-col bg-background text-foreground">
             <PageHeader title="Criar Agenda" />
 
             <main className="flex-1 flex flex-col px-4 py-6 md:px-6 md:py-8">
-                {saveError && (
-                    <div className="mb-6 rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                        {saveError}
-                    </div>
-                )}
-
                 <form onSubmit={handleSubmit} noValidate className="flex flex-col flex-1 gap-5">
                     <div className="grid gap-5 md:grid-cols-2">
                         <Field label="Profissional" error={errors.professionalUnitId} className="md:col-span-2">
@@ -368,31 +416,21 @@ export function CadastrarAgendas() {
                         )
                     )}
 
+                    {saveError && (
+                        <div className="flex items-start gap-3 rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                            <span>{saveError}</span>
+                        </div>
+                    )}
+
                     <div className="mt-auto flex items-center justify-end gap-2 border-t pt-5">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => {
-                                const params = new URLSearchParams()
-                                if (professionalUnitId) params.set("professionalUnitId", professionalUnitId)
-                                if (specialtyId) params.set("specialtyId", specialtyId)
-                                if (dateInput.length === 10 && isValidDateFormat(dateInput)) params.set("date", dateInput)
-                                const qs = params.toString()
-                                navigate(`/agendas${qs ? `?${qs}` : ""}`)
-                            }}
-                            className="cursor-pointer"
-                        >
-                            <ArrowLeft className="w-4 h-4" />
-                            Voltar
-                        </Button>
-                        <Button
-                            type="submit"
-                            disabled={isSaving || !!midnightInfo?.overflows}
-                            className="cursor-pointer"
-                        >
-                            <Plus className="w-4 h-4" />
-                            {isSaving ? "Criando..." : "Criar"}
-                        </Button>
+                        <BackButton onClick={() => navigate(backToAgendasUrl)} />
+                        <SaveButton
+                            isSaving={isSaving}
+                            disabled={!!midnightInfo?.overflows}
+                            label="Gravar"
+                            savingLabel="Gravando..."
+                        />
                     </div>
                 </form>
             </main>

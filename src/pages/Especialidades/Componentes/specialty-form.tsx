@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useForm, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useNavigate, useParams } from "react-router"
-import { ArrowLeft, Save } from "lucide-react"
+import { AlertTriangle, ArrowLeft, CheckCircle2, Plus } from "lucide-react"
 import * as z from "zod"
 
 import { Button } from "@/components/ui/button"
@@ -12,6 +12,7 @@ import { useSessionUnit } from "@/contexts/session-unit-context"
 import { specialtiesService } from "@/Servicos/specialties.service"
 import { cn } from "@/lib/utils"
 import { SpecialtyFormSkeleton } from "./Skeleton/edicao-especialidade-skeleton"
+import { BackButton, SaveButton } from "@/components/ui/buttons"
 
 const specialtyFormSchema = z.object({
     description: z.string().min(1, "Informe a descrição da especialidade"),
@@ -77,6 +78,8 @@ export function SpecialtyProfile({
     const [isLoading, setIsLoading] = useState(!isRegisterMode)
     const [isSaving, setIsSaving] = useState(false)
     const [loadError, setLoadError] = useState<string | null>(null)
+    const [registerSuccess, setRegisterSuccess] = useState(false)
+    const [registeredName, setRegisteredName] = useState("")
     const form = useForm<SpecialtyFormValues>({
         resolver: zodResolver(specialtyFormSchema) as Resolver<SpecialtyFormValues>,
         defaultValues: {
@@ -152,8 +155,8 @@ export function SpecialtyProfile({
                     isActive: values.isActive,
                 })
 
-                alert("Especialidade cadastrada com sucesso.")
-                navigate(afterSavePath ?? "/especialidades")
+                setRegisteredName(values.description.trim())
+                setRegisterSuccess(true)
                 return
             }
 
@@ -168,7 +171,6 @@ export function SpecialtyProfile({
                 isActive: values.isActive,
             })
 
-            alert("Especialidade atualizada com sucesso.")
             navigate(afterSavePath ?? "/especialidades")
         } catch (error) {
             setLoadError(error instanceof Error ? error.message : "Erro ao salvar especialidade")
@@ -191,6 +193,38 @@ export function SpecialtyProfile({
         navigate("/especialidades")
     }
 
+    if (isRegisterMode && registerSuccess) {
+        return (
+            <div className="flex flex-col h-full min-h-screen bg-background">
+                {showPageHeader ? <PageHeader title={pageTitle} /> : null}
+                <div className="flex-1 flex flex-col items-center justify-center gap-4 px-6">
+                    <div className="h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                        <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
+                    </div>
+                    <h2 className="text-lg font-semibold text-foreground">Especialidade cadastrada com sucesso!</h2>
+                    <p className="text-sm text-muted-foreground text-center">{registeredName}</p>
+                    <div className="mt-2 flex gap-3">
+                        <Button onClick={() => navigate("/especialidades")} className="cursor-pointer">
+                            <ArrowLeft className="w-4 h-4" />
+                            Voltar para especialidades
+                        </Button>
+                        <Button
+                            onClick={() => {
+                                setRegisterSuccess(false)
+                                setRegisteredName("")
+                                form.reset({ description: "", isActive: true })
+                            }}
+                            className="cursor-pointer"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Cadastrar nova especialidade
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
     return (
         <div className="flex min-h-screen flex-col bg-background text-foreground">
             {showPageHeader ? <PageHeader title={pageTitle} /> : null}
@@ -201,8 +235,9 @@ export function SpecialtyProfile({
                 ) : (
                     <>
                         {loadError ? (
-                            <div className="mb-6 rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                                {loadError}
+                            <div className="flex items-start gap-3 mb-6 rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                                <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                                <span>{loadError}</span>
                             </div>
                         ) : null}
 
@@ -243,15 +278,9 @@ export function SpecialtyProfile({
                             <div className="mt-auto flex flex-col gap-3 border-t pt-5 sm:flex-row sm:items-center sm:justify-end">
                                 <div className="flex flex-col items-start gap-2 sm:items-end">
                                     <div className="flex gap-2">
-                                        <Button type="button" variant="outline" onClick={handleCancel} className="cursor-pointer">
-                                            <ArrowLeft className="w-4 h-4" />
-                                            Voltar
-                                        </Button>
+                                        <BackButton onClick={handleCancel} />
 
-                                        <Button type="submit" disabled={isLoading || isSaving} className="cursor-pointer">
-                                            <Save className="h-4 w-4" />
-                                            {isSaving ? "Salvando..." : "Salvar"}
-                                        </Button>
+                                        <SaveButton isSaving={isSaving} disabled={isLoading} />
                                     </div>
 
                                 </div>

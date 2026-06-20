@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useForm, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useNavigate, useParams } from "react-router"
-import { ArrowLeft, Save } from "lucide-react"
+import { AlertTriangle, ArrowLeft, CheckCircle2, Plus } from "lucide-react"
 import * as z from "zod"
 
 import { Button } from "@/components/ui/button"
@@ -13,6 +13,7 @@ import { proceduresService } from "@/Servicos/procedures.service"
 import { specialtiesService, type SpecialtyUnitFullData } from "@/Servicos/specialties.service"
 import { cn } from "@/lib/utils"
 import { ProcedureFormSkeleton } from "./Skeleton/edicao-procedimento-skeleton"
+import { BackButton, SaveButton } from "@/components/ui/buttons"
 
 const PROCEDURE_TYPES = [
     { value: "1", label: "Consulta" },
@@ -148,6 +149,8 @@ export function ProcedureProfile({
     const [isLoading, setIsLoading] = useState(!isRegisterMode)
     const [isSaving, setIsSaving] = useState(false)
     const [loadError, setLoadError] = useState<string | null>(null)
+    const [registerSuccess, setRegisterSuccess] = useState(false)
+    const [registeredName, setRegisteredName] = useState("")
     const [specialties, setSpecialties] = useState<SpecialtyUnitFullData[]>([])
     const [isLoadingSpecialties, setIsLoadingSpecialties] = useState(false)
 
@@ -281,8 +284,8 @@ export function ProcedureProfile({
                     specialtyId: values.specialtyId || null,
                 })
 
-                alert("Procedimento cadastrado com sucesso.")
-                navigate(afterSavePath ?? "/procedimentos")
+                setRegisteredName(values.description.trim())
+                setRegisterSuccess(true)
                 return
             }
 
@@ -302,7 +305,6 @@ export function ProcedureProfile({
                 specialtyId: values.specialtyId || null,
             })
 
-            alert("Procedimento atualizado com sucesso.")
             navigate(afterSavePath ?? "/procedimentos")
         } catch (error) {
             setLoadError(error instanceof Error ? error.message : "Erro ao salvar procedimento")
@@ -325,6 +327,38 @@ export function ProcedureProfile({
         navigate("/procedimentos")
     }
 
+    if (isRegisterMode && registerSuccess) {
+        return (
+            <div className="flex flex-col h-full min-h-screen bg-background">
+                {showPageHeader ? <PageHeader title={pageTitle} /> : null}
+                <div className="flex-1 flex flex-col items-center justify-center gap-4 px-6">
+                    <div className="h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                        <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
+                    </div>
+                    <h2 className="text-lg font-semibold text-foreground">Procedimento cadastrado com sucesso!</h2>
+                    <p className="text-sm text-muted-foreground text-center">{registeredName}</p>
+                    <div className="mt-2 flex gap-3">
+                        <Button onClick={() => navigate("/procedimentos")} className="cursor-pointer">
+                            <ArrowLeft className="w-4 h-4" />
+                            Voltar para procedimentos
+                        </Button>
+                        <Button
+                            onClick={() => {
+                                setRegisterSuccess(false)
+                                setRegisteredName("")
+                                form.reset({ description: "", code: "", type: "", specialtyId: "", price: "0,00", observation: "", isActive: true })
+                            }}
+                            className="cursor-pointer"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Cadastrar novo procedimento
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
     return (
         <div className="flex min-h-screen flex-col bg-background text-foreground">
             {showPageHeader ? <PageHeader title={pageTitle} /> : null}
@@ -335,8 +369,9 @@ export function ProcedureProfile({
                 ) : (
                     <>
                         {loadError ? (
-                            <div className="mb-6 rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                                {loadError}
+                            <div className="flex items-start gap-3 mb-6 rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                                <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                                <span>{loadError}</span>
                             </div>
                         ) : null}
 
@@ -453,15 +488,9 @@ export function ProcedureProfile({
                             <div className="mt-auto flex flex-col gap-3 border-t pt-5 sm:flex-row sm:items-center sm:justify-end">
                                 <div className="flex flex-col items-start gap-2 sm:items-end">
                                     <div className="flex gap-2">
-                                        <Button type="button" variant="outline" onClick={handleCancel} className="cursor-pointer">
-                                            <ArrowLeft className="w-4 h-4" />
-                                            Voltar
-                                        </Button>
+                                        <BackButton onClick={handleCancel} />
 
-                                        <Button type="submit" disabled={isLoading || isSaving} className="cursor-pointer">
-                                            <Save className="h-4 w-4" />
-                                            {isSaving ? "Salvando..." : "Salvar"}
-                                        </Button>
+                                        <SaveButton isSaving={isSaving} disabled={isLoading} />
                                     </div>
                                 </div>
                             </div>

@@ -20,6 +20,7 @@ import { professionalsService, type ProfessionalUnitFullData } from "@/Servicos/
 import * as z from "zod"
 import { ToastContainer, useToast } from "./Componentes/Toast"
 import { EdicaoProfissionalSkeleton } from "./Componentes/Skeleton/edicao-profissional-skeleton"
+import { BackButton, SaveButton } from "@/components/ui/buttons"
 
 // ============================================================================
 // FORM VALUE TYPE - valores usados pelo formulário (UI)
@@ -1108,27 +1109,20 @@ export function ProfessionalProfile({
                         )}
 
                     </div>
-
-                    <div className="mt-8 flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:justify-end">
-                        {!isProfileView && (
-                            <Button
-                                type="button"
-                                variant="outline"
-                                className="h-11 rounded-xl px-5 cursor-pointer"
-                                onClick={() => onCancel?.() ?? navigate(-1)}
-                            >
-                                <ArrowLeft className="w-4 h-4" />
-                                Voltar
-                            </Button>
-                        )}
-                        <Button
-                            type="submit"
-                            className="h-11 rounded-xl bg-primary px-5 text-primary-foreground hover:bg-primary/90 cursor-pointer"
-                            disabled={isSaving}
-                        >
-                            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                            {"Salvar"}
-                        </Button>
+                
+                    <div className="mt-auto flex flex-col gap-3 border-t pt-5 sm:flex-row sm:items-center sm:justify-end">
+                        <div className="flex flex-col items-start gap-2 sm:items-end">
+                            <div className="flex gap-2">
+                                {!isProfileView && (
+                                    <BackButton onClick={() => onCancel?.() ?? navigate(-1)} />
+                                )}
+                                <SaveButton
+                                    type="submit"
+                                    isSaving={isSaving}
+                                    disabled={isSaving}
+                                />
+                            </div>
+                        </div>
                     </div>
                 </form>
             </main>

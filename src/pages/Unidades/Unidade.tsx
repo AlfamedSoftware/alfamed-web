@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useForm, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import { Save } from "lucide-react"
+import { SaveButton } from "@/components/ui/buttons"
 
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
@@ -256,10 +256,7 @@ export function Unidade() {
                         <div className="mt-auto flex flex-col gap-3 border-t pt-5 sm:flex-row sm:items-center sm:justify-between">
                             <p className="text-sm text-muted-foreground"></p>
 							<div className="flex flex-col items-start gap-2 sm:items-end">
-								<Button type="submit" disabled={isLoading || isSaving} className="cursor-pointer">
-									<Save className="h-4 w-4" />
-									{isSaving ? "Salvando..." : "Salvar"}
-								</Button>
+								<SaveButton isSaving={isSaving} disabled={isLoading} />
 								{saveSuccess ? (
 									<p className="text-sm font-medium text-green-600">{saveSuccess}</p>
 								) : null}

@@ -348,7 +348,7 @@ export function Agendas() {
                     className="ml-auto self-center bg-blue-600 hover:bg-blue-700 text-white rounded-full px-4 h-9 gap-1.5 shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     <Plus className="w-4 h-4" />
-                    Criar Agenda
+                    Nova Agenda
                 </Button>
             </div>
 

@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react"
 import { useNavigate, useSearchParams } from "react-router"
-import { AlertTriangle, ArrowLeft, Calendar, CheckCircle2, ClipboardList, Clock, Info, MapPin, Search, User, UserCheck, Wallet } from "lucide-react"
+import { AlertTriangle, Calendar, CheckCircle2, ClipboardList, Clock, Info, MapPin, Search, User, UserCheck, Wallet } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { fetchWithAuth } from "@/lib/api-client"
 import { authBaseUrl } from "@/lib/auth"
 import { digitsOnly } from "../Profissionais/edicao-profissionais"
+import { BackButton, SaveButton } from "@/components/ui/buttons"
 
 // --- Types ---
 
@@ -555,7 +556,7 @@ export function Agendamentos() {
                 </div>
 
                 {/* Card de status de disponibilidade */}
-                {!isSlotLoading && slotInfo && (
+                {!isSlotLoading && slotInfo && !scheduleError && (
                     slotInfo.isAvailable ? (
                         <div className="flex items-start gap-3 rounded-md border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-primary">
                             <Info className="h-4 w-4 shrink-0 mt-0.5" />
@@ -578,18 +579,17 @@ export function Agendamentos() {
 
                 {/* Rodapé */}
                 <div className="mt-auto flex items-center justify-end gap-2 border-t pt-5">
-                    <Button variant="outline" onClick={() => navigate(-1)} className="gap-2 cursor-pointer">
-                        <ArrowLeft className="w-4 h-4" />
-                        Voltar
-                    </Button>
-                    <Button
+                    <BackButton onClick={() => navigate(-1)} />
+                    <SaveButton
+                        type="button"
+                        isSaving={isScheduling}
+                        disabled={!patient || slotInfo?.isAvailable === false}
                         onClick={handleAgendar}
-                        disabled={!patient || isScheduling || slotInfo?.isAvailable === false}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-8 gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        <CheckCircle2 className="w-4 h-4" />
-                        {isScheduling ? "Agendando..." : "Agendar"}
-                    </Button>
+                        icon={<CheckCircle2 className="w-4 h-4" />}
+                        label="Gravar"
+                        savingLabel="Gravando..."
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-8 gap-2 disabled:cursor-not-allowed"
+                    />
                 </div>
 
             </main>
