@@ -23,6 +23,9 @@ interface ScheduleSlotApiResponse {
         endTime: string
         durationMinutes: number
     }
+    professional_unit: {
+        id: string
+    }
     units: {
         id: string
         name: string
@@ -47,6 +50,7 @@ interface SlotInfo {
     time: string
     endTime: string
     durationMinutes: number
+    professionalUnitId: string
     unitName: string
     unitAddress: string
     specialtyName: string
@@ -150,6 +154,7 @@ export function Agendamentos() {
                     time: data.startTime.slice(0, 5),
                     endTime: data.endTime.slice(0, 5),
                     durationMinutes: data.schedule.durationMinutes,
+                    professionalUnitId: data.professional_unit.id,
                     unitName: data.units.name,
                     unitAddress: [data.units.address, data.units.city, data.units.state].filter(Boolean).join(", "),
                     specialtyName: data.specialties.name,
@@ -269,8 +274,19 @@ export function Agendamentos() {
                 setScheduleError("Este horário foi ocupado por outro atendimento. Escolha um novo horário.")
                 return
             }
-            // TODO: chamar rota de agendamento (scheduleSlotId + patientId)
-            await new Promise((resolve) => setTimeout(resolve, 1000))
+            await fetchWithAuth(`${authBaseUrl}/appointments/`, {
+                method: "POST",
+                body: JSON.stringify({
+                    patientId: patient.id,
+                    professionalUnitId: slotInfo?.professionalUnitId,
+                    scheduleSlotId,
+                    startAt: null,
+                    endAt: null,
+                    diagnostics: null,
+                    evolution: null,
+                    statusId: 1,
+                }),
+            })
             setScheduleSuccess(true)
         } catch {
             setScheduleError("Erro ao verificar disponibilidade. Tente novamente.")
