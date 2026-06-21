@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react"
 import { useNavigate } from "react-router"
-import { CheckCircle2, Link2, Loader2, Search } from "lucide-react"
+import { CheckCircle2, Search } from "lucide-react"
 
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
@@ -249,6 +249,7 @@ export function NovoProfissional() {
                                     <BackButton onClick={() => navigate("/profissionais")} />
                                     <SaveButton
                                         type="submit"
+                                        onClick={handleLinkUser}
                                         isSaving={isLinking}
                                         disabled={isLinking || alreadyLinked || !roleId || !hasLookupResult}
                                     />
