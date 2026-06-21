@@ -133,8 +133,16 @@ export function CadastrarAgendas() {
     const [searchParams] = useSearchParams()
     const { sessionUnit } = useSessionUnit()
     const selectedUnitId = sessionUnit?.selectedUnitId ?? null
+    const isMedic = sessionUnit?.selectedRoles?.key === "medic"
+    const sessionProfessionalUnitId = sessionUnit?.selectedProfessionalUnitId ?? null
 
     const [professionalUnitId, setProfessionalUnitId] = useState(searchParams.get("professionalUnitId") ?? "")
+
+    useEffect(() => {
+        if (isMedic && sessionProfessionalUnitId) {
+            setProfessionalUnitId(sessionProfessionalUnitId)
+        }
+    }, [isMedic, sessionProfessionalUnitId])
     const [specialtyId, setSpecialtyId] = useState(searchParams.get("specialtyId") ?? "")
     const [procedureId, setProcedureId] = useState("")
     const [dateInput, setDateInput] = useState(searchParams.get("date") ?? getTodayFormatted())
@@ -157,12 +165,20 @@ export function CadastrarAgendas() {
     useEffect(() => {
         if (!selectedUnitId) return
         setIsProfessionalsLoading(true)
+        if (isMedic && sessionProfessionalUnitId) {
+            professionalsService
+                .getFullDataByProfessionalUnitId(sessionProfessionalUnitId)
+                .then((data) => setProfessionals([data]))
+                .catch(() => {})
+                .finally(() => setIsProfessionalsLoading(false))
+            return
+        }
         professionalsService
             .listByUnit(selectedUnitId, { isActive: true, roleKey: "medic" })
             .then(setProfessionals)
             .catch(() => {})
             .finally(() => setIsProfessionalsLoading(false))
-    }, [selectedUnitId])
+    }, [selectedUnitId, isMedic, sessionProfessionalUnitId])
 
     useEffect(() => {
         if (!selectedUnitId) return
@@ -306,10 +322,10 @@ export function CadastrarAgendas() {
                             <select
                                 value={professionalUnitId}
                                 onChange={(e) => { setProfessionalUnitId(e.target.value); clearError("professionalUnitId") }}
-                                disabled={isProfessionalsLoading}
+                                disabled={isProfessionalsLoading || isMedic}
                                 className={selectClass(!!errors.professionalUnitId)}
                             >
-                                <option value="">Selecione um profissional</option>
+                                {!isMedic && <option value="">Selecione um profissional</option>}
                                 {professionals.map((p) => (
                                     <option key={p.id} value={p.id}>{getProfessionalName(p)}</option>
                                 ))}

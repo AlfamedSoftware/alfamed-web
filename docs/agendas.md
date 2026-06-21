@@ -100,11 +100,18 @@ Cria uma nova grade de horários para um profissional em uma data específica, d
 | Quantidade de vagas | Sim         | Inteiro, mínimo 1                                           |
 | Tempo por consulta  | Sim         | Inteiro em minutos, mínimo 1                                |
 
+### Comportamento por Papel (`selectedRoles.key`)
+
+| Papel   | Campo Profissional                                                                                   |
+|---------|------------------------------------------------------------------------------------------------------|
+| `medic` | Busca apenas o próprio professional unit, pré-seleciona e desabilita o select. Opção "Selecione um profissional" é ocultada. |
+| Outros  | Lista todos os profissionais ativos com papel `medic` da unidade; seleção livre.                    |
+
 ### Regras de Negócio
 
 - Os dropdowns de especialidade e procedimento são em cascata: selecionar uma especialidade recarrega os procedimentos disponíveis.
 - **Verificação de meia-noite**: ao preencher vagas e duração, o sistema calcula se o horário final ultrapassa 00:00. Se ultrapassar, exibe aviso e bloqueia o envio.
-- Parâmetros de URL pré-populam profissional, especialidade e data (vindo da listagem).
+- Parâmetros de URL pré-populam profissional, especialidade e data (vindo da listagem); para `medic`, o profissional é sempre sobrescrito pelo da sessão.
 - Após salvar com sucesso, exibe tela de confirmação com detalhes da agenda criada, com opções de **Voltar** ou **Criar outra**.
 
 ### Payload Enviado à API
@@ -126,7 +133,8 @@ Cria uma nova grade de horários para um profissional em uma data específica, d
 
 | Endpoint                                                              | Quando é chamado                    |
 |-----------------------------------------------------------------------|-------------------------------------|
-| `GET /professionals/list-by-unit?unitId=X&isActive=true&roleKey=medic` | Ao montar o componente             |
+| `GET /professional-units/list-professional-unit-full-data-by-unit/{unitId}?isActive=true&roleKey=medic` | Ao montar (papel ≠ `medic`) |
+| `GET /professional-units/professional-unit-full-data/{professionalUnitId}` | Ao montar (papel = `medic`) |
 | `GET /specialties/list-by-unit?unitId=X&isActive=true`                | Ao montar o componente              |
 | `GET /procedures/list-by-unit?unitId=X&specialtyId=Y&isActive=true`   | Ao selecionar especialidade         |
 | `POST /schedules/`                                                    | Ao salvar                           |
