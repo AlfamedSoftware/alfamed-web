@@ -45,6 +45,7 @@ const MENU_ROLE_KEYS = {
     administrative: "administrative",
     assistant: "administrative_assistant",
     medic: "medic",
+    technical_executor: "technical_executor",
 } as const
 
 type RoleMenuKey = (typeof MENU_ROLE_KEYS)[keyof typeof MENU_ROLE_KEYS]
@@ -55,6 +56,7 @@ const roleLabels: Record<RoleMenuKey, string> = {
     [MENU_ROLE_KEYS.administrative]: "Administrativo",
     [MENU_ROLE_KEYS.assistant]: "Assistente administrativo",
     [MENU_ROLE_KEYS.medic]: "Médico",
+    [MENU_ROLE_KEYS.technical_executor]: "Técnico Executante",
 }
 
 const ADMINISTRATIVE_MENU_ITEMS: SidebarMenuItemConfig[] = [
@@ -74,13 +76,21 @@ const CLINICAL_MENU_ITEMS: SidebarMenuItemConfig[] = [
 ]
 
 const MEDICAL_MENU_ITEMS: SidebarMenuItemConfig[] = [
-    { title: "Atendimentos", icon: CalendarDays, url: "/listar-agendas" },
+    { title: "Início", icon: HomeIcon, url: "/home" },
+    { title: "Agendas", icon: CalendarDays, url: "/agendas" },
+    { title: "Atendimentos", icon: CalendarDays, url: "/atendimentos" },
+]
+
+const TECHNICAL_EXECUTOR_MENU_ITEMS: SidebarMenuItemConfig[] = [
+    { title: "Início", icon: HomeIcon, url: "/home" },
+    { title: "Atendimentos?", icon: CalendarDays, url: "/atendimentos" },
 ]
 
 const menuItemsByRole: Record<RoleMenuKey, SidebarMenuItemConfig[]> = {
     [MENU_ROLE_KEYS.administrative]: ADMINISTRATIVE_MENU_ITEMS,
-    [MENU_ROLE_KEYS.medic]: CLINICAL_MENU_ITEMS && MEDICAL_MENU_ITEMS,
+    [MENU_ROLE_KEYS.medic]: MEDICAL_MENU_ITEMS,
     [MENU_ROLE_KEYS.assistant]: CLINICAL_MENU_ITEMS,
+    [MENU_ROLE_KEYS.technical_executor]: TECHNICAL_EXECUTOR_MENU_ITEMS,
 } as const
 
 export function AppSidebar() {

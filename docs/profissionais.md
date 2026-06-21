@@ -124,8 +124,8 @@ Componente central de formulário, usado em três modos:
 | Telefone       | Sim         | Formatado como `(11) 98765-4321`            |
 | Data nascimento| Sim         | ISO date `YYYY-MM-DD`                       |
 | Sexo           | Sim         | `M` / `F` / `O`                             |
-| Senha          | Condicional | Obrigatória no cadastro (mínimo 8 caracteres); opcional na edição |
-| Confirmar senha| Condicional | Deve ser igual à senha quando informada     |
+| Senha          | Varia       | **Cadastro:** obrigatória, label "Senha" (mínimo 8 caracteres). **Edição:** opcional, label "Nova senha (opcional)"; apenas validada se preenchida. Sempre visível em todos os modos. |
+| Confirmar senha| Varia       | Obrigatória quando senha é preenchida; deve ser igual à senha. Label "Confirme a senha" em todos os modos. |
 
 #### Dados Profissionais
 
@@ -146,7 +146,7 @@ Componente central de formulário, usado em três modos:
 
 - Quando o papel tem `roleKey === "medic"`, os campos CRM estado e CRM número tornam-se obrigatórios.
 - O papel do profissional logado não pode ser alterado (campo desabilitado).
-- Senhas nunca são pré-preenchidas no modo edição.
+- Os campos de senha aparecem em **todos os modos** (cadastro e edição). No modo edição o campo é exibido como "Nova senha (opcional)" e só é enviado à API se preenchido. Os campos nunca são pré-preenchidos.
 - CRM é armazenado e parseado no formato `SC12345` (2 letras + 4–6 dígitos).
 - CPF e telefone são formatados automaticamente durante a digitação.
 - O avatar exibe as iniciais do nome, com cor gerada a partir de hash do nome/CPF/ID.

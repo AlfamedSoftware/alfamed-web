@@ -8,6 +8,7 @@ import { fetchWithAuth } from "@/lib/api-client"
 import { authBaseUrl } from "@/lib/auth"
 import { digitsOnly } from "../Profissionais/edicao-profissionais"
 import { BackButton, SaveButton } from "@/components/ui/buttons"
+import { useSessionUnit } from "@/contexts/session-unit-context"
 
 // --- Types ---
 
@@ -123,6 +124,9 @@ function formatPhone(value: string) {
 export function Agendamentos() {
     const navigate = useNavigate()
     const [searchParams] = useSearchParams()
+    const { sessionUnit } = useSessionUnit()
+    const isMedic = sessionUnit?.selectedRoles?.key === "medic"
+    const sessionProfessionalUnitId = sessionUnit?.selectedProfessionalUnitId ?? null
 
     const scheduleSlotId = searchParams.get("scheduleSlotId") ?? ""
     const date = searchParams.get("date") ?? ""
@@ -577,13 +581,20 @@ export function Agendamentos() {
                     </div>
                 )}
 
+                {isMedic && slotInfo && sessionProfessionalUnitId && slotInfo.professionalUnitId !== sessionProfessionalUnitId && (
+                    <div className="flex items-start gap-3 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
+                        <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                        <span>Você não tem permissão para agendar em uma agenda de outro profissional.</span>
+                    </div>
+                )}
+
                 {/* Rodapé */}
                 <div className="mt-auto flex items-center justify-end gap-2 border-t pt-5">
                     <BackButton onClick={() => navigate(-1)} />
                     <SaveButton
                         type="button"
                         isSaving={isScheduling}
-                        disabled={!patient || slotInfo?.isAvailable === false}
+                        disabled={!patient || slotInfo?.isAvailable === false || (isMedic && !!sessionProfessionalUnitId && slotInfo?.professionalUnitId !== sessionProfessionalUnitId)}
                         onClick={handleAgendar}
                         icon={<CheckCircle2 className="w-4 h-4" />}
                         label="Gravar"

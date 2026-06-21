@@ -104,7 +104,7 @@ export function Profissionais({ isSpecialtyLink = false }: ProfissionaisProps) {
                 {!isSpecialtyLink && (
                     <Button
                         id="new-professional-btn"
-                        onClick={() => navigate("/profissionais/novo")}
+                        onClick={() => navigate("/profissionais/importacao")}
                         className="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-4 h-9 gap-1.5 shadow-sm cursor-pointer"
                     >
                         <Plus className="w-4 h-4" />

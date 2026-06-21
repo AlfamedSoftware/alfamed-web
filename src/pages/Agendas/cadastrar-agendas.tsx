@@ -260,7 +260,7 @@ export function CadastrarAgendas() {
 
         return (
             <div className="flex flex-col h-full min-h-screen bg-background">
-                <PageHeader title="Criar Agenda" />
+                <PageHeader title="Criação de Agenda" />
                 <div className="flex-1 flex flex-col items-center justify-center gap-4 px-6">
                     <div className="h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
                         <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />

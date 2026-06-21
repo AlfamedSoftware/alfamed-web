@@ -157,6 +157,8 @@ export function Agendas() {
     const [searchParams, setSearchParams] = useSearchParams()
     const { sessionUnit } = useSessionUnit()
     const selectedUnitId = sessionUnit?.selectedUnitId ?? null
+    const isMedic = sessionUnit?.selectedRoles?.key === "medic"
+    const sessionProfessionalUnitId = sessionUnit?.selectedProfessionalUnitId ?? null
 
     const [dateInput, setDateInput] = useState(() => searchParams.get("date") ?? getTodayFormatted())
     const [dateError, setDateError] = useState<string | null>(null)
@@ -166,6 +168,12 @@ export function Agendas() {
     const [selectedProfessionalUnitId, setSelectedProfessionalUnitId] = useState(
         () => searchParams.get("professionalUnitId") ?? ""
     )
+
+    useEffect(() => {
+        if (isMedic && sessionProfessionalUnitId) {
+            setSelectedProfessionalUnitId(sessionProfessionalUnitId)
+        }
+    }, [isMedic, sessionProfessionalUnitId])
 
     const [specialties, setSpecialties] = useState<SpecialtyUnitFullData[]>([])
     const [isSpecialtiesLoading, setIsSpecialtiesLoading] = useState(false)
@@ -184,6 +192,14 @@ export function Agendas() {
     useEffect(() => {
         if (!selectedUnitId) return
         setIsProfessionalsLoading(true)
+        if (isMedic && sessionProfessionalUnitId) {
+            professionalsService
+                .getFullDataByProfessionalUnitId(sessionProfessionalUnitId)
+                .then((data) => setProfessionals([data]))
+                .catch(() => {})
+                .finally(() => setIsProfessionalsLoading(false))
+            return
+        }
         professionalsService
             .listByUnit(selectedUnitId, { isActive: true, roleKey: "medic" })
             .then((data) => {
@@ -191,7 +207,7 @@ export function Agendas() {
             })
             .catch(() => {})
             .finally(() => setIsProfessionalsLoading(false))
-    }, [selectedUnitId])
+    }, [selectedUnitId, isMedic, sessionProfessionalUnitId])
 
     useEffect(() => {
         if (!selectedUnitId) return
@@ -274,7 +290,7 @@ export function Agendas() {
 
     return (
         <div className="flex flex-col h-full min-h-screen bg-background">
-            <PageHeader title="Listagem de Agendas" />
+            <PageHeader title="Agendas" />
 
             {/* Barra de filtros */}
             <div className="flex flex-wrap items-end gap-3 px-6 py-4">
@@ -313,10 +329,10 @@ export function Agendas() {
                     <select
                         value={selectedProfessionalUnitId}
                         onChange={(e) => setSelectedProfessionalUnitId(e.target.value)}
-                        disabled={isProfessionalsLoading}
+                        disabled={isProfessionalsLoading || isMedic}
                         className="h-10 w-60 rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50 cursor-pointer"
                     >
-                        <option value="">Todos os profissionais</option>
+                        {!isMedic && <option value="">Todos os profissionais</option>}
                         {professionals.map((p) => (
                             <option key={p.id} value={p.id}>
                                 {getProfessionalName(p)}

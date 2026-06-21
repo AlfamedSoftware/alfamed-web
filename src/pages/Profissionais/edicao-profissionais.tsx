@@ -949,28 +949,28 @@ export function ProfessionalProfile({
                                     </label>
                                     <div />
                                 </div>
-                                {isRegisterMode ? (
-                                    <div className="grid gap-5 sm:grid-cols-2">
-                                        <label className="grid gap-2">
-                                            <span className="text-sm font-medium text-foreground">Senha</span>
-                                            <PasswordInput className="h-11 rounded-xl" autoComplete="new-password" {...form.register("password")} />
-                                            {form.formState.errors.password?.message ? (
-                                                <span className="text-xs text-destructive">
-                                                    {form.formState.errors.password.message}
-                                                </span>
-                                            ) : null}
-                                        </label>
-                                        <label className="grid gap-2">
-                                            <span className="text-sm font-medium text-foreground">Confirme sua senha</span>
-                                            <PasswordInput className="h-11 rounded-xl" autoComplete="new-password" {...form.register("confirmPassword")} />
-                                            {form.formState.errors.confirmPassword?.message ? (
-                                                <span className="text-xs text-destructive">
-                                                    {form.formState.errors.confirmPassword.message}
-                                                </span>
-                                            ) : null}
-                                        </label>
-                                    </div>
-                                ) : null}
+                                <div className="grid gap-5 sm:grid-cols-2">
+                                    <label className="grid gap-2">
+                                        <span className="text-sm font-medium text-foreground">
+                                            {isRegisterMode ? "Senha" : "Nova senha (opcional)"}
+                                        </span>
+                                        <PasswordInput className="h-11 rounded-xl" autoComplete="new-password" {...form.register("password")} />
+                                        {form.formState.errors.password?.message ? (
+                                            <span className="text-xs text-destructive">
+                                                {form.formState.errors.password.message}
+                                            </span>
+                                        ) : null}
+                                    </label>
+                                    <label className="grid gap-2">
+                                        <span className="text-sm font-medium text-foreground">Confirme a senha</span>
+                                        <PasswordInput className="h-11 rounded-xl" autoComplete="new-password" {...form.register("confirmPassword")} />
+                                        {form.formState.errors.confirmPassword?.message ? (
+                                            <span className="text-xs text-destructive">
+                                                {form.formState.errors.confirmPassword.message}
+                                            </span>
+                                        ) : null}
+                                    </label>
+                                </div>
 
                             </div>
                         </section>

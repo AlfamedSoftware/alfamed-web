@@ -45,6 +45,15 @@ Exibe todas as agendas de um dia com suas vagas, permitindo filtrar por data, pr
 - Filtros e data são persistidos em parâmetros de URL (`date`, `professionalUnitId`, `specialtyId`).
 - O botão **Nova Agenda** só é habilitado quando a data informada é válida.
 
+### Comportamento por Papel (`selectedRoles.key`)
+
+| Papel   | Filtro de Profissional                                                                 |
+|---------|----------------------------------------------------------------------------------------|
+| `medic` | Exibe apenas o próprio profissional (via `getFullDataByProfessionalUnitId`), pré-selecionado e desabilitado. A opção "Todos os profissionais" é ocultada. |
+| Outros  | Lista todos os profissionais ativos com papel `medic` da unidade; seleção livre.       |
+
+- Quando `isMedic`, o `selectedProfessionalUnitId` é inicializado com `sessionUnit.selectedProfessionalUnitId` assim que a sessão carrega (via `useEffect`), sobrescrevendo qualquer valor de URL.
+
 ### Card de Agenda
 
 Cada agenda exibe:
@@ -66,7 +75,8 @@ Cada agenda exibe:
 
 | Endpoint                                               | Quando é chamado            |
 |--------------------------------------------------------|-----------------------------|
-| `GET /professionals/list-by-unit?unitId=X&isActive=true&roleKey=medic` | Ao montar o componente |
+| `GET /professional-units/list-professional-unit-full-data-by-unit/{unitId}?isActive=true&roleKey=medic` | Ao montar (papel ≠ `medic`) |
+| `GET /professional-units/professional-unit-full-data/{professionalUnitId}` | Ao montar (papel = `medic`) |
 | `GET /specialties/list-by-unit?unitId=X&isActive=true` | Ao montar o componente      |
 | `GET /schedules/list-full-schedule-slots?date=YYYY-MM-DD[&professionalUnitId=X][&specialtyId=Y]` | Ao alterar qualquer filtro |
 
@@ -150,6 +160,15 @@ Agenda um paciente em uma vaga de horário específica. Recebe o `scheduleSlotId
 - A disponibilidade é verificada **novamente antes de salvar**, para evitar conflito de agendamento simultâneo.
 - Se a vaga estiver ocupada, o botão **Gravar** é bloqueado e a vaga é destacada em vermelho.
 - Após salvar com sucesso, exibe tela de confirmação com opção de retornar à listagem.
+
+### Comportamento por Papel (`selectedRoles.key`)
+
+| Papel   | Comportamento                                                                                     |
+|---------|---------------------------------------------------------------------------------------------------|
+| `medic` | Valida que o `professionalUnitId` do slot corresponde ao `selectedProfessionalUnitId` da sessão. Se não corresponder, exibe aviso de permissão e desabilita o botão **Gravar**. |
+| Outros  | Nenhuma restrição adicional.                                                                      |
+
+- Essa validação protege o acesso direto via URL por médicos que não pertencem à agenda do slot.
 
 ### Payload Enviado à API
 

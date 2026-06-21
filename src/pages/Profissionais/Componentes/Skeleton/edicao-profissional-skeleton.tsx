@@ -70,6 +70,11 @@ export function EdicaoProfissionalSkeleton({ isProfileView = false }: { isProfil
                                     <FieldSkeleton labelWidth="w-10" />
                                     <div />
                                 </div>
+
+                                <div className="grid gap-5 sm:grid-cols-2">
+                                    <FieldSkeleton labelWidth="w-36" />
+                                    <FieldSkeleton labelWidth="w-28" />
+                                </div>
                             </div>
                         </section>
 

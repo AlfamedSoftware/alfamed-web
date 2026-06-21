@@ -67,7 +67,7 @@ export function App() {
             <Route path="unidade" element={<Unidade />} />
 
             <Route path="profissionais" element={<Profissionais />} />
-            <Route path="profissionais/novo" element={<NovoProfissional />} />
+            <Route path="profissionais/importacao" element={<NovoProfissional />} />
             <Route path="profissionais/:id" element={<ProfessionalProfile />} />
             <Route path="profissionais/cadastro" element={<CadastroProfissionais />} />
             
