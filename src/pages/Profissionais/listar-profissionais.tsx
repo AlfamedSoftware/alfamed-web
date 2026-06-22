@@ -90,12 +90,12 @@ export function Profissionais({ isAgenda = false, isSpecialtyLink = false }: Pro
     const handleProfessionalClick = isAgenda
         ? (professionalId: string) => navigate(`/profissionais/${professionalId}?isAgenda=true`)
         : isSpecialtyLink
-        ? (professionalId: string) => navigate(`/profissionais/vinculo-especialidades?professionalUnitId=${professionalId}`)
-        : undefined
+            ? (professionalId: string) => navigate(`/profissionais/vinculo-especialidades?professionalUnitId=${professionalId}`)
+            : undefined
 
     return (
         <div className="flex flex-col h-full min-h-screen bg-background">
-            <PageHeader title={isAgenda ? "Profissionais - Cadastro de Agendas" : isSpecialtyLink ? "Profissionais - Vínculo de Especialidades" : "Profissionais"} />
+            <PageHeader title={isAgenda ? "Cadastro de Agendas" : isSpecialtyLink ? "Vínculo de Especialidades" : "Profissionais"} />
 
             <div className="flex flex-wrap items-center gap-3 px-6 py-4">
                 <ProfessionalFilters activeFilter={activeFilter} onFilterChange={setActiveFilter} counts={counts} />

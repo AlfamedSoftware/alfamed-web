@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react"
 import { IlamyCalendar, defaultTranslations, useIlamyCalendarContext, type CalendarView, type EventFormProps, type Translations } from "@ilamy/calendar"
+import dayjs from "dayjs"
 import "dayjs/locale/pt-br"
+dayjs.locale("pt-br")
 import { CalendarDays, ChevronLeft, ChevronRight, Plus, Trash2, X } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
@@ -11,6 +13,7 @@ import { useSidebarMenu } from "@/contexts/sidebar-menu-context"
 import { useProfessionals } from "../../hooks/use-professionals"
 import { appointmentsService, type AppointmentCalendarEvent } from "../../services/appointments.service"
 import { patientsService, type PatientListItem } from "../../services/patients.service"
+import { AgendasSkeleton } from "./agendas-skeleton"
 
 type BookingFormState = {
     patientId: string
@@ -763,81 +766,84 @@ export function Agendas() {
 
     return (
         <div className="flex min-h-0 flex-1 flex-col">
-            <PageHeader title="Agendas" />
+            <PageHeader title="Agendamentos" />
 
             <div className="flex min-h-0 flex-1 flex-col gap-4 p-4">
-                <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
-                    <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-                        <div className="space-y-1">
-                            <h2 className="text-lg font-semibold text-foreground">Agenda da unidade</h2>
+                {professionalsLoading ? (
+                    <AgendasSkeleton />
+                ) : (
+                    <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+                        <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                            <div className="space-y-1">
+                                <h2 className="text-lg font-semibold text-foreground">Agenda da unidade</h2>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-2">
+                                <Button onClick={handleOpenBooking} className="gap-2 header-booking-button">
+                                    <Plus className="size-4" />
+                                    Novo agendamento
+                                </Button>
+                            </div>
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-2">
-                            <Button onClick={handleOpenBooking} className="gap-2 header-booking-button">
-                                <Plus className="size-4" />
-                                Novo agendamento
-                            </Button>
-                        </div>
-                    </div>
+                        {(agendaError || professionalsError || patientsError) && (
+                            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                                {agendaError ?? professionalsError ?? patientsError}
+                            </div>
+                        )}
 
-                    {(agendaError || professionalsError || patientsError) && (
-                        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                            {agendaError ?? professionalsError ?? patientsError}
-                        </div>
-                    )}
+                        <div className="mb-4 flex flex-col gap-4 lg:flex-row">
+                            <div className="w-full lg:w-72">
+                                {canChooseProfessionals ? (
+                                    <div className="rounded-xl border border-border bg-background p-4">
+                                        <div className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
+                                            <CalendarDays className="size-4 text-muted-foreground" />
+                                            Profissionais
+                                        </div>
 
-                    <div className="mb-4 flex flex-col gap-4 lg:flex-row">
-                        <div className="w-full lg:w-72">
-                            {canChooseProfessionals ? (
-                                <div className="rounded-xl border border-border bg-background p-4">
-                                    <div className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
-                                        <CalendarDays className="size-4 text-muted-foreground" />
-                                        Profissionais
+                                        <div className="grid gap-2 sm:grid-cols-1">
+                                            {visibleProfessionals.map((professional) => {
+                                                const checked = selectedProfessionalIds.includes(professional.id)
+                                                const professionalColors = professionalColorMap.get(professional.id) ?? APPOINTMENT_COLOR_PALETTE[0]
+
+                                                return (
+                                                    <label
+                                                        key={professional.id}
+                                                        className="flex cursor-pointer items-center gap-3 rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground transition-colors hover:bg-accent"
+                                                    >
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={checked}
+                                                            onChange={() => handleToggleProfessional(professional.id)}
+                                                            className="size-4 rounded border-border"
+                                                        />
+                                                        <span
+                                                            className="h-3 w-3 shrink-0 rounded-full border border-border"
+                                                            style={{ backgroundColor: professionalColors.backgroundColor, borderColor: professionalColors.color }}
+                                                            aria-hidden="true"
+                                                        />
+                                                        <span className="flex flex-col">
+                                                            <span className="font-medium">{professional.name ?? "Profissional"}</span>
+                                                        </span>
+                                                    </label>
+                                                )
+                                            })}
+                                        </div>
                                     </div>
-
-                                    <div className="grid gap-2 sm:grid-cols-1">
-                                        {visibleProfessionals.map((professional) => {
-                                            const checked = selectedProfessionalIds.includes(professional.id)
-                                            const professionalColors = professionalColorMap.get(professional.id) ?? APPOINTMENT_COLOR_PALETTE[0]
-
-                                            return (
-                                                <label
-                                                    key={professional.id}
-                                                    className="flex cursor-pointer items-center gap-3 rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground transition-colors hover:bg-accent"
-                                                >
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={checked}
-                                                        onChange={() => handleToggleProfessional(professional.id)}
-                                                        className="size-4 rounded border-border"
-                                                    />
-                                                    <span
-                                                        className="h-3 w-3 shrink-0 rounded-full border border-border"
-                                                        style={{ backgroundColor: professionalColors.backgroundColor, borderColor: professionalColors.color }}
-                                                        aria-hidden="true"
-                                                    />
-                                                    <span className="flex flex-col">
-                                                        <span className="font-medium">{professional.name ?? "Profissional"}</span>
-                                                    </span>
-                                                </label>
-                                            )
-                                        })}
+                                ) : currentProfessional ? (
+                                    <div className="rounded-xl border border-border bg-background px-4 py-3 text-sm text-muted-foreground">
+                                        Visualizando apenas a agenda de <span className="font-medium text-foreground">{currentProfessionalLabel}</span>.
                                     </div>
-                                </div>
-                            ) : currentProfessional ? (
-                                <div className="rounded-xl border border-border bg-background px-4 py-3 text-sm text-muted-foreground">
-                                    Visualizando apenas a agenda de <span className="font-medium text-foreground">{currentProfessionalLabel}</span>.
-                                </div>
-                            ) : null}
-                        </div>
+                                ) : null}
+                            </div>
 
-                        <div className="flex-1">
-                            <div className="alfamed-agenda-calendar min-h-[620px] overflow-hidden rounded-lg border border-border bg-background lg:min-h-[680px]" data-calendar>
-                                {isAgendaLoading ? (
-                                    <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                                        Carregando agenda...
-                                    </div>
-                                ) : (
+                            <div className="flex-1">
+                                <div className="alfamed-agenda-calendar relative min-h-[620px] overflow-hidden rounded-lg border border-border bg-background lg:min-h-[680px]" data-calendar>
+                                    {isAgendaLoading && (
+                                        <div className="absolute inset-0 z-[9999] flex items-center justify-center bg-black/30 backdrop-blur-[1px]">
+                                            <div className="size-7 animate-spin rounded-full border-2 border-muted border-t-primary" />
+                                        </div>
+                                    )}
                                     <IlamyCalendar
                                         events={agendaEvents.map((e) => ({
                                             ...e,
@@ -917,296 +923,296 @@ export function Agendas() {
                                             }
                                         }}
                                     />
-                                )}
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <Sheet open={isBookingOpen} onOpenChange={setIsBookingOpen}>
-                        <SheetContent side="right" className="w-full sm:max-w-xl">
-                            <SheetHeader>
-                                <SheetTitle>{editingAppointmentId ? "Editar agendamento" : "Novo agendamento"}</SheetTitle>
-                                <SheetDescription>
-                                    {editingAppointmentId
-                                        ? "Atualize os dados do agendamento."
-                                        : "Selecione paciente, profissional e intervalo. A disponibilidade é validada antes de salvar."}
-                                </SheetDescription>
-                            </SheetHeader>
+                        <Sheet open={isBookingOpen} onOpenChange={setIsBookingOpen}>
+                            <SheetContent side="right" className="w-full sm:max-w-xl">
+                                <SheetHeader>
+                                    <SheetTitle>{editingAppointmentId ? "Editar agendamento" : "Novo agendamento"}</SheetTitle>
+                                    <SheetDescription>
+                                        {editingAppointmentId
+                                            ? "Atualize os dados do agendamento."
+                                            : "Selecione paciente, profissional e intervalo. A disponibilidade é validada antes de salvar."}
+                                    </SheetDescription>
+                                </SheetHeader>
 
-                            <form onSubmit={handleSubmitBooking} className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4">
-                                {bookingError && (
-                                    <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                                        {bookingError}
-                                    </div>
-                                )}
-
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium text-foreground">Paciente</label>
-                                    <Input
-                                        value={patientCpfSearch}
-                                        onChange={(event) => {
-                                            const search = onlyDigits(event.target.value).slice(0, 11)
-                                            const exactPatient = patients.find((patient) => onlyDigits(patient.cpf ?? "") === search)
-
-                                            setPatientCpfSearch(formatCpf(search))
-                                            setBookingForm((current) => ({
-                                                ...current,
-                                                patientId: exactPatient?.id ?? "",
-                                            }))
-                                        }}
-                                        inputMode="numeric"
-                                        maxLength={14}
-                                        placeholder="Digite o CPF do paciente"
-                                        required
-                                        disabled={patientsLoading}
-                                    />
-                                    {!bookingForm.patientId && matchingPatients.length > 0 && (
-                                        <div className="max-h-48 overflow-y-auto rounded-md border border-border bg-background shadow-sm">
-                                            {matchingPatients.map((patient) => (
-                                                <button
-                                                    key={patient.id}
-                                                    type="button"
-                                                    className="flex w-full flex-col gap-0.5 border-b border-border px-3 py-2 text-left text-sm last:border-b-0 hover:bg-accent"
-                                                    onClick={() => {
-                                                        setPatientCpfSearch(formatCpf(patient.cpf ?? ""))
-                                                        setBookingForm((current) => ({ ...current, patientId: patient.id }))
-                                                    }}
-                                                >
-                                                    <span className="font-medium text-foreground">{formatCpf(patient.cpf ?? "")}</span>
-                                                    <span className="text-xs text-muted-foreground">{patient.name} - {patient.email}</span>
-                                                </button>
-                                            ))}
+                                <form onSubmit={handleSubmitBooking} className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4">
+                                    {bookingError && (
+                                        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                                            {bookingError}
                                         </div>
                                     )}
-                                    {selectedPatient && (
-                                        <p className="text-xs text-muted-foreground">
-                                            Paciente selecionado: <span className="font-medium text-foreground">{selectedPatient.name}</span>
-                                        </p>
-                                    )}
-                                    {patientCpfSearch && !bookingForm.patientId && !patientsLoading && matchingPatients.length === 0 && (
-                                        <p className="text-xs text-red-600">Nenhum paciente ativo encontrado com esse CPF.</p>
-                                    )}
-                                    {patientsLoading && <p className="text-xs text-muted-foreground">Carregando pacientes...</p>}
-                                </div>
 
-                                {(!isMedic || canChooseProfessionals) && (
                                     <div className="space-y-2">
-                                        <label className="text-sm font-medium text-foreground">Profissional</label>
-                                        <select
-                                            value={bookingForm.professionalId}
-                                            onChange={(event) => setBookingForm((current) => ({ ...current, professionalId: event.target.value }))}
-                                            className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
-                                            required
-                                        >
-                                            <option value="">Selecione um profissional</option>
-                                            {activeProfessionals.map((professional) => (
-                                                <option key={professional.id} value={professional.id}>
-                                                    {professional.name ?? "Profissional"} {professional.crm ? `- CRM ${professional.crm}` : ""}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                )}
-
-                                {isMedic && currentProfessional && !canChooseProfessionals && (
-                                    <div className="rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
-                                        Profissional definido automaticamente: <span className="font-medium text-foreground">{currentProfessionalLabel}</span>
-                                    </div>
-                                )}
-
-                                <div className="grid gap-3 sm:grid-cols-3">
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium text-foreground">Data</label>
+                                        <label className="text-sm font-medium text-foreground">Paciente</label>
                                         <Input
-                                            type="date"
-                                            value={bookingForm.date}
-                                            onChange={(event) => setBookingForm((current) => ({ ...current, date: event.target.value }))}
-                                            required
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium text-foreground">Início</label>
-                                        <Input
-                                            type="time"
-                                            value={bookingForm.startTime}
-                                            onChange={(event) => setBookingForm((current) => ({ ...current, startTime: event.target.value }))}
-                                            required
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium text-foreground">Fim</label>
-                                        <Input
-                                            type="time"
-                                            value={bookingForm.endTime}
-                                            onChange={(event) => setBookingForm((current) => ({ ...current, endTime: event.target.value }))}
-                                            required
-                                        />
-                                    </div>
-                                </div>
+                                            value={patientCpfSearch}
+                                            onChange={(event) => {
+                                                const search = onlyDigits(event.target.value).slice(0, 11)
+                                                const exactPatient = patients.find((patient) => onlyDigits(patient.cpf ?? "") === search)
 
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium text-foreground">Observação</label>
-                                    <textarea
-                                        value={bookingForm.reason}
-                                        onChange={(event) => setBookingForm((current) => ({ ...current, reason: event.target.value }))}
-                                        className="min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
-                                        placeholder="Ex.: retorno com exame de rotina"
-                                    />
-                                </div>
-
-                                {availabilityWindows.length > 0 && (
-                                    <div className="rounded-lg border border-border bg-background px-4 py-3 text-sm">
-                                        <p className="mb-2 font-medium text-foreground">Janelas livres encontradas</p>
-                                        <ul className="space-y-1 text-muted-foreground">
-                                            {availabilityWindows.map((window) => (
-                                                <li key={`${window.start}-${window.end}`}>
-                                                    {new Date(window.start).toLocaleString("pt-BR")} - {new Date(window.end).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                )}
-
-                                <SheetFooter className="flex gap-2">
-                                    {editingAppointmentId && (
-                                        <Button
-                                            type="button"
-                                            variant="destructive"
-                                            disabled={isDeleting || isSaving}
-                                            onClick={async () => {
-                                                if (!editingAppointmentId) return
-                                                if (!confirm("Tem certeza que deseja deletar este agendamento?")) return
-
-                                                setIsDeleting(true)
-                                                try {
-                                                    await appointmentsService.delete(editingAppointmentId)
-                                                    setIsBookingOpen(false)
-                                                    setEditingAppointmentId(null)
-                                                    setBookingForm((current) => ({
-                                                        ...current,
-                                                        patientId: "",
-                                                        reason: "",
-                                                    }))
-                                                    setPatientCpfSearch("")
-
-                                                    const events = await appointmentsService.listAgendaEvents({
-                                                        professionalIds: selectedProfessionalIds,
-                                                        from: visibleRange.start.toISOString(),
-                                                        to: visibleRange.end.toISOString(),
-                                                    })
-                                                    setAgendaEvents(events)
-                                                } catch (error) {
-                                                    setBookingError(error instanceof Error ? error.message : "Falha ao deletar agendamento")
-                                                } finally {
-                                                    setIsDeleting(false)
-                                                }
+                                                setPatientCpfSearch(formatCpf(search))
+                                                setBookingForm((current) => ({
+                                                    ...current,
+                                                    patientId: exactPatient?.id ?? "",
+                                                }))
                                             }}
-                                            className="w-full gap-2"
-                                        >
-                                            <Trash2 className="size-4" />
-                                            {isDeleting ? "Deletando..." : "Deletar"}
-                                        </Button>
+                                            inputMode="numeric"
+                                            maxLength={14}
+                                            placeholder="Digite o CPF do paciente"
+                                            required
+                                            disabled={patientsLoading}
+                                        />
+                                        {!bookingForm.patientId && matchingPatients.length > 0 && (
+                                            <div className="max-h-48 overflow-y-auto rounded-md border border-border bg-background shadow-sm">
+                                                {matchingPatients.map((patient) => (
+                                                    <button
+                                                        key={patient.id}
+                                                        type="button"
+                                                        className="flex w-full flex-col gap-0.5 border-b border-border px-3 py-2 text-left text-sm last:border-b-0 hover:bg-accent"
+                                                        onClick={() => {
+                                                            setPatientCpfSearch(formatCpf(patient.cpf ?? ""))
+                                                            setBookingForm((current) => ({ ...current, patientId: patient.id }))
+                                                        }}
+                                                    >
+                                                        <span className="font-medium text-foreground">{formatCpf(patient.cpf ?? "")}</span>
+                                                        <span className="text-xs text-muted-foreground">{patient.name} - {patient.email}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {selectedPatient && (
+                                            <p className="text-xs text-muted-foreground">
+                                                Paciente selecionado: <span className="font-medium text-foreground">{selectedPatient.name}</span>
+                                            </p>
+                                        )}
+                                        {patientCpfSearch && !bookingForm.patientId && !patientsLoading && matchingPatients.length === 0 && (
+                                            <p className="text-xs text-red-600">Nenhum paciente ativo encontrado com esse CPF.</p>
+                                        )}
+                                        {patientsLoading && <p className="text-xs text-muted-foreground">Carregando pacientes...</p>}
+                                    </div>
+
+                                    {(!isMedic || canChooseProfessionals) && (
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-medium text-foreground">Profissional</label>
+                                            <select
+                                                value={bookingForm.professionalId}
+                                                onChange={(event) => setBookingForm((current) => ({ ...current, professionalId: event.target.value }))}
+                                                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+                                                required
+                                            >
+                                                <option value="">Selecione um profissional</option>
+                                                {activeProfessionals.map((professional) => (
+                                                    <option key={professional.id} value={professional.id}>
+                                                        {professional.name ?? "Profissional"} {professional.crm ? `- CRM ${professional.crm}` : ""}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
                                     )}
-                                    <Button type="submit" disabled={isSaving || patientsLoading} className="w-full cursor-pointer">
-                                        {isSaving ? "Salvando..." : "Verificar e salvar"}
-                                    </Button>
-                                </SheetFooter>
-                            </form>
-                        </SheetContent>
-                    </Sheet>
 
-                    {/* Appointment Details Viewing Modal */}
-                    {isViewingOpen && viewingAppointmentDetails && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center">
-                            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsViewingOpen(false)} />
+                                    {isMedic && currentProfessional && !canChooseProfessionals && (
+                                        <div className="rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+                                            Profissional definido automaticamente: <span className="font-medium text-foreground">{currentProfessionalLabel}</span>
+                                        </div>
+                                    )}
 
-                            <div className="relative w-full max-w-md mx-4 rounded-2xl shadow-xl p-6 bg-card text-card-foreground border border-border animate-in fade-in-0 zoom-in-95">
-                                <button
-                                    aria-label="Fechar"
-                                    className="absolute top-4 right-4 rounded-full p-1 text-muted-foreground hover:text-foreground"
-                                    onClick={() => setIsViewingOpen(false)}
-                                >
-                                    <X className="w-4 h-4" />
-                                </button>
-
-                                <div className="mb-6">
-                                    <h2 className="text-lg font-semibold mb-1">Detalhes da Consulta</h2>
-                                    <p className="text-sm text-muted-foreground">
-                                        Visualize as informações da consulta ou abra para editar.
-                                    </p>
-                                </div>
-
-                                <div className="space-y-4 mb-6">
-                                    <div className="rounded-lg bg-muted/20 p-3">
-                                        <p className="text-xs text-muted-foreground">Paciente</p>
-                                        <div className="font-medium text-sm mt-1">
-                                            {patients.find((p) => p.id === viewingAppointmentDetails.patientId)?.name ?? "Carregando..."}
+                                    <div className="grid gap-3 sm:grid-cols-3">
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-medium text-foreground">Data</label>
+                                            <Input
+                                                type="date"
+                                                value={bookingForm.date}
+                                                onChange={(event) => setBookingForm((current) => ({ ...current, date: event.target.value }))}
+                                                required
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-medium text-foreground">Início</label>
+                                            <Input
+                                                type="time"
+                                                value={bookingForm.startTime}
+                                                onChange={(event) => setBookingForm((current) => ({ ...current, startTime: event.target.value }))}
+                                                required
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-medium text-foreground">Fim</label>
+                                            <Input
+                                                type="time"
+                                                value={bookingForm.endTime}
+                                                onChange={(event) => setBookingForm((current) => ({ ...current, endTime: event.target.value }))}
+                                                required
+                                            />
                                         </div>
                                     </div>
 
-                                    <div className="rounded-lg bg-muted/20 p-3">
-                                        <p className="text-xs text-muted-foreground">Profissional</p>
-                                        <div className="font-medium text-sm mt-1">
-                                            {professionals.find((p) => p.id === viewingAppointmentDetails.professionalId)?.name ?? "Carregando..."}
-                                        </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium text-foreground">Observação</label>
+                                        <textarea
+                                            value={bookingForm.reason}
+                                            onChange={(event) => setBookingForm((current) => ({ ...current, reason: event.target.value }))}
+                                            className="min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+                                            placeholder="Ex.: retorno com exame de rotina"
+                                        />
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div className="rounded-lg bg-muted/20 p-3">
-                                            <p className="text-xs text-muted-foreground">Data</p>
-                                            <div className="font-medium text-sm mt-1">
-                                                {formatClinicDate(new Date(viewingAppointmentDetails.startAt))}
-                                            </div>
+                                    {availabilityWindows.length > 0 && (
+                                        <div className="rounded-lg border border-border bg-background px-4 py-3 text-sm">
+                                            <p className="mb-2 font-medium text-foreground">Janelas livres encontradas</p>
+                                            <ul className="space-y-1 text-muted-foreground">
+                                                {availabilityWindows.map((window) => (
+                                                    <li key={`${window.start}-${window.end}`}>
+                                                        {new Date(window.start).toLocaleString("pt-BR")} - {new Date(window.end).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                                                    </li>
+                                                ))}
+                                            </ul>
                                         </div>
+                                    )}
 
-                                        <div className="rounded-lg bg-muted/20 p-3">
-                                            <p className="text-xs text-muted-foreground">Horário</p>
-                                            <div className="font-medium text-sm mt-1">
-                                                {formatClinicTime(new Date(viewingAppointmentDetails.startAt))} {" "}
-                                                -{" "}
-                                                {formatClinicTime(new Date(viewingAppointmentDetails.endAt))}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                                    <SheetFooter className="flex gap-2">
+                                        {editingAppointmentId && (
+                                            <Button
+                                                type="button"
+                                                variant="destructive"
+                                                disabled={isDeleting || isSaving}
+                                                onClick={async () => {
+                                                    if (!editingAppointmentId) return
+                                                    if (!confirm("Tem certeza que deseja deletar este agendamento?")) return
 
-                                <div className="flex gap-3">
+                                                    setIsDeleting(true)
+                                                    try {
+                                                        await appointmentsService.delete(editingAppointmentId)
+                                                        setIsBookingOpen(false)
+                                                        setEditingAppointmentId(null)
+                                                        setBookingForm((current) => ({
+                                                            ...current,
+                                                            patientId: "",
+                                                            reason: "",
+                                                        }))
+                                                        setPatientCpfSearch("")
+
+                                                        const events = await appointmentsService.listAgendaEvents({
+                                                            professionalIds: selectedProfessionalIds,
+                                                            from: visibleRange.start.toISOString(),
+                                                            to: visibleRange.end.toISOString(),
+                                                        })
+                                                        setAgendaEvents(events)
+                                                    } catch (error) {
+                                                        setBookingError(error instanceof Error ? error.message : "Falha ao deletar agendamento")
+                                                    } finally {
+                                                        setIsDeleting(false)
+                                                    }
+                                                }}
+                                                className="w-full gap-2"
+                                            >
+                                                <Trash2 className="size-4" />
+                                                {isDeleting ? "Deletando..." : "Deletar"}
+                                            </Button>
+                                        )}
+                                        <Button type="submit" disabled={isSaving || patientsLoading} className="w-full cursor-pointer">
+                                            {isSaving ? "Salvando..." : "Verificar e salvar"}
+                                        </Button>
+                                    </SheetFooter>
+                                </form>
+                            </SheetContent>
+                        </Sheet>
+
+                        {/* Appointment Details Viewing Modal */}
+                        {isViewingOpen && viewingAppointmentDetails && (
+                            <div className="fixed inset-0 z-50 flex items-center justify-center">
+                                <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsViewingOpen(false)} />
+
+                                <div className="relative w-full max-w-md mx-4 rounded-2xl shadow-xl p-6 bg-card text-card-foreground border border-border animate-in fade-in-0 zoom-in-95">
                                     <button
-                                        type="button"
+                                        aria-label="Fechar"
+                                        className="absolute top-4 right-4 rounded-full p-1 text-muted-foreground hover:text-foreground"
                                         onClick={() => setIsViewingOpen(false)}
-                                        className="flex-1 px-3 py-2 rounded-md border border-border bg-background text-sm font-medium hover:bg-muted"
                                     >
-                                        Fechar
+                                        <X className="w-4 h-4" />
                                     </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            const start = new Date(viewingAppointmentDetails.startAt)
-                                            const end = new Date(viewingAppointmentDetails.endAt)
-                                            setIsViewingOpen(false)
-                                            setEditingAppointmentId(viewingAppointmentDetails.id)
-                                            setBookingForm({
-                                                patientId: viewingAppointmentDetails.patientId,
-                                                professionalId: viewingAppointmentDetails.professionalId,
-                                                date: formatClinicDate(start),
-                                                startTime: formatClinicTime(start),
-                                                endTime: formatClinicTime(end),
-                                                reason: viewingAppointmentDetails.reason ?? "",
-                                            })
-                                            setAvailabilityWindows([])
-                                            setBookingError(null)
-                                            setIsBookingOpen(true)
-                                        }}
-                                        className="flex-1 px-3 py-2 rounded-md bg-blue-600 text-white text-sm font-medium hover:bg-blue-700"
-                                    >
-                                        Editar
-                                    </button>
+
+                                    <div className="mb-6">
+                                        <h2 className="text-lg font-semibold mb-1">Detalhes da Consulta</h2>
+                                        <p className="text-sm text-muted-foreground">
+                                            Visualize as informações da consulta ou abra para editar.
+                                        </p>
+                                    </div>
+
+                                    <div className="space-y-4 mb-6">
+                                        <div className="rounded-lg bg-muted/20 p-3">
+                                            <p className="text-xs text-muted-foreground">Paciente</p>
+                                            <div className="font-medium text-sm mt-1">
+                                                {patients.find((p) => p.id === viewingAppointmentDetails.patientId)?.name ?? "Carregando..."}
+                                            </div>
+                                        </div>
+
+                                        <div className="rounded-lg bg-muted/20 p-3">
+                                            <p className="text-xs text-muted-foreground">Profissional</p>
+                                            <div className="font-medium text-sm mt-1">
+                                                {professionals.find((p) => p.id === viewingAppointmentDetails.professionalId)?.name ?? "Carregando..."}
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="rounded-lg bg-muted/20 p-3">
+                                                <p className="text-xs text-muted-foreground">Data</p>
+                                                <div className="font-medium text-sm mt-1">
+                                                    {formatClinicDate(new Date(viewingAppointmentDetails.startAt))}
+                                                </div>
+                                            </div>
+
+                                            <div className="rounded-lg bg-muted/20 p-3">
+                                                <p className="text-xs text-muted-foreground">Horário</p>
+                                                <div className="font-medium text-sm mt-1">
+                                                    {formatClinicTime(new Date(viewingAppointmentDetails.startAt))} {" "}
+                                                    -{" "}
+                                                    {formatClinicTime(new Date(viewingAppointmentDetails.endAt))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsViewingOpen(false)}
+                                            className="flex-1 px-3 py-2 rounded-md border border-border bg-background text-sm font-medium hover:bg-muted"
+                                        >
+                                            Fechar
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const start = new Date(viewingAppointmentDetails.startAt)
+                                                const end = new Date(viewingAppointmentDetails.endAt)
+                                                setIsViewingOpen(false)
+                                                setEditingAppointmentId(viewingAppointmentDetails.id)
+                                                setBookingForm({
+                                                    patientId: viewingAppointmentDetails.patientId,
+                                                    professionalId: viewingAppointmentDetails.professionalId,
+                                                    date: formatClinicDate(start),
+                                                    startTime: formatClinicTime(start),
+                                                    endTime: formatClinicTime(end),
+                                                    reason: viewingAppointmentDetails.reason ?? "",
+                                                })
+                                                setAvailabilityWindows([])
+                                                setBookingError(null)
+                                                setIsBookingOpen(true)
+                                            }}
+                                            className="flex-1 px-3 py-2 rounded-md bg-blue-600 text-white text-sm font-medium hover:bg-blue-700"
+                                        >
+                                            Editar
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                </div>
+                    </div>
+                )}
             </div>
         </div>
     )
