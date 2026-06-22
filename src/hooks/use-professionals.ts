@@ -58,7 +58,7 @@ export function useProfessionals() {
                             userId: primaryUser?.id ?? professional.id,
                             name: primaryUser?.name ?? undefined,
                             email: primaryUser?.email ?? undefined,
-                            isActive: professional.isActive ?? true,
+                            isActive: entry.isActive ?? professional.isActive ?? true,
                         })
                     }
                 }
