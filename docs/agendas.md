@@ -189,7 +189,7 @@ Agenda um paciente em uma vaga de horário específica. Recebe o `scheduleSlotId
   endAt: string,      // ISO datetime
   diagnostics: "",
   evolution: "",
-  statusId: string,
+  statusCode: string,
 }
 ```
 

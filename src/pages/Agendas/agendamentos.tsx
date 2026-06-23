@@ -289,7 +289,7 @@ export function Agendamentos() {
                     endAt: null,
                     diagnostics: null,
                     evolution: null,
-                    statusId: 1,
+                    statusCode: 1,
                 }),
             })
             setScheduleSuccess(true)
