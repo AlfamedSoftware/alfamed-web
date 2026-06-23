@@ -8,11 +8,12 @@ import { cn } from "@/lib/utils"
 interface BackButtonProps {
     onClick: () => void
     children?: ReactNode
+    disabled?: boolean
 }
 
-export function BackButton({ onClick, children = "Voltar" }: BackButtonProps) {
+export function BackButton({ onClick, children = "Voltar", disabled }: BackButtonProps) {
     return (
-        <Button type="button" variant="outline" size="lg" onClick={onClick} className="cursor-pointer">
+        <Button type="button" variant="outline" size="lg" onClick={onClick} disabled={disabled} className="cursor-pointer">
             <ArrowLeft className="w-4 h-4" />
             {children}
         </Button>

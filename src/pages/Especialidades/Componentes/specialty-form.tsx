@@ -204,11 +204,11 @@ export function SpecialtyProfile({
                     <h2 className="text-lg font-semibold text-foreground">Especialidade cadastrada com sucesso!</h2>
                     <p className="text-sm text-muted-foreground text-center">{registeredName}</p>
                     <div className="mt-2 flex gap-3">
-                        <Button onClick={() => navigate("/especialidades")} className="cursor-pointer">
-                            <ArrowLeft className="w-4 h-4" />
+                        <BackButton onClick={() => navigate("/especialidades")} >
                             Voltar para especialidades
-                        </Button>
+                        </BackButton>
                         <Button
+                            size="lg"
                             onClick={() => {
                                 setRegisterSuccess(false)
                                 setRegisteredName("")

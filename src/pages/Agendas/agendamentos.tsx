@@ -273,12 +273,6 @@ export function Agendamentos() {
         setIsScheduling(true)
         setScheduleError(null)
         try {
-            const fresh = await fetchWithAuth<ScheduleSlotApiResponse>(`${authBaseUrl}/schedules/full-slot/${scheduleSlotId}`)
-            setSlotInfo((prev) => prev ? { ...prev, isAvailable: fresh.isAvailable } : prev)
-            if (!fresh.isAvailable) {
-                setScheduleError("Este horário foi ocupado por outro atendimento. Escolha um novo horário.")
-                return
-            }
             await fetchWithAuth(`${authBaseUrl}/appointments/`, {
                 method: "POST",
                 body: JSON.stringify({
@@ -289,8 +283,9 @@ export function Agendamentos() {
                 }),
             })
             setScheduleSuccess(true)
-        } catch {
-            setScheduleError("Erro ao verificar disponibilidade. Tente novamente.")
+        } catch (err) {
+            const message = err instanceof Error ? err.message : ""
+            setScheduleError(message || "Erro ao verificar disponibilidade. Tente novamente.")
         } finally {
             setIsScheduling(false)
         }
@@ -308,9 +303,9 @@ export function Agendamentos() {
                     <p className="text-sm text-muted-foreground text-center">
                         {patient?.name} foi agendado(a) para {slotInfo?.date || date} às {slotInfo?.time || "—"} com {professionalName}.
                     </p>
-                    <Button onClick={() => navigate(-1)} className="mt-2 cursor-pointer">
+                    <BackButton onClick={() => navigate(-1)} >
                         Voltar às agendas
-                    </Button>
+                    </BackButton>
                 </div>
             </div>
         )

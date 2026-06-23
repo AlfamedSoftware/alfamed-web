@@ -490,7 +490,7 @@ function ScheduleCard({ schedule }: { schedule: Schedule }) {
                 <div className="flex gap-5 mt-3 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1.5">
                         <span className="h-2 w-2 rounded-full bg-green-500" />
-                        Disponível ({available}) — clique para agendar
+                        Disponível ({available})
                     </span>
                     <span className="flex items-center gap-1.5">
                         <span className="h-2 w-2 rounded-full bg-red-400" />

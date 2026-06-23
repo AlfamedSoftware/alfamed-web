@@ -292,6 +292,7 @@ export function CadastrarAgendas() {
                     <div className="mt-2 flex gap-3">
                         <BackButton onClick={() => navigate(backToAgendasUrl)}>Voltar às agendas</BackButton>
                         <Button
+                            size="lg"
                             onClick={() => {
                                 const params = new URLSearchParams()
                                 if (professionalUnitId) params.set("professionalUnitId", professionalUnitId)

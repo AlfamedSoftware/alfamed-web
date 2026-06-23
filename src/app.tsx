@@ -1,36 +1,48 @@
-import { Home } from "./pages/Home/home"
-import { Default } from "./pages/Default/default"
-import { SignIn } from "@/pages/SignIn/sign-in"
-import { ResetPassword } from "@/pages/ResetPassword/reset-password"
 import { DefaultLayout } from "@/layouts/default-layout"
 import { Routes, Route, Navigate } from "react-router"
 import { ProtectedRoute } from "@/components/ProtectRoute/protected-route"
 import { InternalProtectedRoute } from "@/components/ProtectRoute/internal-protected-route"
-import { Profissionais } from "@/pages/Profissionais/listar-profissionais"
-import { ProfessionalProfile } from "@/pages/Profissionais/edicao-profissionais"
-import { CadastroProfissionais } from "@/pages/Profissionais/cadastro-profissionais"
-import { NovoProfissional } from "@/pages/Profissionais/novo-profissional"
-import { ProfissionaisEspecialidades } from "@/pages/Profissionais/profissionais-especialidades"
-import { Procedimentos } from "@/pages/Procedimentos/listar-procedimentos"
-import { CadastroProcedimentos } from "@/pages/Procedimentos/cadastro-procedimentos"
-import { EdicaoProcedimentos } from "@/pages/Procedimentos/edicao-procedimentos"
-import { Especialidades } from "@/pages/Especialidades/listar-especialidades"
-import { CadastroEspecialidades } from "@/pages/Especialidades/cadastro-especialidades"
-import { EdicaoEspecialidades } from "@/pages/Especialidades/edicao-especialidades"
-import { VinculoEspecialidadesListagemProfissionais } from "@/pages/Especialidades/vinculo-especialidades-listagem-profissionais"
-import { Agendamentos } from "@/pages/Agendas/agendamentos"
-import { Agendas } from "@/pages/Agendas/listar-agendas"
-import { CadastrarAgendas } from "@/pages/Agendas/cadastrar-agendas"
-import { Perfil } from "@/pages/Profissionais/perfil"
+
 import { AdminSignIn } from "@/pages/SignIn/admin-sign-in"
 import { ServiceDeskUnitsList } from "@/pages/ServiceDesk/units-list"
 import { ServiceDeskUnitDetails } from "@/pages/ServiceDesk/unit-details"
 import { ServiceDeskUpmUsers } from "@/pages/ServiceDesk/upm-users"
 import { UpmUserProfile } from "@/pages/ServiceDesk/upm-user-profile"
+
+import { SignIn } from "@/pages/SignIn/sign-in"
+import { ResetPassword } from "@/pages/ResetPassword/reset-password"
 import { SelecaoUnidade } from "@/pages/SelecaoUnidade/selecao-unidade"
-import { Unidade } from "@/pages/Unidades/Unidade"
+import { Default } from "./pages/Default/default"
+import { Home } from "./pages/Home/home"
+import { Perfil } from "@/pages/Profissionais/perfil"
+
 import { UnitProtectedRoute } from "@/components/ProtectRoute/unit-protected-route"
 import { SessionUnitProvider } from "@/contexts/session-unit-context"
+
+import { Unidade } from "@/pages/Unidades/Unidade"
+
+import { Profissionais } from "@/pages/Profissionais/listar-profissionais"
+import { ProfessionalProfile } from "@/pages/Profissionais/edicao-profissionais"
+import { CadastroProfissionais } from "@/pages/Profissionais/cadastro-profissionais"
+import { NovoProfissional } from "@/pages/Profissionais/novo-profissional"
+
+import { Procedimentos } from "@/pages/Procedimentos/listar-procedimentos"
+import { CadastroProcedimentos } from "@/pages/Procedimentos/cadastro-procedimentos"
+import { EdicaoProcedimentos } from "@/pages/Procedimentos/edicao-procedimentos"
+
+import { Especialidades } from "@/pages/Especialidades/listar-especialidades"
+import { CadastroEspecialidades } from "@/pages/Especialidades/cadastro-especialidades"
+import { EdicaoEspecialidades } from "@/pages/Especialidades/edicao-especialidades"
+
+import { VinculoEspecialidadesListagemProfissionais } from "@/pages/Especialidades/vinculo-especialidades-listagem-profissionais"
+import { ProfissionaisEspecialidades } from "@/pages/Profissionais/profissionais-especialidades"
+
+import { Agendas } from "@/pages/Agendas/listar-agendas"
+import { CadastrarAgendas } from "@/pages/Agendas/cadastrar-agendas"
+import { Agendamentos } from "@/pages/Agendas/agendamentos"
+
+import { Atendimentos } from "@/pages/Atendimentos/listar-atendimentos"
+import { Atendimento } from "@/pages/Atendimentos/atendimento"
 
 export function App() {
   return (
@@ -85,6 +97,9 @@ export function App() {
             <Route path="agendas" element={<Agendas />} />
             <Route path="agendas/cadastro" element={<CadastrarAgendas />} />
             <Route path="agendas/agendamentos" element={<Agendamentos />} />
+
+            <Route path="atendimentos" element={<Atendimentos />} />
+            <Route path="atendimentos/:appointmentId" element={<Atendimento />} />
             
           </Route>
 

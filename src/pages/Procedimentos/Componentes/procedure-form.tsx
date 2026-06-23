@@ -338,11 +338,11 @@ export function ProcedureProfile({
                     <h2 className="text-lg font-semibold text-foreground">Procedimento cadastrado com sucesso!</h2>
                     <p className="text-sm text-muted-foreground text-center">{registeredName}</p>
                     <div className="mt-2 flex gap-3">
-                        <Button onClick={() => navigate("/procedimentos")} className="cursor-pointer">
-                            <ArrowLeft className="w-4 h-4" />
+                        <BackButton onClick={() => navigate("/procedimentos")} >
                             Voltar para procedimentos
-                        </Button>
+                        </BackButton>
                         <Button
+                            size="lg"
                             onClick={() => {
                                 setRegisterSuccess(false)
                                 setRegisteredName("")

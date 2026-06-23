@@ -27,6 +27,7 @@ import {
     Stethoscope,
     User,
     Building2,
+    HeartPulse,
 } from "lucide-react"
 import { useSession } from "@/hooks/use-session"
 import { auth } from "@/lib/auth"
@@ -78,12 +79,12 @@ const CLINICAL_MENU_ITEMS: SidebarMenuItemConfig[] = [
 const MEDICAL_MENU_ITEMS: SidebarMenuItemConfig[] = [
     { title: "Início", icon: HomeIcon, url: "/home" },
     { title: "Agendas", icon: CalendarDays, url: "/agendas" },
-    { title: "Atendimentos", icon: CalendarDays, url: "/atendimentos" },
+    { title: "Atendimentos", icon: HeartPulse, url: "/atendimentos" },
 ]
 
 const TECHNICAL_EXECUTOR_MENU_ITEMS: SidebarMenuItemConfig[] = [
     { title: "Início", icon: HomeIcon, url: "/home" },
-    { title: "Atendimentos?", icon: CalendarDays, url: "/atendimentos" },
+    { title: "Atendimentos?", icon: CalendarDays, url: "/atendimentosgestao" },
 ]
 
 const menuItemsByRole: Record<RoleMenuKey, SidebarMenuItemConfig[]> = {
