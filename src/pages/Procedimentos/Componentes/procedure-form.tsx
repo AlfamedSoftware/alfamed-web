@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useForm, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useNavigate, useParams } from "react-router"
-import { AlertTriangle, ArrowLeft, CheckCircle2, Plus } from "lucide-react"
+import { AlertTriangle, CheckCircle2, Plus } from "lucide-react"
 import * as z from "zod"
 
 import { Button } from "@/components/ui/button"
