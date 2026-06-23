@@ -285,10 +285,6 @@ export function Agendamentos() {
                     patientId: patient.id,
                     professionalUnitId: slotInfo?.professionalUnitId,
                     scheduleSlotId,
-                    startAt: null,
-                    endAt: null,
-                    diagnostics: null,
-                    evolution: null,
                     statusCode: 1,
                 }),
             })
