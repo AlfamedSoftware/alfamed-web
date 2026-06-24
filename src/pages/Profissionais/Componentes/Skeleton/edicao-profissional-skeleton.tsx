@@ -70,6 +70,11 @@ export function EdicaoProfissionalSkeleton({ isProfileView = false }: { isProfil
                                     <FieldSkeleton labelWidth="w-10" />
                                     <div />
                                 </div>
+
+                                <div className="grid gap-5 sm:grid-cols-2">
+                                    <FieldSkeleton labelWidth="w-36" />
+                                    <FieldSkeleton labelWidth="w-28" />
+                                </div>
                             </div>
                         </section>
 
@@ -77,21 +82,15 @@ export function EdicaoProfissionalSkeleton({ isProfileView = false }: { isProfil
                             <SectionTitleSkeleton width="w-28" />
 
                             <div className="grid gap-5 sm:grid-cols-2">
+                                {!isProfileView ? (
+                                    <FieldSkeleton labelWidth="w-12" />
+                                ) : null}
                                 <FieldSkeleton labelWidth="w-12" />
                                 <FieldSkeleton labelWidth="w-28" />
                             </div>
 
                             {!isProfileView ? <StatusSkeleton /> : null}
                         </section>
-
-                        {!isProfileView ? (
-                            <section className="grid gap-4">
-                                <SectionTitleSkeleton width="w-20" />
-                                <div className="grid gap-5 sm:grid-cols-2">
-                                    <FieldSkeleton labelWidth="w-12" />
-                                </div>
-                            </section>
-                        ) : null}
 
                         {!isProfileView ? (
                             <section className="grid gap-4">

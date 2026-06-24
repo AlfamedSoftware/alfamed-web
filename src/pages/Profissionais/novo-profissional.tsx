@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react"
 import { useNavigate } from "react-router"
-import { CheckCircle2, Link2, Loader2, Search } from "lucide-react"
+import { CheckCircle2, Search } from "lucide-react"
 
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
@@ -14,6 +14,7 @@ import {
 } from "@/Servicos/professionals.service"
 import { ToastContainer, useToast } from "./Componentes/Toast"
 import { digitsOnly, formatCpf } from "./edicao-profissionais"
+import { BackButton, SaveButton } from "@/components/ui/buttons"
 
 type ProfessionalRole = {
     id: string
@@ -123,7 +124,7 @@ export function NovoProfissional() {
                 !result || (typeof result === "object" && Object.keys(result).length === 0)
 
             if (isEmptyResult) {
-                navigate(`/cadastro-profissionais?cpf=${cpfDigits}`)
+                navigate(`/profissionais/cadastro?cpf=${cpfDigits}`)
                 return
             }
 
@@ -164,11 +165,10 @@ export function NovoProfissional() {
 
     return (
         <div className="flex min-h-screen flex-col bg-background text-foreground">
-            <PageHeader title="Importar Profissional" />
+            <PageHeader title="Importação de Profissional" />
 
-            <main className="flex-1 px-4 py-6 md:px-6 md:py-8">
-                <div className="grid gap-5">
-                    <form onSubmit={handleSubmit} className="grid gap-5">
+            <main className="flex-1 flex flex-col px-4 py-6 md:px-6 md:py-8">
+                    <form onSubmit={handleSubmit} className="flex flex-col flex-1 gap-5">
                         <div className="grid gap-5">
                             <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
                                 <label className="grid gap-2">
@@ -185,13 +185,13 @@ export function NovoProfissional() {
                                         disabled={isChecking || isLinking}
                                     />
                                 </label>
-                                <Button
+                                    <Button
                                     type="submit"
                                     disabled={isSessionUnitLoading || isChecking || isLinking}
-                                    className="w-full gap-2 sm:w-auto h-10 cursor-pointer"
+                                    className="cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
                                 >
-                                    {isChecking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                                    {isChecking ? "Verificando..." : "Verificar CPF"}
+                                    <Search className="w-4 h-4 mr-1.5" />
+                                    {isChecking ? "Buscando..." : "Buscar"}
                                 </Button>
                             </div>
 
@@ -243,31 +243,20 @@ export function NovoProfissional() {
                             ) : null}
                         </div>
 
-                        <div className="flex flex-col gap-3 border-t pt-5 sm:flex-row sm:items-center sm:justify-between">
-                            <p className="text-sm text-muted-foreground"></p>
-                            <div className="flex flex-row items-center gap-2">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => navigate("/profissionais")}
-                                    className="w-fit gap-2 cursor-pointer"
-                                >
-                                    Voltar
-                                </Button>
-
-                                <Button
-                                    type="button"
-                                    onClick={handleLinkUser}
-                                    disabled={isLinking || alreadyLinked || !roleId || !hasLookupResult}
-                                    className="w-fit gap-2 cursor-pointer"
-                                >
-                                    {isLinking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />}
-                                    {isLinking ? "Importando..." : "Importar"}
-                                </Button>
+                        <div className="mt-auto flex flex-col gap-3 border-t pt-5 sm:flex-row sm:items-center sm:justify-end">
+                            <div className="flex flex-col items-start gap-2 sm:items-end">
+                                <div className="flex gap-2">
+                                    <BackButton onClick={() => navigate("/profissionais")} />
+                                    <SaveButton
+                                        type="submit"
+                                        onClick={handleLinkUser}
+                                        isSaving={isLinking}
+                                        disabled={isLinking || alreadyLinked || !roleId || !hasLookupResult}
+                                    />
+                                </div>
                             </div>
                         </div>
                     </form>
-                </div>
             </main>
 
             <ToastContainer toasts={toasts} onDismiss={dismiss} />

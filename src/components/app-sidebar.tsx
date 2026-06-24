@@ -18,7 +18,6 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
-    CalendarCheck,
     CalendarDays,
     ChevronsUpDown,
     ClipboardList,
@@ -28,8 +27,7 @@ import {
     Stethoscope,
     User,
     Building2,
-    ClipboardPaste,
-    Minus,
+    HeartPulse,
 } from "lucide-react"
 import { useSession } from "@/hooks/use-session"
 import { auth } from "@/lib/auth"
@@ -48,6 +46,7 @@ const MENU_ROLE_KEYS = {
     administrative: "administrative",
     assistant: "administrative_assistant",
     medic: "medic",
+    technical_executor: "technical_executor",
 } as const
 
 type RoleMenuKey = (typeof MENU_ROLE_KEYS)[keyof typeof MENU_ROLE_KEYS]
@@ -58,6 +57,7 @@ const roleLabels: Record<RoleMenuKey, string> = {
     [MENU_ROLE_KEYS.administrative]: "Administrativo",
     [MENU_ROLE_KEYS.assistant]: "Assistente administrativo",
     [MENU_ROLE_KEYS.medic]: "Médico",
+    [MENU_ROLE_KEYS.technical_executor]: "Técnico Executante",
 }
 
 const ADMINISTRATIVE_MENU_ITEMS: SidebarMenuItemConfig[] = [
@@ -65,23 +65,33 @@ const ADMINISTRATIVE_MENU_ITEMS: SidebarMenuItemConfig[] = [
     { title: "Unidade", icon: Building2, url: "/unidade" },
     { title: "Profissionais", icon: User, url: "/profissionais" },
     { title: "Especialidades", icon: Stethoscope, url: "/especialidades" },
-    { title: "Vínculo de Especialidades", icon: ClipboardPaste, url: "/especialidades/vinculo-listagem-profissionais" },
+    //Vínculo ficara desativado pois não está pronto para adicionar na busca da agenda
+    //{ title: "Vínculo de Especialidades", icon: ClipboardPaste, url: "/especialidades/vinculo-listagem-profissionais" },
     { title: "Procedimentos", icon: ClipboardList, url: "/procedimentos" },
-    { title: "", icon: Minus, url: "" },
-    { title: "Agendas", icon: CalendarDays, url: "/agenda-listagem-profissionais" },
-    { title: "Agendamentos", icon: CalendarCheck, url: "/agendas" },
+    { title: "Agendas", icon: CalendarDays, url: "/agendas" },
 ]
 
 const CLINICAL_MENU_ITEMS: SidebarMenuItemConfig[] = [
     { title: "Início", icon: HomeIcon, url: "/home" },
-    { title: "Agendas", icon: CalendarDays, url: "/agenda-listagem-profissionais" },
-    { title: "Agendamentos", icon: CalendarCheck, url: "/agendas" },
+    { title: "Agendas", icon: CalendarDays, url: "/agendas" },
+]
+
+const MEDICAL_MENU_ITEMS: SidebarMenuItemConfig[] = [
+    { title: "Início", icon: HomeIcon, url: "/home" },
+    { title: "Agendas", icon: CalendarDays, url: "/agendas" },
+    { title: "Atendimentos", icon: HeartPulse, url: "/atendimentos" },
+]
+
+const TECHNICAL_EXECUTOR_MENU_ITEMS: SidebarMenuItemConfig[] = [
+    { title: "Início", icon: HomeIcon, url: "/home" },
+    { title: "Atendimentos?", icon: CalendarDays, url: "/atendimentosgestao" },
 ]
 
 const menuItemsByRole: Record<RoleMenuKey, SidebarMenuItemConfig[]> = {
     [MENU_ROLE_KEYS.administrative]: ADMINISTRATIVE_MENU_ITEMS,
-    [MENU_ROLE_KEYS.medic]: CLINICAL_MENU_ITEMS,
+    [MENU_ROLE_KEYS.medic]: MEDICAL_MENU_ITEMS,
     [MENU_ROLE_KEYS.assistant]: CLINICAL_MENU_ITEMS,
+    [MENU_ROLE_KEYS.technical_executor]: TECHNICAL_EXECUTOR_MENU_ITEMS,
 } as const
 
 export function AppSidebar() {
@@ -89,13 +99,11 @@ export function AppSidebar() {
     const navigate = useNavigate()
     const location = useLocation()
     const isAdminArea = location.pathname.startsWith("/admin")
-    const isProfessionalAgendaRoute =
-        location.pathname.startsWith("/profissionais/") &&
-        new URLSearchParams(location.search).get("isAgenda") === "true"
     const isProfessionalSpecialtyLinkRoute =
         location.pathname.startsWith("/profissionais/") &&
         (new URLSearchParams(location.search).get("isSpecialtyLink") === "true" ||
          location.pathname === "/profissionais/vinculo-especialidades")
+    const isAgendamentosRoute = location.pathname === "/agendamentos"
     const { sessionUnit, isLoading: isSessionUnitLoading } = useSessionUnit()
     const { menuRoles, isMenuRolesLoading } = useSidebarMenu()
     const isSidebarDataLoading = isLoading || isSessionUnitLoading
@@ -127,12 +135,12 @@ export function AppSidebar() {
     }
 
     const isMenuItemActive = (item: SidebarMenuItemConfig) => {
-        if (isProfessionalAgendaRoute) {
-            return item.url === "/agenda-listagem-profissionais"
-        }
-
         if (isProfessionalSpecialtyLinkRoute) {
             return item.url === "/especialidades/vinculo-listagem-profissionais"
+        }
+
+        if (isAgendamentosRoute) {
+            return item.url === "/listar-agendas"
         }
 
         if (item.url === "/especialidades") {

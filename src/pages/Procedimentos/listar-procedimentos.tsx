@@ -105,7 +105,7 @@ export function Procedimentos() {
 
                 <Button
                     id="new-procedure-btn"
-                    onClick={() => navigate("/cadastro-procedimentos")}
+                    onClick={() => navigate("cadastro")}
                     className="h-9 gap-1.5 rounded-full bg-blue-600 px-4 text-white shadow-sm hover:bg-blue-700 cursor-pointer"
                 >
                     <Plus className="h-4 w-4" />

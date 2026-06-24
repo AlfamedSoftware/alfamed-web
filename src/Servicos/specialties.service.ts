@@ -22,10 +22,14 @@ export type UpdateSpecialtyInput = {
 }
 
 export const specialtiesService = {
-    listByUnit: (unitId: string): Promise<SpecialtyUnitFullData[]> =>
-        fetchWithAuth<SpecialtyUnitFullData[]>(
-            `${authBaseUrl}/specialties/list-specialties-by-unit/${unitId}`,
-        ),
+    listByUnit: (unitId: string, options?: { isActive?: boolean }): Promise<SpecialtyUnitFullData[]> => {
+        const params = new URLSearchParams()
+        if (typeof options?.isActive === "boolean") params.set("isActive", String(options.isActive))
+        const query = params.toString()
+        return fetchWithAuth<SpecialtyUnitFullData[]>(
+            `${authBaseUrl}/specialties/list-specialties-by-unit/${unitId}${query ? `?${query}` : ""}`,
+        )
+    },
     getById: (specialtyId: string): Promise<SpecialtyUnitFullData> =>
         fetchWithAuth<SpecialtyUnitFullData>(`${authBaseUrl}/specialties/${specialtyId}`),
     create: (data: CreateSpecialtyInput): Promise<SpecialtyUnitFullData> =>

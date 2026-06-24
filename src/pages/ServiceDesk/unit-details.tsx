@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from "react"
 import { useNavigate, useParams } from "react-router"
-import { ArrowLeft, UserPlus } from "lucide-react"
+import { UserPlus } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
+import { BackButton } from "@/components/ui/buttons"
 import { Input } from "@/components/ui/input"
 import {
     adminUnitsService,
@@ -113,10 +114,7 @@ export function ServiceDeskUnitDetails() {
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
             <PageHeader title={unit.name} />
             <div className="mx-auto max-w-6xl space-y-4 p-4 sm:p-6">
-                <Button variant="outline" onClick={() => navigate("/admin/unidades")} className="cursor-pointer">
-                    <ArrowLeft className="h-4 w-4 mr-1" />
-                    Voltar para unidades
-                </Button>
+                <BackButton onClick={() => navigate("/admin/unidades")}>Voltar para unidades</BackButton>
 
                 <section className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 sm:p-6">
                     <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{unit.name}</h1>

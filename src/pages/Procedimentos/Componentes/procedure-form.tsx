@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useForm, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useNavigate, useParams } from "react-router"
-import { Save } from "lucide-react"
+import { AlertTriangle, CheckCircle2, Plus } from "lucide-react"
 import * as z from "zod"
 
 import { Button } from "@/components/ui/button"
@@ -10,25 +10,45 @@ import { Input } from "@/components/ui/input"
 import { PageHeader } from "@/components/page-header"
 import { useSessionUnit } from "@/contexts/session-unit-context"
 import { proceduresService } from "@/Servicos/procedures.service"
+import { specialtiesService, type SpecialtyUnitFullData } from "@/Servicos/specialties.service"
 import { cn } from "@/lib/utils"
 import { ProcedureFormSkeleton } from "./Skeleton/edicao-procedimento-skeleton"
+import { BackButton, SaveButton } from "@/components/ui/buttons"
 
-const procedureFormSchema = z.object({
-    description: z.string().min(1, "Informe a descrição do procedimento"),
-    code: z
-        .string()
-        .min(1, "Informe o código do procedimento")
-        .regex(/^[A-Z0-9]{6}$/, "Informe um código alfanumérico com 6 caracteres"),
-    price: z
-        .string()
-        .min(1, "Informe o valor do procedimento")
-        .regex(
-            /^(0|[1-9]\d*|[1-9]\d{0,2}(\.\d{3})+),\d{2}$/,
-            "Informe um valor positivo ou zero no formato 0,00",
-        ),
-    observation: z.string().optional(),
-    isActive: z.boolean(),
-})
+const PROCEDURE_TYPES = [
+    { value: "1", label: "Consulta" },
+    { value: "2", label: "Retorno" },
+    { value: "3", label: "Exame" },
+]
+
+const procedureFormSchema = z
+    .object({
+        description: z.string().min(1, "Informe a descrição do procedimento"),
+        code: z
+            .string()
+            .min(1, "Informe o código do procedimento")
+            .regex(/^[A-Z0-9]{10}$/, "Informe um código alfanumérico com 10 caracteres"),
+        type: z.string().min(1, "Selecione o tipo do procedimento"),
+        specialtyId: z.string().nullable(),
+        price: z
+            .string()
+            .min(1, "Informe o valor do procedimento")
+            .regex(
+                /^(0|[1-9]\d*|[1-9]\d{0,2}(\.\d{3})+),\d{2}$/,
+                "Informe um valor positivo ou zero no formato 0,00",
+            ),
+        observation: z.string().optional(),
+        isActive: z.boolean(),
+    })
+    .superRefine((data, ctx) => {
+        if ((data.type === "1" || data.type === "2") && !data.specialtyId) {
+            ctx.addIssue({
+                code: "custom",
+                message: "Selecione uma especialidade",
+                path: ["specialtyId"],
+            })
+        }
+    })
 
 type ProcedureFormValues = z.infer<typeof procedureFormSchema>
 
@@ -125,21 +145,36 @@ export function ProcedureProfile({
     const { id: routeProcedureId } = useParams()
     const effectiveProcedureId = procedureId ?? routeProcedureId
     const navigate = useNavigate()
-    const { isLoading: isSessionUnitLoading } = useSessionUnit()
+    const { sessionUnit, isLoading: isSessionUnitLoading } = useSessionUnit()
     const [isLoading, setIsLoading] = useState(!isRegisterMode)
     const [isSaving, setIsSaving] = useState(false)
     const [loadError, setLoadError] = useState<string | null>(null)
+    const [registerSuccess, setRegisterSuccess] = useState(false)
+    const [registeredName, setRegisteredName] = useState("")
+    const [specialties, setSpecialties] = useState<SpecialtyUnitFullData[]>([])
+    const [isLoadingSpecialties, setIsLoadingSpecialties] = useState(false)
 
     const form = useForm<ProcedureFormValues>({
         resolver: zodResolver(procedureFormSchema) as Resolver<ProcedureFormValues>,
         defaultValues: {
             description: "",
             code: "",
+            type: "",
+            specialtyId: "",
             price: "0,00",
             observation: "",
             isActive: true,
         },
     })
+
+    const watchedType = form.watch("type")
+    const showSpecialty = watchedType === "1" || watchedType === "2"
+
+    useEffect(() => {
+        if (!showSpecialty) {
+            form.setValue("specialtyId", "", { shouldDirty: true })
+        }
+    }, [showSpecialty, form])
 
     const pageTitle = useMemo(() => getProcedureLabel(isRegisterMode), [isRegisterMode])
     const priceField = form.register("price", {
@@ -151,6 +186,27 @@ export function ProcedureProfile({
         },
     })
     const codeField = form.register("code")
+
+    useEffect(() => {
+        if (!sessionUnit?.selectedUnitId) return
+
+        let alive = true
+        setIsLoadingSpecialties(true)
+
+        specialtiesService
+            .listByUnit(sessionUnit.selectedUnitId, { isActive: true })
+            .then((data) => {
+                if (alive) setSpecialties(data)
+            })
+            .catch(() => {})
+            .finally(() => {
+                if (alive) setIsLoadingSpecialties(false)
+            })
+
+        return () => {
+            alive = false
+        }
+    }, [sessionUnit?.selectedUnitId])
 
     useEffect(() => {
         if (isRegisterMode) {
@@ -189,6 +245,8 @@ export function ProcedureProfile({
                     price: formatPriceValue(current.price),
                     observation: normalizeValue(current.observation),
                     isActive: current.isActive,
+                    type: String(current.type),
+                    specialtyId: current.specialtyId ?? "",
                 })
             } catch (error) {
                 if (!alive || (error as Error).name === "AbortError") {
@@ -222,10 +280,12 @@ export function ProcedureProfile({
                     code: normalizeCodeValue(values.code),
                     price: values.price.trim(),
                     isActive: values.isActive,
+                    type: Number(values.type),
+                    specialtyId: values.specialtyId || null,
                 })
 
-                alert("Procedimento cadastrado com sucesso.")
-                navigate(afterSavePath ?? "/procedimentos")
+                setRegisteredName(values.description.trim())
+                setRegisterSuccess(true)
                 return
             }
 
@@ -241,9 +301,10 @@ export function ProcedureProfile({
                 code: normalizeCodeValue(values.code),
                 price: values.price.trim(),
                 isActive: values.isActive,
+                type: Number(values.type),
+                specialtyId: values.specialtyId || null,
             })
 
-            alert("Procedimento atualizado com sucesso.")
             navigate(afterSavePath ?? "/procedimentos")
         } catch (error) {
             setLoadError(error instanceof Error ? error.message : "Erro ao salvar procedimento")
@@ -266,24 +327,57 @@ export function ProcedureProfile({
         navigate("/procedimentos")
     }
 
+    if (isRegisterMode && registerSuccess) {
+        return (
+            <div className="flex flex-col h-full min-h-screen bg-background">
+                {showPageHeader ? <PageHeader title={pageTitle} /> : null}
+                <div className="flex-1 flex flex-col items-center justify-center gap-4 px-6">
+                    <div className="h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                        <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
+                    </div>
+                    <h2 className="text-lg font-semibold text-foreground">Procedimento cadastrado com sucesso!</h2>
+                    <p className="text-sm text-muted-foreground text-center">{registeredName}</p>
+                    <div className="mt-2 flex gap-3">
+                        <BackButton onClick={() => navigate("/procedimentos")} >
+                            Voltar para procedimentos
+                        </BackButton>
+                        <Button
+                            size="lg"
+                            onClick={() => {
+                                setRegisterSuccess(false)
+                                setRegisteredName("")
+                                form.reset({ description: "", code: "", type: "", specialtyId: "", price: "0,00", observation: "", isActive: true })
+                            }}
+                            className="cursor-pointer"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Cadastrar novo procedimento
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
     return (
         <div className="flex min-h-screen flex-col bg-background text-foreground">
             {showPageHeader ? <PageHeader title={pageTitle} /> : null}
 
-            <main className="flex-1 px-4 py-6 md:px-6 md:py-8">
+            <main className="flex-1 flex flex-col px-4 py-6 md:px-6 md:py-8">
                 {isSessionUnitLoading || isLoading ? (
                     <ProcedureFormSkeleton />
                 ) : (
                     <>
                         {loadError ? (
-                            <div className="mb-6 rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                                {loadError}
+                            <div className="flex items-start gap-3 mb-6 rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                                <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                                <span>{loadError}</span>
                             </div>
                         ) : null}
 
-                        <form onSubmit={form.handleSubmit(handleSubmit)} className="grid gap-5">
-                            <div className="grid gap-5 md:grid-cols-2">
-                                <label className="grid gap-2 md:col-span-2">
+                        <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col flex-1 gap-5">
+                            <div className="grid gap-5 md:grid-cols-3">
+                                <label className="grid gap-2 md:col-span-3">
                                     <span className="text-sm font-medium">Descrição</span>
                                     <Input placeholder="Ex.: Consulta oftalmológica" {...form.register("description")} />
                                     {form.formState.errors.description ? (
@@ -296,7 +390,8 @@ export function ProcedureProfile({
                                 <label className="grid gap-2">
                                     <span className="text-sm font-medium">Código</span>
                                     <Input
-                                        maxLength={6}
+                                        minLength={1}
+                                        maxLength={10}
                                         placeholder="Ex.: A1B2C3"
                                         {...codeField}
                                         onChange={(event) => {
@@ -310,6 +405,24 @@ export function ProcedureProfile({
                                 </label>
 
                                 <label className="grid gap-2">
+                                    <span className="text-sm font-medium">Tipo</span>
+                                    <select
+                                        className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20"
+                                        {...form.register("type")}
+                                    >
+                                        <option value="">Selecione</option>
+                                        {PROCEDURE_TYPES.map((t) => (
+                                            <option key={t.value} value={t.value}>
+                                                {t.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {form.formState.errors.type ? (
+                                        <span className="text-xs text-destructive">{form.formState.errors.type.message}</span>
+                                    ) : null}
+                                </label>
+
+                                <label className="grid gap-2">
                                     <span className="text-sm font-medium">Valor</span>
                                     <Input inputMode="decimal" placeholder="Ex.: 120,00" {...priceField} />
                                     {form.formState.errors.price ? (
@@ -317,7 +430,30 @@ export function ProcedureProfile({
                                     ) : null}
                                 </label>
 
-                                <label className="grid gap-2 md:col-span-2">
+                                {showSpecialty ? (
+                                    <label className="grid gap-2 md:col-span-3">
+                                        <span className="text-sm font-medium">Especialidade</span>
+                                        <select
+                                            className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:opacity-60 disabled:cursor-not-allowed"
+                                            disabled={isLoadingSpecialties}
+                                            {...form.register("specialtyId")}
+                                        >
+                                            <option value="">{isLoadingSpecialties ? "Carregando..." : "Nenhuma"}</option>
+                                            {specialties.map((s) => (
+                                                <option key={s.id} value={s.id}>
+                                                    {s.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {form.formState.errors.specialtyId ? (
+                                            <span className="text-xs text-destructive">
+                                                {form.formState.errors.specialtyId.message}
+                                            </span>
+                                        ) : null}
+                                    </label>
+                                ) : null}
+
+                                <label className="grid gap-2 md:col-span-3">
                                     <span className="text-sm font-medium">Observação</span>
                                     <textarea
                                         rows={4}
@@ -327,7 +463,7 @@ export function ProcedureProfile({
                                     />
                                 </label>
 
-                                <div className="grid gap-2 md:col-span-2">
+                                <div className="grid gap-2 md:col-span-3">
                                     <p className="text-sm font-semibold text-foreground">Procedimento ativo</p>
                                     <div className="rounded-2xl border border-border bg-muted/30 px-5 py-4">
                                         <div className="flex items-center justify-between gap-4">
@@ -349,17 +485,12 @@ export function ProcedureProfile({
                                 </div>
                             </div>
 
-                            <div className="flex flex-col gap-3 border-t pt-5 sm:flex-row sm:items-center sm:justify-end">
+                            <div className="mt-auto flex flex-col gap-3 border-t pt-5 sm:flex-row sm:items-center sm:justify-end">
                                 <div className="flex flex-col items-start gap-2 sm:items-end">
                                     <div className="flex gap-2">
-                                        <Button type="button" variant="outline" onClick={handleCancel} className="cursor-pointer">
-                                            Cancelar
-                                        </Button>
+                                        <BackButton onClick={handleCancel} />
 
-                                        <Button type="submit" disabled={isLoading || isSaving} className="cursor-pointer">
-                                            <Save className="h-4 w-4" />
-                                            {isSaving ? "Salvando..." : "Salvar"}
-                                        </Button>
+                                        <SaveButton isSaving={isSaving} disabled={isLoading} />
                                     </div>
                                 </div>
                             </div>

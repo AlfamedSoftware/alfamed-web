@@ -15,7 +15,7 @@ interface ProfessionalFiltersProps {
 const filters: { key: ProfessionalFilter; label: string; countKey: keyof ProfessionalFiltersProps["counts"] }[] = [
     { key: "all", label: "Todos", countKey: "all" },
     { key: "active", label: "Ativos", countKey: "active" },
-    { key: "inactive", label: "Desativados", countKey: "inactive" },
+    { key: "inactive", label: "Inativos", countKey: "inactive" },
 ]
 
 export function ProfessionalFilters({

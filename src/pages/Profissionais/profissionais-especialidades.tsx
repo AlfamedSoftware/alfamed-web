@@ -7,6 +7,7 @@ import { professionalUnitSpecialtiesService, type ProfessionalUnitSpecialty } fr
 import { specialtiesService, type SpecialtyUnitFullData } from "@/Servicos/specialties.service"
 import { useSessionUnit } from "@/contexts/session-unit-context"
 import { ProfissionaisEspecialidadesSkeleton } from "./Componentes/Skeleton/profissionais-especialidades-skeleton"
+import { BackButton } from "@/components/ui/buttons"
 
 export function ProfissionaisEspecialidades() {
     const navigate = useNavigate()
@@ -188,14 +189,7 @@ export function ProfissionaisEspecialidades() {
 
                         <div className="flex flex-col gap-3 border-t pt-5 sm:flex-row sm:items-center sm:justify-end">
                             <div className="flex flex-col items-start gap-2 sm:items-end">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => navigate("/especialidades/vinculo-listagem-profissionais")}
-                                    className="cursor-pointer"
-                                >
-                                    Voltar
-                                </Button>
+                                <BackButton onClick={() => navigate("/especialidades/vinculo-listagem-profissionais")} />
                             </div>
                         </div>
                     </div>
