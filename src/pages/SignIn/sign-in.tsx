@@ -92,7 +92,7 @@ export function SignIn() {
             <div className="flex items-center justify-center py-12">
                 <div className="mx-auto grid w-[420px] gap-6">
                     <div className="grid gap-2">
-                        <h1 className="text-2xl font-bold text-primary">Bem-vindo ao Alfamed</h1>
+                        <h1 className="text-4xl font-bold text-primary">Bem-vindo ao Alfamed</h1>
                         <p className="text-balance text-muted-foreground">
                             Use seu e-mail e senha para acessar sua conta
                         </p>
