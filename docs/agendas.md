@@ -68,8 +68,15 @@ Cada agenda exibe:
 | ≥ 90%    | Vermelho |
 
 - Grade de vagas:
-  - **Disponível** (verde, clicável) → navega para `agendamentos.tsx`
-  - **Ocupada** (vermelha, desabilitada)
+
+| Estado | Cor | Interativo | Condição |
+|---|---|---|---|
+| Disponível | Verde | Sim (navega para `agendamentos.tsx`) | Mais de 30 min até o horário |
+| Expirado | Laranja | Não | Menos de 30 min até o horário **ou** horário já passou |
+| Ocupado | Vermelho | Não | Vaga já reservada |
+
+- A legenda exibe a contagem de cada estado; "Expirado" só aparece se houver ao menos um slot nesse estado.
+- O tempo de expiração é calculado uma vez na montagem do componente (`useState(() => Date.now())`), comparando com a data+hora da vaga (campo `date` da agenda + `startTime` do slot, horário local do navegador).
 
 ### API
 

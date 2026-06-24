@@ -1,6 +1,6 @@
 ﻿import { useEffect, useState } from "react"
 import { useNavigate, useSearchParams } from "react-router"
-import { CalendarDays, ChevronLeft, ChevronRight, Clock, Plus, User, Users } from "lucide-react"
+import { CalendarDays, ChevronLeft, ChevronRight, Clock, Info, Plus, User, Users } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,6 +9,8 @@ import { specialtiesService, type SpecialtyUnitFullData } from "@/services/speci
 import { useSessionUnit } from "@/contexts/session-unit-context"
 import { fetchWithAuth } from "@/lib/api-client"
 import { authBaseUrl } from "@/lib/auth"
+import { useToast, ToastContainer } from "@/pages/Profissionais/Componentes/Toast"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 // --- Types ---
 
@@ -104,6 +106,12 @@ function getProfessionalName(professional: ProfessionalUnitFullData): string {
     return firstUser?.name ?? "Profissional"
 }
 
+function getSlotDateTime(dateStr: string, timeStr: string): Date {
+    const [d, m, y] = dateStr.split("/")
+    const [h, min] = timeStr.split(":")
+    return new Date(parseInt(y), parseInt(m) - 1, parseInt(d), parseInt(h), parseInt(min))
+}
+
 function isBeforeToday(dateStr: string): boolean {
     const [d, m, y] = dateStr.split("/")
     const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d))
@@ -191,32 +199,39 @@ export function Agendas() {
 
     useEffect(() => {
         if (!selectedUnitId) return
-        setIsProfessionalsLoading(true)
-        if (isMedic && sessionProfessionalUnitId) {
-            professionalsService
-                .getFullDataByProfessionalUnitId(sessionProfessionalUnitId)
-                .then((data) => setProfessionals([data]))
-                .catch(() => {})
-                .finally(() => setIsProfessionalsLoading(false))
-            return
+        const load = async () => {
+            setIsProfessionalsLoading(true)
+            try {
+                if (isMedic && sessionProfessionalUnitId) {
+                    const data = await professionalsService.getFullDataByProfessionalUnitId(sessionProfessionalUnitId)
+                    setProfessionals([data])
+                } else {
+                    const data = await professionalsService.listByUnit(selectedUnitId, { isActive: true, roleKey: "medic" })
+                    setProfessionals(data)
+                }
+            } catch {
+                // ignore
+            } finally {
+                setIsProfessionalsLoading(false)
+            }
         }
-        professionalsService
-            .listByUnit(selectedUnitId, { isActive: true, roleKey: "medic" })
-            .then((data) => {
-                setProfessionals(data)
-            })
-            .catch(() => {})
-            .finally(() => setIsProfessionalsLoading(false))
+        load()
     }, [selectedUnitId, isMedic, sessionProfessionalUnitId])
 
     useEffect(() => {
         if (!selectedUnitId) return
-        setIsSpecialtiesLoading(true)
-        specialtiesService
-            .listByUnit(selectedUnitId, { isActive: true })
-            .then((data) => setSpecialties(data))
-            .catch(() => {})
-            .finally(() => setIsSpecialtiesLoading(false))
+        const load = async () => {
+            setIsSpecialtiesLoading(true)
+            try {
+                const data = await specialtiesService.listByUnit(selectedUnitId, { isActive: true })
+                setSpecialties(data)
+            } catch {
+                // ignore
+            } finally {
+                setIsSpecialtiesLoading(false)
+            }
+        }
+        load()
     }, [selectedUnitId])
 
     const [schedules, setSchedules] = useState<Schedule[]>([])
@@ -398,13 +413,33 @@ export function Agendas() {
 
 function ScheduleCard({ schedule }: { schedule: Schedule }) {
     const navigate = useNavigate()
+    const { toasts, dismiss, toast } = useToast()
+    const [now] = useState<number>(() => Date.now())
     const booked = schedule.schedule_slots.filter((s) => s.isBooked).length
-    const available = schedule.schedule_slots.filter((s) => !s.isBooked).length
+    const expired = schedule.schedule_slots.filter((s) => {
+        if (s.isBooked) return false
+        const diffMin = (getSlotDateTime(schedule.date, s.time).getTime() - now) / 60000
+        return diffMin < 30
+    }).length
+    const available = schedule.schedule_slots.filter((s) => !s.isBooked).length - expired
     const occupancyPercent = schedule.totalSlots > 0
-        ? Math.round((booked / schedule.totalSlots) * 100)
+        ? Math.round(((booked + expired) / schedule.totalSlots) * 100)
         : 0
 
     const handleSlotClick = (slot: ScheduleSlot) => {
+        const slotDateTime = getSlotDateTime(schedule.date, slot.time)
+        const now = new Date()
+        const diffMin = (slotDateTime.getTime() - now.getTime()) / 60000
+
+        if (diffMin <= 0) {
+            toast.error("Não é possível agendar uma consulta que já passou.")
+            return
+        }
+        if (diffMin < 30) {
+            toast.error("Não é possível agendar com menos de 30 minutos de antecedência.")
+            return
+        }
+
         const params = new URLSearchParams({
             scheduleSlotId: slot.id,
             date: schedule.date,
@@ -415,6 +450,7 @@ function ScheduleCard({ schedule }: { schedule: Schedule }) {
     }
 
     return (
+        <>
         <div className="w-full rounded-xl border border-border bg-card shadow-sm px-6 py-5">
             {/* Cabeçalho */}
             <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
@@ -435,7 +471,7 @@ function ScheduleCard({ schedule }: { schedule: Schedule }) {
                     <span className="flex items-center gap-1.5">
                         <Users className="h-4 w-4" />
                         <span>
-                            <span className="font-medium text-green-600 dark:text-green-400">{schedule.availableSlots}</span>
+                            <span className="font-medium text-green-600 dark:text-green-400">{available}</span>
                             <span className="text-muted-foreground"> / {schedule.totalSlots} vagas disponíveis</span>
                         </span>
                     </span>
@@ -449,7 +485,7 @@ function ScheduleCard({ schedule }: { schedule: Schedule }) {
                                 style={{ width: `${occupancyPercent}%` }}
                             />
                         </div>
-                        <span className="text-xs tabular-nums">{occupancyPercent}% ocupado</span>
+                        <span className="text-xs tabular-nums">{occupancyPercent}% ocupado/expirado</span>
                     </div>
                 </div>
             </div>
@@ -463,17 +499,59 @@ function ScheduleCard({ schedule }: { schedule: Schedule }) {
                     Horários
                 </div>
                 <div className="flex flex-wrap gap-2">
-                    {schedule.schedule_slots.map((slot) =>
-                        slot.isBooked ? (
-                            <div
-                                key={slot.id}
-                                className="flex flex-col items-center justify-center w-16 h-14 rounded-lg border border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800 select-none"
-                            >
-                                <span className="h-1.5 w-1.5 rounded-full bg-red-400 mb-1" />
-                                <span className="text-xs font-medium text-red-500 dark:text-red-400">{slot.time}</span>
-                                <span className="text-[10px] text-red-400 dark:text-red-500 mt-0.5">Ocupado</span>
-                            </div>
-                        ) : (
+                    {schedule.schedule_slots.map((slot) => {
+                        if (slot.isBooked) {
+                            return (
+                                <div
+                                    key={slot.id}
+                                    className="flex flex-col items-center justify-center w-16 h-14 rounded-lg border border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800 select-none"
+                                >
+                                    <span className="h-1.5 w-1.5 rounded-full bg-red-400 mb-1" />
+                                    <span className="text-xs font-medium text-red-500 dark:text-red-400">{slot.time}</span>
+                                    <span className="text-[10px] text-red-400 dark:text-red-500 mt-0.5">Ocupado</span>
+                                </div>
+                            )
+                        }
+                        const diffMin = (getSlotDateTime(schedule.date, slot.time).getTime() - now) / 60000
+                        if (diffMin <= 0) {
+                            return (
+                                <TooltipProvider key={slot.id}>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <div className="relative flex flex-col items-center justify-center w-16 h-14 rounded-lg border border-orange-200 bg-orange-50 dark:bg-orange-900/20 dark:border-orange-800 select-none cursor-default">
+                                                <Info className="absolute top-1 right-1 h-3 w-3 text-orange-400" />
+                                                <span className="h-1.5 w-1.5 rounded-full bg-orange-400 mb-1" />
+                                                <span className="text-xs font-medium text-orange-500 dark:text-orange-400">{slot.time}</span>
+                                                <span className="text-[10px] text-orange-400 dark:text-orange-500 mt-0.5">Expirado</span>
+                                            </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            Esta vaga já passou do horário.
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            )
+                        }
+                        if (diffMin < 30) {
+                            return (
+                                <TooltipProvider key={slot.id}>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <div className="relative flex flex-col items-center justify-center w-16 h-14 rounded-lg border border-orange-200 bg-orange-50 dark:bg-orange-900/20 dark:border-orange-800 select-none cursor-default">
+                                                <Info className="absolute top-1 right-1 h-3 w-3 text-orange-400" />
+                                                <span className="h-1.5 w-1.5 rounded-full bg-orange-400 mb-1" />
+                                                <span className="text-xs font-medium text-orange-500 dark:text-orange-400">{slot.time}</span>
+                                                <span className="text-[10px] text-orange-400 dark:text-orange-500 mt-0.5">Expirado</span>
+                                            </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            Não é possível agendar com menos de 30 minutos de antecedência.
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            )
+                        }
+                        return (
                             <button
                                 key={slot.id}
                                 onClick={() => handleSlotClick(slot)}
@@ -484,7 +562,7 @@ function ScheduleCard({ schedule }: { schedule: Schedule }) {
                                 <span className="text-[10px] text-green-600 dark:text-green-500 mt-0.5">Disponível</span>
                             </button>
                         )
-                    )}
+                    })}
                 </div>
 
                 <div className="flex gap-5 mt-3 text-xs text-muted-foreground">
@@ -492,6 +570,12 @@ function ScheduleCard({ schedule }: { schedule: Schedule }) {
                         <span className="h-2 w-2 rounded-full bg-green-500" />
                         Disponível ({available})
                     </span>
+                    {expired > 0 && (
+                        <span className="flex items-center gap-1.5">
+                            <span className="h-2 w-2 rounded-full bg-orange-400" />
+                            Expirado ({expired})
+                        </span>
+                    )}
                     <span className="flex items-center gap-1.5">
                         <span className="h-2 w-2 rounded-full bg-red-400" />
                         Ocupado ({booked})
@@ -499,6 +583,8 @@ function ScheduleCard({ schedule }: { schedule: Schedule }) {
                 </div>
             </div>
         </div>
+        <ToastContainer toasts={toasts} onDismiss={dismiss} />
+        </>
     )
 }
 
