@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+﻿import { useEffect, useMemo, useState } from "react"
 import { useForm, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useNavigate, useParams } from "react-router"
@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { PageHeader } from "@/components/page-header"
 import { useSessionUnit } from "@/contexts/session-unit-context"
-import { specialtiesService } from "@/Servicos/specialties.service"
+import { specialtiesService } from "@/services/specialties.service"
 import { cn } from "@/lib/utils"
 import { SpecialtyFormSkeleton } from "./Skeleton/edicao-especialidade-skeleton"
 import { BackButton, SaveButton } from "@/components/ui/buttons"
@@ -171,7 +171,7 @@ export function SpecialtyProfile({
                 isActive: values.isActive,
             })
 
-            navigate(afterSavePath ?? "/especialidades")
+            navigate(`${afterSavePath ?? "/especialidades"}?salvo=true`)
         } catch (error) {
             setLoadError(error instanceof Error ? error.message : "Erro ao salvar especialidade")
         } finally {

@@ -1,64 +1,144 @@
 import { authBaseUrl } from "@/lib/auth"
 import { fetchWithAuth } from "@/lib/api-client"
 
-export interface Professional {
+export interface ProfessionalUnitFullData {
     id: string
-    userId: string
-    name?: string
-    email?: string
-    crm?: string
-    phone?: string
-    cpf?: string
-    birthdate?: string
-    unit?: { id: string; name: string } | null
-    patientsActive?: number
-    users?: { id: string; name: string; email: string; phone?: string; cpf?: string; birthdate?: string }[]
     isActive: boolean
-    createdAt: string
-    updatedAt: string
+    patients?:
+        | {
+              id: string
+              isActive: boolean
+          }
+        | Array<{
+              id: string
+              isActive: boolean
+          }>
+    professionals?:
+        | {
+              id: string
+              isActive: boolean
+          }
+        | Array<{
+              id: string
+              isActive: boolean
+          }>
+    professionalUnitRoles?:
+        | {
+              id: string
+          }
+        | Array<{
+              id: string
+          }>
+    roles?:
+        | {
+              id: string
+              name: string
+              isActive: boolean
+          }
+        | Array<{
+              id: string
+              name: string
+              isActive: boolean
+          }>
+    users?:
+        | {
+              id: string
+              name: string
+              email: string
+              phone?: string
+              cpf?: string
+              birthdate?: string
+              isActive: boolean
+          }
+        | Array<{
+              id: string
+              name: string
+              email: string
+              phone?: string
+              cpf?: string
+              birthdate?: string
+              isActive: boolean
+          }>
 }
 
-export interface CreateProfessionalInput {
+type ListByUnitOptions = {
     isActive?: boolean
+    roleKey?: string
 }
 
-export interface UpdateProfessionalInput {
-    isActive?: boolean
+interface ProfessionalCpfLookupUser {
+    id: string
     name?: string
     email?: string
-    phone?: string
     cpf?: string
+    phone?: string
     birthdate?: string
-    crm?: string
+    isActive?: boolean
 }
 
-const BASE_URL = `${authBaseUrl}/professionals`
+export interface ProfessionalCpfLookupResponse {
+    patientId?: string
+    professionalId?: string
+    professionalUnitId?: string
+    userId?: string
+    exists?: boolean
+    alreadyLinkedToUnit?: boolean
+    user?: ProfessionalCpfLookupUser | null
+    professionalUnit?: {
+        id?: string
+        professionalId?: string
+        [key: string]: unknown
+    } | null
+    id?: string
+    name?: string
+    socialName?: string | null
+    cpf?: string
+    email?: string
+    phone?: string
+    crm?: string
+    isActive?: boolean
+    createdAt?: string
+    updatedAt?: string
+}
 
 export const professionalsService = {
-    list: (): Promise<Professional[]> =>
-        fetchWithAuth<Professional[]>(BASE_URL),
+    getFullDataByProfessionalUnitId: (professionalUnitId: string): Promise<ProfessionalUnitFullData> =>
+        fetchWithAuth<ProfessionalUnitFullData>(
+            `${authBaseUrl}/professional-units/professional-unit-full-data/${professionalUnitId}`,
+        ),
 
-    getById: (id: string): Promise<Professional> =>
-        fetchWithAuth<Professional>(`${BASE_URL}/${id}`),
+    listByUnit: (unitId: string, options?: ListByUnitOptions): Promise<ProfessionalUnitFullData[]> => {
+        const params = new URLSearchParams()
 
-    create: (data: CreateProfessionalInput): Promise<Professional> =>
-        fetchWithAuth<Professional>(BASE_URL, {
+        if (typeof options?.isActive === "boolean") {
+            params.set("isActive", String(options.isActive))
+        }
+
+        if (options?.roleKey !== undefined) {
+            params.set("roleKey", options.roleKey)
+        }
+
+        const query = params.toString()
+
+        return fetchWithAuth<ProfessionalUnitFullData[]>(
+            `${authBaseUrl}/professional-units/list-professional-unit-full-data-by-unit/${unitId}${query ? `?${query}` : ""}`,
+        )
+    },
+
+    checkUserByCpf: (cpf: string): Promise<ProfessionalCpfLookupResponse> => {
+        const params = new URLSearchParams({ cpf })
+
+        return fetchWithAuth<ProfessionalCpfLookupResponse>(
+            `${authBaseUrl}/professionals/professional-by-user-cpf?${params.toString()}`,
+        )
+    },
+
+    linkUserToUnit: (cpf: string, options?: { roleId?: string; isActive?: boolean; patientExists?: boolean; professionalExists?: boolean }): Promise<void> => {
+        const { roleId, isActive = true, patientExists, professionalExists } = options ?? {}
+
+        return fetchWithAuth<void>(`${authBaseUrl}/professional-units/create-by-user-cpf`, {
             method: "POST",
-            body: JSON.stringify(data),
-        }),
-
-    update: (id: string, data: UpdateProfessionalInput): Promise<Professional> =>
-        fetchWithAuth<Professional>(`${BASE_URL}/${id}`, {
-            method: "PATCH",
-            body: JSON.stringify(data),
-        }),
-
-    getSchedules: (professionalId: string): Promise<any[]> =>
-        fetchWithAuth<any[]>(`${BASE_URL}/${professionalId}/schedules`),
-
-    replaceSchedules: (professionalId: string, schedules: any[]): Promise<any[]> =>
-        fetchWithAuth<any[]>(`${BASE_URL}/${professionalId}/schedules`, {
-            method: "PUT",
-            body: JSON.stringify({ schedules }),
-        }),
+            body: JSON.stringify({ cpf, isActive, ...(roleId ? { roleId } : {}), ...(patientExists !== undefined ? { patientExists } : {}), ...(professionalExists !== undefined ? { professionalExists } : {}) }),
+        })
+    },
 }

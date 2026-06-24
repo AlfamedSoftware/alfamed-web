@@ -1,5 +1,5 @@
- // Global navigation callback to handle redirects from API calls
 let navigationCallback: ((path: string) => void) | null = null
+let isRedirectingToLogin = false
 
 export function setNavigationCallback(callback: (path: string) => void) {
     navigationCallback = callback
@@ -22,11 +22,12 @@ export async function fetchWithAuth<T>(
         },
     })
 
-    // Intercepta 401 (Unauthorized)
     if (response.status === 401) {
-        alert("Sua sessão atingiu o tempo limite de inatividade. Redirecionando para login.")
-        if (navigationCallback) {
-            navigationCallback("/login")
+        if (!isRedirectingToLogin) {
+            isRedirectingToLogin = true
+            if (navigationCallback) {
+                navigationCallback("/login?motivo=sessao-expirada")
+            }
         }
         throw new Error("Sessão expirada. Redirecionando para login.")
     }

@@ -1,8 +1,8 @@
-import { Banknote, ClipboardList } from "lucide-react"
+﻿import { Banknote, ClipboardList } from "lucide-react"
 import { useNavigate } from "react-router"
 
 import { cn } from "@/lib/utils"
-import type { ProcedureUnitFullData } from "@/Servicos/procedures.service"
+import type { ProcedureUnitFullData } from "@/services/procedures.service"
 
 interface ProcedureCardProps {
     procedure: ProcedureUnitFullData

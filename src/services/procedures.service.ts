@@ -1,7 +1,7 @@
 import { authBaseUrl } from "@/lib/auth"
 import { fetchWithAuth } from "@/lib/api-client"
 
-export interface ProcedureSpecialty {
+interface ProcedureSpecialty {
     id: string
     name: string
     isActive: boolean

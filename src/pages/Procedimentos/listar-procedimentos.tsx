@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from "react"
-import { useNavigate } from "react-router"
-import { Plus } from "lucide-react"
+﻿import { useEffect, useMemo, useRef, useState } from "react"
+import { useNavigate, useSearchParams } from "react-router"
+import { CheckCircle2, Plus } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { PageHeader } from "@/components/page-header"
 import { useSessionUnit } from "@/contexts/session-unit-context"
-import { proceduresService, type ProcedureUnitFullData } from "@/Servicos/procedures.service"
+import { proceduresService, type ProcedureUnitFullData } from "@/services/procedures.service"
 
 import { ProcedureCard } from "./Componentes/listar-procedimentos-card"
 import { ProcedureEmptyState } from "./Componentes/ProcedureEmptyState"
@@ -31,6 +31,16 @@ function matchesQuery(procedure: ProcedureUnitFullData, query: string) {
 export function Procedimentos() {
     const navigate = useNavigate()
     const { sessionUnit } = useSessionUnit()
+    const [searchParams] = useSearchParams()
+    const [showSavedBanner, setShowSavedBanner] = useState(() => searchParams.get("salvo") === "true")
+    const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+    useEffect(() => {
+        if (!showSavedBanner) return
+        navigate({ search: "" }, { replace: true })
+        savedTimerRef.current = setTimeout(() => setShowSavedBanner(false), 5000)
+        return () => { if (savedTimerRef.current) clearTimeout(savedTimerRef.current) }
+    }, []) // eslint-disable-line react-hooks/exhaustive-deps
     const selectedUnitId = sessionUnit?.selectedUnitId ?? null
 
     const [procedures, setProcedures] = useState<ProcedureUnitFullData[]>([])
@@ -95,6 +105,12 @@ export function Procedimentos() {
     return (
         <div className="flex min-h-screen flex-col bg-background">
             <PageHeader title="Procedimentos" />
+            {showSavedBanner && (
+                <div className="flex items-center gap-3 bg-green-600 px-6 py-3 text-white text-sm font-medium">
+                    <CheckCircle2 className="h-4 w-4 shrink-0" />
+                    Procedimento salvo com sucesso.
+                </div>
+            )}
 
             <div className="flex flex-wrap items-center gap-3 px-6 py-4">
                 <ProcedureFilters activeFilter={activeFilter} onFilterChange={setActiveFilter} counts={counts} />
@@ -109,7 +125,7 @@ export function Procedimentos() {
                     className="h-9 gap-1.5 rounded-full bg-blue-600 px-4 text-white shadow-sm hover:bg-blue-700 cursor-pointer"
                 >
                     <Plus className="h-4 w-4" />
-                    Novo Procedimento
+                    Novo procedimento
                 </Button>
             </div>
 

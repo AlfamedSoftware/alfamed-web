@@ -14,9 +14,9 @@ import {
 import { Input } from "@/components/ui/input"
 import { PasswordInput } from "@/components/ui/password-input"
 import { useState } from "react"
-import { Loader2 } from "lucide-react"
+import { Loader2, AlertCircle } from "lucide-react"
 import loginLogo from "@/assets/auth/login.svg"
-import { useNavigate } from "react-router"
+import { useNavigate, useSearchParams } from "react-router"
 import { ForgotPasswordDialog } from "@/components/auth/forgot-password-dialog"
 
 const signInSchema = z.object({
@@ -30,6 +30,8 @@ export function SignIn() {
     const [isLoading, setIsLoading] = useState(false)
     const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false)
     const navigate = useNavigate()
+    const [searchParams] = useSearchParams()
+    const sessaoExpirada = searchParams.get("motivo") === "sessao-expirada"
 
     const form = useForm<signInSchemaType>({
         resolver: zodResolver(signInSchema),
@@ -81,6 +83,12 @@ export function SignIn() {
 
     return (
         <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">
+            {sessaoExpirada && (
+                <div className="lg:col-span-2 flex items-center gap-3 bg-red-600 px-6 py-3 text-white text-sm font-medium">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    Sua sessão expirou por inatividade. Faça login novamente para continuar.
+                </div>
+            )}
             <div className="flex items-center justify-center py-12">
                 <div className="mx-auto grid w-[420px] gap-6">
                     <div className="grid gap-2">

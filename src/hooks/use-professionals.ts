@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from "react"
+﻿import { useCallback, useEffect, useState } from "react"
 import { useSessionUnit } from "@/contexts/session-unit-context"
-import { professionalsService, type ProfessionalUnitFullData } from "@/Servicos/professionals.service"
+import { professionalsService, type ProfessionalUnitFullData } from "@/services/professionals.service"
 
 export type Professional = {
     id: string

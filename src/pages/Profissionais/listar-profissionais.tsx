@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react"
-import { useNavigate } from "react-router"
-import { Plus } from "lucide-react"
+﻿import { useEffect, useMemo, useRef, useState } from "react"
+import { useNavigate, useSearchParams } from "react-router"
+import { CheckCircle2, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ProfessionalCard } from "./Componentes/listar-profissionais-card"
 import { PageHeader } from "@/components/page-header"
@@ -8,7 +8,7 @@ import { ProfessionalFilters } from "./Componentes/ProfessionalFilters"
 import { ProfessionalSearch } from "./Componentes/ProfessionalSearch"
 import { ProfessionalGridSkeleton } from "./Componentes/Skeleton/listar-profissionais-skeleton"
 import { ProfessionalEmptyState } from "./Componentes/ProfessionalEmptyState"
-import { professionalsService, type ProfessionalUnitFullData } from "@/Servicos/professionals.service"
+import { professionalsService, type ProfessionalUnitFullData } from "@/services/professionals.service"
 import { useSessionUnit } from "@/contexts/session-unit-context"
 
 type ProfessionalFilter = "all" | "active" | "inactive"
@@ -20,6 +20,16 @@ interface ProfissionaisProps {
 export function Profissionais({ isSpecialtyLink = false }: ProfissionaisProps) {
     const navigate = useNavigate()
     const { sessionUnit } = useSessionUnit()
+    const [searchParams] = useSearchParams()
+    const [showSavedBanner, setShowSavedBanner] = useState(() => searchParams.get("salvo") === "true")
+    const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+    useEffect(() => {
+        if (!showSavedBanner) return
+        navigate({ search: "" }, { replace: true })
+        savedTimerRef.current = setTimeout(() => setShowSavedBanner(false), 5000)
+        return () => { if (savedTimerRef.current) clearTimeout(savedTimerRef.current) }
+    }, []) // eslint-disable-line react-hooks/exhaustive-deps
     const selectedUnitId = sessionUnit?.selectedUnitId ?? null
 
     const [professionals, setProfessionals] = useState<ProfessionalUnitFullData[]>([])
@@ -93,6 +103,12 @@ export function Profissionais({ isSpecialtyLink = false }: ProfissionaisProps) {
     return (
         <div className="flex flex-col h-full min-h-screen bg-background">
             <PageHeader title={isSpecialtyLink ? "Profissionais - Vínculo de Especialidades" : "Profissionais"} />
+            {showSavedBanner && (
+                <div className="flex items-center gap-3 bg-green-600 px-6 py-3 text-white text-sm font-medium">
+                    <CheckCircle2 className="h-4 w-4 shrink-0" />
+                    Profissional salvo com sucesso.
+                </div>
+            )}
 
             <div className="flex flex-wrap items-center gap-3 px-6 py-4">
                 <ProfessionalFilters activeFilter={activeFilter} onFilterChange={setActiveFilter} counts={counts} />
@@ -108,7 +124,7 @@ export function Profissionais({ isSpecialtyLink = false }: ProfissionaisProps) {
                         className="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-4 h-9 gap-1.5 shadow-sm cursor-pointer"
                     >
                         <Plus className="w-4 h-4" />
-                        Novo Profissional
+                        Novo profissional
                     </Button>
                 )}
             </div>

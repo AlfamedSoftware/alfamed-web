@@ -22,9 +22,9 @@ import { SessionUnitProvider } from "@/contexts/session-unit-context"
 import { Unidade } from "@/pages/Unidades/Unidade"
 
 import { Profissionais } from "@/pages/Profissionais/listar-profissionais"
-import { ProfessionalProfile } from "@/pages/Profissionais/edicao-profissionais"
+import { EdicaoProfissionais } from "@/pages/Profissionais/edicao-profissionais"
 import { CadastroProfissionais } from "@/pages/Profissionais/cadastro-profissionais"
-import { NovoProfissional } from "@/pages/Profissionais/novo-profissional"
+import { ImportarProfissionais } from "@/pages/Profissionais/importar-profissional"
 
 import { Procedimentos } from "@/pages/Procedimentos/listar-procedimentos"
 import { CadastroProcedimentos } from "@/pages/Procedimentos/cadastro-procedimentos"
@@ -79,8 +79,8 @@ export function App() {
             <Route path="unidade" element={<Unidade />} />
 
             <Route path="profissionais" element={<Profissionais />} />
-            <Route path="profissionais/importacao" element={<NovoProfissional />} />
-            <Route path="profissionais/:id" element={<ProfessionalProfile />} />
+            <Route path="profissionais/importacao" element={<ImportarProfissionais />} />
+            <Route path="profissionais/edicao/:id" element={<EdicaoProfissionais />} />
             <Route path="profissionais/cadastro" element={<CadastroProfissionais />} />
             
             <Route path="procedimentos" element={<Procedimentos />} />

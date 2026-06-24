@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+﻿import { useEffect, useMemo, useState } from "react"
 import { useNavigate, useParams } from "react-router"
 import { useSession } from "@/hooks/use-session"
 
@@ -11,11 +11,13 @@ import { PageHeader } from "@/components/page-header"
 import { authBaseUrl } from "@/lib/auth"
 import { fetchWithAuth } from "@/lib/api-client"
 import { cn } from "@/lib/utils"
-import { professionalsService, type ProfessionalUnitFullData } from "@/Servicos/professionals.service"
+import { professionalsService, type ProfessionalUnitFullData } from "@/services/professionals.service"
 import * as z from "zod"
 import { ToastContainer, useToast } from "./Componentes/Toast"
 import { EdicaoProfissionalSkeleton } from "./Componentes/Skeleton/edicao-profissional-skeleton"
 import { BackButton, SaveButton } from "@/components/ui/buttons"
+import { Button } from "@/components/ui/button"
+import { CheckCircle2 } from "lucide-react"
 
 // ============================================================================
 // FORM VALUE TYPE - valores usados pelo formulário (UI)
@@ -592,7 +594,7 @@ function buildProfileUpdatePayload(
 // COMPONENT - Formulário de edição/cadastro de profissional
 // ============================================================================
 
-export function ProfessionalProfile({
+export function EdicaoProfissionais({
     professionalUnitId,
     afterSavePath = "/profissionais",
     isProfileView = false,
@@ -611,6 +613,8 @@ export function ProfessionalProfile({
     const [professional, setProfessional] = useState<ProfessionalUnitFullData | null>(null)
     const [isLoading, setIsLoading] = useState(!isRegisterMode)
     const [isSaving, setIsSaving] = useState(false)
+    const [registerSuccess, setRegisterSuccess] = useState(false)
+    const [registeredName, setRegisteredName] = useState("")
 
     const [roles, setRoles] = useState<ProfessionalRole[]>([])
     const [isRolesLoading, setIsRolesLoading] = useState(false)
@@ -788,9 +792,9 @@ export function ProfessionalProfile({
                     body: JSON.stringify(fullPayload),
                 })
 
-                alert("Profissional cadastrado com sucesso.")
                 onCreated?.()
-                if (afterSavePath) navigate(afterSavePath)
+                setRegisteredName((values as { socialName?: string; name: string }).socialName?.trim() || (values as { name: string }).name.trim())
+                setRegisterSuccess(true)
             } catch {
                 toast.error("Erro ao cadastrar profissional")
             } finally {
@@ -828,15 +832,37 @@ export function ProfessionalProfile({
                 })
             }
 
-            alert("Profissional atualizado com sucesso.")
             if (afterSavePath) {
-                navigate(afterSavePath)
+                navigate(`${afterSavePath}?salvo=true`)
             }
         } catch {
             toast.error("Erro ao salvar alterações")
         } finally {
             setIsSaving(false)
         }
+    }
+
+    if (isRegisterMode && registerSuccess) {
+        return (
+            <div className="flex flex-col h-full min-h-screen bg-background">
+                {showPageHeader ? <PageHeader title="Cadastro de Profissionais" /> : null}
+                <div className="flex-1 flex flex-col items-center justify-center gap-4 px-6">
+                    <div className="h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                        <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
+                    </div>
+                    <h2 className="text-lg font-semibold text-foreground">Profissional cadastrado com sucesso!</h2>
+                    <p className="text-sm text-muted-foreground text-center">{registeredName}</p>
+                    <div className="mt-2 flex gap-3">
+                        <BackButton onClick={() => navigate("/profissionais")}>
+                            Voltar para profissionais
+                        </BackButton>
+                        <Button size="lg" onClick={() => navigate("/profissionais/importacao")} className="cursor-pointer">
+                            Cadastrar novo profissional
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        )
     }
 
     return (

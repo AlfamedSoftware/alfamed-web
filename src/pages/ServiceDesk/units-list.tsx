@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react"
+﻿import { useEffect, useState } from "react"
 import { Link } from "react-router"
 import { Building2, Plus } from "lucide-react"
 import { z } from "zod"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { adminUnitsService, type AdminUnit } from "@/Servicos/admin/admin-units.service"
+import { adminUnitsService, type AdminUnit } from "@/services/admin/admin-units.service"
 
 type NewUnitForm = {
     name: string

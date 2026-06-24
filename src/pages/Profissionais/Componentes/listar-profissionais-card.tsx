@@ -1,7 +1,7 @@
-import { Mail, Phone } from "lucide-react"
+﻿import { Mail, Phone } from "lucide-react"
 import { useNavigate } from "react-router"
 import { cn } from "@/lib/utils"
-import type { ProfessionalUnitFullData } from "@/Servicos/professionals.service"
+import type { ProfessionalUnitFullData } from "@/services/professionals.service"
 
 interface ProfessionalCardProps {
     professional: ProfessionalUnitFullData
@@ -79,7 +79,7 @@ export function ProfessionalCard({ professional, onClick }: ProfessionalCardProp
                 "transition-all duration-200 hover:shadow-md hover:-translate-y-0.5",
                 "bg-card text-card-foreground border-border",
             )}
-            onClick={() => (onClick ? onClick(id) : navigate(`/profissionais/${id}`))}
+            onClick={() => (onClick ? onClick(id) : navigate(`/profissionais/edicao/${id}`))}
         >
             <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3 min-w-0">

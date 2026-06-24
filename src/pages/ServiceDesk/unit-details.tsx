@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react"
+﻿import { useCallback, useEffect, useState } from "react"
 import { useNavigate, useParams } from "react-router"
 import { UserPlus } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
@@ -9,7 +9,7 @@ import {
     adminUnitsService,
     type AdminProfessional,
     type AdminUnit,
-} from "@/Servicos/admin/admin-units.service"
+} from "@/services/admin/admin-units.service"
 
 type NewProfessionalForm = {
     name: string
