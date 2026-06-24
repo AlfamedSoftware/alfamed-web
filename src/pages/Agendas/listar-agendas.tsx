@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react"
+﻿import { useEffect, useState } from "react"
 import { useNavigate, useSearchParams } from "react-router"
 import { CalendarDays, ChevronLeft, ChevronRight, Clock, Plus, User, Users } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { professionalsService, type ProfessionalUnitFullData } from "@/Servicos/professionals.service"
-import { specialtiesService, type SpecialtyUnitFullData } from "@/Servicos/specialties.service"
+import { professionalsService, type ProfessionalUnitFullData } from "@/services/professionals.service"
+import { specialtiesService, type SpecialtyUnitFullData } from "@/services/specialties.service"
 import { useSessionUnit } from "@/contexts/session-unit-context"
 import { fetchWithAuth } from "@/lib/api-client"
 import { authBaseUrl } from "@/lib/auth"
@@ -364,7 +364,7 @@ export function Agendas() {
                     className="ml-auto self-center bg-blue-600 hover:bg-blue-700 text-white rounded-full px-4 h-9 gap-1.5 shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     <Plus className="w-4 h-4" />
-                    Nova Agenda
+                    Nova agenda
                 </Button>
             </div>
 

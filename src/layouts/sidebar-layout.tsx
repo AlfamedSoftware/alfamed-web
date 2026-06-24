@@ -39,13 +39,10 @@ function SidebarBootstrap() {
         // Try to fetch the full list of roles for the selected unit to avoid only-getting the first role
         (async () => {
             try {
-                console.log("SidebarBootstrap: sessionUnit=", sessionUnit, "selectedRoleKey=", selectedRoleKey)
                 const units = await fetchWithAuth(`${authBaseUrl}/session/list-units-acessable-by-professional`) as { units?: Array<{ id: string; name?: string; roles?: Array<{ id?: string; key?: string; description?: string }> }> }
-                console.log("SidebarBootstrap: fetched units=", units)
                 const unit = Array.isArray(units?.units) ? units.units.find((u) => u.id === sessionUnit?.selectedUnitId) : null
 
                 const roleKeys: string[] = unit && Array.isArray(unit.roles) ? unit.roles.map((r) => String(r.key)) : (selectedRoleKey ? [String(selectedRoleKey)] : [])
-                console.log("SidebarBootstrap: resolved roleKeys=", roleKeys)
 
                 const alfamedInternalVariants = new Set([
                     "internal_alfamed",

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+﻿import { useEffect, useMemo, useState } from "react"
 import { useForm, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useNavigate, useParams } from "react-router"
@@ -9,8 +9,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { PageHeader } from "@/components/page-header"
 import { useSessionUnit } from "@/contexts/session-unit-context"
-import { proceduresService } from "@/Servicos/procedures.service"
-import { specialtiesService, type SpecialtyUnitFullData } from "@/Servicos/specialties.service"
+import { proceduresService } from "@/services/procedures.service"
+import { specialtiesService, type SpecialtyUnitFullData } from "@/services/specialties.service"
 import { cn } from "@/lib/utils"
 import { ProcedureFormSkeleton } from "./Skeleton/edicao-procedimento-skeleton"
 import { BackButton, SaveButton } from "@/components/ui/buttons"
@@ -161,7 +161,7 @@ export function ProcedureProfile({
             code: "",
             type: "",
             specialtyId: "",
-            price: "0,00",
+            price: "",
             observation: "",
             isActive: true,
         },
@@ -305,7 +305,7 @@ export function ProcedureProfile({
                 specialtyId: values.specialtyId || null,
             })
 
-            navigate(afterSavePath ?? "/procedimentos")
+            navigate(`${afterSavePath ?? "/procedimentos"}?salvo=true`)
         } catch (error) {
             setLoadError(error instanceof Error ? error.message : "Erro ao salvar procedimento")
         } finally {
@@ -392,7 +392,7 @@ export function ProcedureProfile({
                                     <Input
                                         minLength={1}
                                         maxLength={10}
-                                        placeholder="Ex.: A1B2C3"
+                                        placeholder="Ex.: 0101024998"
                                         {...codeField}
                                         onChange={(event) => {
                                             event.target.value = normalizeCodeValue(event.target.value)

@@ -77,7 +77,7 @@ Quando o tipo selecionado for **Consulta** ou **Retorno**, o campo de especialid
 
 1. Usuário acessa via card na listagem (`edicao/{id}`).
 2. Formulário carrega os dados do procedimento via `proceduresService.getById()`.
-3. Ao salvar, redireciona para a lista de procedimentos.
+3. Ao salvar, redireciona para `/procedimentos?salvo=true` — a listagem exibe um banner verde no topo com auto-dismiss em **5 segundos**.
 4. O botão **Cancelar** segue a prioridade: callback `onCancel` → `afterSavePath` → `/procedimentos`.
 
 ### Listagem

@@ -29,7 +29,7 @@ Ao acessar `/unidade`, o componente carrega os dados da unidade via API e preenc
 4. Usuário edita os campos e clica em **Salvar**.
 5. Todos os valores são trimados antes do envio.
 6. `PATCH /units/{unitId}` — atualiza a unidade.
-7. Exibe mensagem de sucesso ou erro.
+7. Exibe banner verde no topo da tela com auto-dismiss em **5 segundos**, ou mensagem de erro inline.
 
 ---
 

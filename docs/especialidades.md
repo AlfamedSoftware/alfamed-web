@@ -98,7 +98,7 @@ Ambas as entradas (`cadastro-especialidades.tsx` e `edicao-especialidades.tsx`) 
 ### Fluxo de Edição
 
 1. Formulário carrega os dados via `specialtiesService.getById(id)`.
-2. Ao salvar, redireciona para `/especialidades` (ou `afterSavePath` quando informado).
+2. Ao salvar, redireciona para `/especialidades?salvo=true` — a listagem exibe um banner verde no topo com auto-dismiss em **5 segundos**.
 3. O botão **Cancelar** segue a prioridade: callback `onCancel` → `afterSavePath` → `/especialidades`.
 
 ### API

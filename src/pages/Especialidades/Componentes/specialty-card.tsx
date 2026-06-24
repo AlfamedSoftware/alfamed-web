@@ -1,7 +1,7 @@
-import { useNavigate } from "react-router"
+﻿import { useNavigate } from "react-router"
 
 import { cn } from "@/lib/utils"
-import type { SpecialtyUnitFullData } from "@/Servicos/specialties.service"
+import type { SpecialtyUnitFullData } from "@/services/specialties.service"
 
 interface SpecialtyCardProps {
     specialty: SpecialtyUnitFullData

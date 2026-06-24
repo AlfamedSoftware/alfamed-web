@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { useSession } from "@/hooks/use-session"
 import { useSessionUnit } from "@/contexts/session-unit-context"
 
-import { ProfessionalProfile } from "./edicao-profissionais"
+import { EdicaoProfissionais } from "./edicao-profissionais"
 import { EdicaoProfissionalSkeleton } from "./Componentes/Skeleton/edicao-profissional-skeleton"
 
 export function Perfil() {
@@ -85,5 +85,5 @@ export function Perfil() {
         )
     }
 
-    return <ProfessionalProfile professionalUnitId={professionalUnitId} afterSavePath={null} isProfileView />
+    return <EdicaoProfissionais professionalUnitId={professionalUnitId} afterSavePath={null} isProfileView />
 }
