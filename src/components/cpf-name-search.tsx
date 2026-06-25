@@ -87,7 +87,7 @@ export function CpfNameSearch({
                             className={`flex-1 ${cpfError ? "border-red-500 focus-visible:ring-red-300" : ""}`}
                         />
                         <Button
-                            size="lg"
+                            size="default"
                             type="button"
                             onClick={() => onSearch()}
                             disabled={disabled || isSearching || !isValidCpf}
