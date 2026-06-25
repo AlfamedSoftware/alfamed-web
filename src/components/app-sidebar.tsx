@@ -73,6 +73,7 @@ const ADMINISTRATIVE_MENU_ITEMS: SidebarMenuItemConfig[] = [
     //{ title: "Vínculo de Especialidades", icon: ClipboardPaste, url: "/especialidades/vinculo-listagem-profissionais" },
     { title: "Procedimentos", icon: ClipboardList, url: "/procedimentos" },
     { title: "Agendas", icon: CalendarDays, url: "/agendas" },
+    { title: "Prontuário", icon: ClipboardList, url: "/prontuario" },
 ]
 
 const CLINICAL_MENU_ITEMS: SidebarMenuItemConfig[] = [
@@ -84,6 +85,7 @@ const MEDICAL_MENU_ITEMS: SidebarMenuItemConfig[] = [
     { title: "Início", icon: HomeIcon, url: "/home" },
     { title: "Agendas", icon: CalendarDays, url: "/agendas" },
     { title: "Atendimentos", icon: HeartPulse, url: "/atendimentos" },
+    { title: "Prontuário", icon: ClipboardList, url: "/prontuario" },
 ]
 
 const TECHNICAL_EXECUTOR_MENU_ITEMS: SidebarMenuItemConfig[] = [
