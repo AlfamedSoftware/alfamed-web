@@ -44,6 +44,8 @@ import { Agendamentos } from "@/pages/Agendas/agendamentos"
 import { Atendimentos } from "@/pages/Atendimentos/listar-atendimentos"
 import { Atendimento } from "@/pages/Atendimentos/atendimento"
 
+import { Prontuario } from "@/pages/Prontuario/prontuario"
+
 export function App() {
   return (
     <DefaultLayout>
@@ -100,6 +102,8 @@ export function App() {
 
             <Route path="atendimentos" element={<Atendimentos />} />
             <Route path="atendimentos/:appointmentId" element={<Atendimento />} />
+
+            <Route path="prontuario" element={<Prontuario />} />
             
           </Route>
 
