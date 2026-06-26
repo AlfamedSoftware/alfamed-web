@@ -299,6 +299,13 @@ export function CadastrarAgendas() {
                                 if (specialtyId) params.set("specialtyId", specialtyId)
                                 if (dateInput.length === 10 && isValidDateFormat(dateInput)) params.set("date", dateInput)
                                 const qs = params.toString()
+                                setCreateSuccess(false)
+                                setProcedureId("")
+                                setTimeInput("")
+                                setSlots("")
+                                setDurationMinutes("")
+                                setErrors({})
+                                setSaveError(null)
                                 navigate(`/agendas/cadastro${qs ? `?${qs}` : ""}`)
                             }}
                             className="cursor-pointer"
