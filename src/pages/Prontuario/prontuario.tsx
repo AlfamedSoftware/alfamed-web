@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { CalendarDays, ChevronDown, Clock, FileText, MapPin, Stethoscope, User, UserCheck } from "lucide-react"
+import { CalendarDays, ChevronDown, Clock, Download, FileText, MapPin, Printer, Stethoscope, User, UserCheck, X } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
 import { CpfNameSearch, type SearchResultItem } from "@/components/cpf-name-search"
 import { fetchWithAuth } from "@/lib/api-client"
@@ -244,12 +244,53 @@ export function Prontuario() {
     const [recordsError, setRecordsError] = useState<string | null>(null)
     const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
 
+    const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false)
+    const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null)
+    const [isPdfLoading, setIsPdfLoading] = useState(false)
+    const [pdfError, setPdfError] = useState<string | null>(null)
+    const pdfIframeRef = useRef<HTMLIFrameElement>(null)
+
     const toggleExpanded = (id: string) => {
         setExpandedIds((prev) => {
             const next = new Set(prev)
             if (next.has(id)) { next.delete(id) } else { next.add(id) }
             return next
         })
+    }
+
+    const openPdfPreview = async (appointmentId: string) => {
+        setPdfPreviewOpen(true)
+        setIsPdfLoading(true)
+        setPdfBlobUrl(null)
+        setPdfError(null)
+        try {
+            const response = await fetch(`${authBaseUrl}/external-requests/requisition/${appointmentId}`, {
+                credentials: "include",
+            })
+            if (!response.ok) throw new Error(`Erro ${response.status}`)
+            const blob = await response.blob()
+            setPdfBlobUrl(URL.createObjectURL(blob))
+        } catch {
+            setPdfError("Erro ao carregar o documento. Tente novamente.")
+        } finally {
+            setIsPdfLoading(false)
+        }
+    }
+
+    const closePdfPreview = () => {
+        setPdfPreviewOpen(false)
+        setPdfBlobUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return null })
+        setPdfError(null)
+    }
+
+    const handlePrint = () => pdfIframeRef.current?.contentWindow?.print()
+
+    const handleDownload = () => {
+        if (!pdfBlobUrl) return
+        const a = document.createElement("a")
+        a.href = pdfBlobUrl
+        a.download = "requisicao-externa.pdf"
+        a.click()
     }
 
     useEffect(() => {
@@ -602,9 +643,6 @@ export function Prontuario() {
                                                                                     <div>
                                                                                         <span className="font-medium">Valor:</span> R$ {parseFloat(req.internalProcedures.price).toFixed(2).replace(".", ",")}
                                                                                     </div>
-                                                                                    <div>
-                                                                                        <span className="font-medium">Realizado na unidade:</span> {req.internalProcedures.isPerformedInUnit ? "Sim" : "Não"}
-                                                                                    </div>
                                                                                     {req.performedAt && (
                                                                                         <div>
                                                                                             <span className="font-medium">Realizado em:</span> {formatDate(req.performedAt)}
@@ -636,7 +674,17 @@ export function Prontuario() {
                                                             )}
                                                             {appt.external_requests && appt.external_requests.length > 0 && (
                                                                 <div>
-                                                                    <p className="text-xs text-muted-foreground mb-0.5">Procedimentos externos</p>
+                                                                    <div className="flex items-center justify-between mb-1">
+                                                                        <p className="text-xs text-muted-foreground">Procedimentos externos</p>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => openPdfPreview(appt.id)}
+                                                                            className="flex items-center gap-1 text-xs text-primary hover:underline cursor-pointer"
+                                                                        >
+                                                                            <FileText className="h-3 w-3" />
+                                                                            Ver requisição
+                                                                        </button>
+                                                                    </div>
                                                                     <div className="flex flex-col gap-2">
                                                                         {appt.external_requests.map((req) => (
                                                                             <div key={req.id} className="text-sm text-foreground">
@@ -666,6 +714,65 @@ export function Prontuario() {
                 )}
 
             </main>
+
+            {pdfPreviewOpen && (
+                <div className="fixed inset-0 z-50 flex flex-col bg-black/60 backdrop-blur-sm">
+                    <div className="flex items-center justify-between px-4 py-3 bg-card border-b border-border shrink-0">
+                        <p className="text-sm font-semibold text-foreground">Requisição Externa</p>
+                        <div className="flex items-center gap-2">
+                            {pdfBlobUrl && (
+                                <>
+                                    <button
+                                        type="button"
+                                        onClick={handlePrint}
+                                        className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-border bg-background hover:bg-muted transition-colors cursor-pointer"
+                                    >
+                                        <Printer className="h-3.5 w-3.5" />
+                                        Imprimir
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleDownload}
+                                        className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer"
+                                    >
+                                        <Download className="h-3.5 w-3.5" />
+                                        Download
+                                    </button>
+                                </>
+                            )}
+                            <button
+                                type="button"
+                                onClick={closePdfPreview}
+                                className="flex items-center justify-center h-7 w-7 rounded-md hover:bg-muted transition-colors cursor-pointer"
+                            >
+                                <X className="h-4 w-4 text-muted-foreground" />
+                            </button>
+                        </div>
+                    </div>
+                    <div className="flex-1 overflow-hidden">
+                        {isPdfLoading && (
+                            <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
+                                Carregando documento...
+                            </div>
+                        )}
+                        {pdfError && (
+                            <div className="flex items-center justify-center h-full px-6">
+                                <div className="px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400">
+                                    {pdfError}
+                                </div>
+                            </div>
+                        )}
+                        {pdfBlobUrl && (
+                            <iframe
+                                ref={pdfIframeRef}
+                                src={pdfBlobUrl}
+                                className="w-full h-full"
+                                title="Requisição Externa"
+                            />
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
