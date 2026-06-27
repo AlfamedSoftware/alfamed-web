@@ -276,15 +276,10 @@ export function Agendas() {
         }
     }
 
-    const isAtMinDate = dateInput.length === 10 && isValidDateFormat(dateInput)
-        ? !isBeforeToday(dateInput) && dateInput === getTodayFormatted()
-        : true
-
     const handlePrevDay = () => {
-        if (isAtMinDate) return
-        const prev = shiftDateByDays(dateInput, -1)
-        setDateInput(prev)
-        setDateError(isBeforeToday(prev) ? "A data não pode ser anterior à data atual" : null)
+        if (dateInput.length !== 10 || !isValidDateFormat(dateInput)) return
+        setDateInput(shiftDateByDays(dateInput, -1))
+        setDateError(null)
     }
 
     const handleNextDay = () => {
@@ -301,7 +296,7 @@ export function Agendas() {
         navigate(`cadastro?${params.toString()}`)
     }
 
-    const canCreate = dateInput.length === 10 && isValidDateFormat(dateInput) && !dateError
+    const canCreate = dateInput.length === 10 && isValidDateFormat(dateInput) && !dateError && !isBeforeToday(dateInput)
 
     return (
         <div className="flex flex-col h-full min-h-screen bg-background">
@@ -322,7 +317,7 @@ export function Agendas() {
                         <button
                             type="button"
                             onClick={handlePrevDay}
-                            disabled={isAtMinDate}
+                            disabled={dateInput.length !== 10 || !isValidDateFormat(dateInput)}
                             className="h-10 w-10 flex items-center justify-center rounded-md border border-input bg-background text-muted-foreground hover:bg-accent hover:text-foreground transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                         >
                             <ChevronLeft className="h-4 w-4" />
