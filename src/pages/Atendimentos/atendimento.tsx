@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils"
 import { PageHeader } from "@/components/page-header"
 import { BackButton, SaveButton } from "@/components/ui/buttons"
 import { useSessionUnit } from "@/contexts/session-unit-context"
+import { requestsService } from "@/services/requests.service"
 import { ExamRequestTab } from "./Componentes/ExamRequestTab"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -136,7 +137,7 @@ function useUpdateScheduleStatus() {
     const registrarFalta = (id: string) =>
         patch(`${authBaseUrl}/attendiments/${id}/falta`)
 
-    const finalizar = (id: string, data: { diagnostics: string; clinicNotes: string; examProcedureIds: string[] }) =>
+    const finalizar = (id: string, data: { diagnostics: string; clinicNotes: string }) =>
         patch(`${authBaseUrl}/attendiments/${id}/finalizar`, data)
 
     return { iniciar, registrarFalta, finalizar, isUpdating, error }
@@ -352,6 +353,7 @@ function ProntuarioTabs({
             case "exames":
                 return (
                     <ExamRequestTab
+                        appointmentId={data.id}
                         unitId={unitId}
                         isStarted={isStarted}
                         isFinished={isFinished}
@@ -408,6 +410,7 @@ export function Atendimento() {
     const { schedule, isLoading, error, refetch } = useAttendanceSchedule(appointmentId)
     const { iniciar, registrarFalta, finalizar, error: updateError } = useUpdateScheduleStatus()
     const [activeAction, setActiveAction] = useState<"falta" | "iniciar" | "finalizar" | null>(null)
+    const [examError, setExamError] = useState<string | null>(null)
     const pendingValuesRef = useRef<{ clinicNotes: string; diagnostics: string; examProcedureIds: string[] }>({
         clinicNotes: "",
         diagnostics: "",
@@ -441,11 +444,23 @@ export function Atendimento() {
     const handleFinalizar = async () => {
         if (!appointmentId || !schedule) return
         setActiveAction("finalizar")
+        setExamError(null)
         try {
+            // Grava os exames selecionados ANTES de finalizar. Se falhar, aborta a
+            // finalização para o atendimento continuar em andamento e poder repetir.
+            const examIds = pendingValuesRef.current.examProcedureIds
+            if (examIds.length > 0) {
+                try {
+                    await requestsService.saveFromAppointment(appointmentId, examIds)
+                } catch (err) {
+                    setExamError(err instanceof Error ? err.message : "Falha ao salvar os exames. Tente novamente.")
+                    return
+                }
+            }
+
             await finalizar(appointmentId, {
                 diagnostics: pendingValuesRef.current.diagnostics,
                 clinicNotes: pendingValuesRef.current.clinicNotes,
-                examProcedureIds: pendingValuesRef.current.examProcedureIds,
             })
             await refetch()
         } finally { setActiveAction(null) }
@@ -555,6 +570,9 @@ export function Atendimento() {
             <main className="flex flex-1 min-h-0 flex-col gap-4 p-4 overflow-hidden">
                 {updateError ? (
                     <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{updateError}</div>
+                ) : null}
+                {examError ? (
+                    <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{examError}</div>
                 ) : null}
 
                 {/* Info cards */}
