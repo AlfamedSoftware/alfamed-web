@@ -115,6 +115,57 @@ interface Appointment {
         sex: string
         isActive: boolean
     }
+    requests: Array<{
+        id: string
+        appointmentId: string
+        procedureId: string
+        professionalUnitId: string
+        complementaryInfo: string
+        performedAt: string
+        justification: string
+        statusId: string
+        isActive: boolean
+        internalProcedures: {
+            id: string
+            type: number
+            description: string
+            observation: string
+            code: string
+            price: string
+            isActive: boolean
+            isPerformedInUnit: boolean
+        }
+        request_status: {
+            id: string
+            code: number
+            description: string
+            isActive: boolean
+        }
+        request_results: {
+            id: string
+            requestId: string
+            professionalUnitId: string
+            complementaryInfo: string
+            attachmentUrl: string
+            releasedAt: string
+            isActive: boolean
+        }
+    }>
+    external_requests: Array<{
+        id: string
+        appointmentId: string
+        procedureId: string
+        isActive: boolean
+        externalProcedures: {
+            id: string
+            type: number
+            description: string
+            observation: string
+            code: string
+            price: string
+            isActive: boolean
+        }
+    }>
 }
 
 type SearchMode = "cpf" | "nome"
@@ -502,7 +553,7 @@ export function Prontuario() {
                                             </div>
 
                                             {/* Registros clínicos colapsáveis */}
-                                            {(appt.diagnostics || appt.evolution || appt.clinicNotes) && (
+                                            {(appt.diagnostics || appt.evolution || appt.clinicNotes || (appt.requests && appt.requests.length > 0) || (appt.external_requests && appt.external_requests.length > 0)) && (
                                                 <div className="border-t border-border px-4 py-3">
                                                     <button
                                                         type="button"
@@ -531,6 +582,68 @@ export function Prontuario() {
                                                                 <div>
                                                                     <p className="text-xs text-muted-foreground mb-0.5">Notas clínicas</p>
                                                                     <p className="text-sm text-foreground">{appt.clinicNotes}</p>
+                                                                </div>
+                                                            )}
+                                                            {appt.requests && appt.requests.length > 0 && (
+                                                                <div>
+                                                                    <p className="text-xs text-muted-foreground mb-1">Procedimentos internos</p>
+                                                                    <div className="flex flex-col gap-2">
+                                                                        {appt.requests.map((req) => (
+                                                                            <div key={req.id} className="rounded-md border border-border p-3 flex flex-col gap-2">
+                                                                                <div className="flex items-center justify-between gap-2">
+                                                                                    <p className="text-sm font-medium text-foreground">
+                                                                                        {req.internalProcedures.code} - {req.internalProcedures.description}
+                                                                                    </p>
+                                                                                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${statusBadgeClass(req.request_status.code)}`}>
+                                                                                        {req.request_status.description}
+                                                                                    </span>
+                                                                                </div>
+                                                                                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                                                                                    <div>
+                                                                                        <span className="font-medium">Valor:</span> R$ {parseFloat(req.internalProcedures.price).toFixed(2).replace(".", ",")}
+                                                                                    </div>
+                                                                                    <div>
+                                                                                        <span className="font-medium">Realizado na unidade:</span> {req.internalProcedures.isPerformedInUnit ? "Sim" : "Não"}
+                                                                                    </div>
+                                                                                    {req.performedAt && (
+                                                                                        <div>
+                                                                                            <span className="font-medium">Realizado em:</span> {formatDate(req.performedAt)}
+                                                                                        </div>
+                                                                                    )}
+                                                                                    {req.complementaryInfo && (
+                                                                                        <div className="col-span-2">
+                                                                                            <span className="font-medium">Info. complementar:</span> {req.complementaryInfo}
+                                                                                        </div>
+                                                                                    )}
+                                                                                    {req.justification && (
+                                                                                        <div className="col-span-2">
+                                                                                            <span className="font-medium">Justificativa:</span> {req.justification}
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+                                                                                {req.request_results?.releasedAt && (
+                                                                                    <div className="pt-2 border-t border-border text-xs">
+                                                                                        <span className="font-medium text-green-600 dark:text-green-400">Resultado disponível</span>
+                                                                                        {req.request_results.complementaryInfo && (
+                                                                                            <p className="mt-0.5 text-muted-foreground">{req.request_results.complementaryInfo}</p>
+                                                                                        )}
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                            {appt.external_requests && appt.external_requests.length > 0 && (
+                                                                <div>
+                                                                    <p className="text-xs text-muted-foreground mb-0.5">Procedimentos externos</p>
+                                                                    <div className="flex flex-col gap-2">
+                                                                        {appt.external_requests.map((req) => (
+                                                                            <div key={req.id} className="text-sm text-foreground">
+                                                                                {req.externalProcedures.code} - {req.externalProcedures.description}
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
                                                                 </div>
                                                             )}
                                                         </div>

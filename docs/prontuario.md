@@ -73,7 +73,7 @@ Cada registro é um card com:
 - **Borda esquerda primária** (`border-l-4 border-l-primary`) para separação visual estilo timeline
 - **Cabeçalho** (`bg-muted/40`): título "Atendimento N" em cor primária + badge de status
 - **Grid 3×2** com ícones: Unidade · Data · Horário / Profissional · Especialidade · Procedimento
-- **Registros clínicos colapsáveis**: botão `▾ Ver registros clínicos` (oculto se nenhum campo preenchido); expande diagnóstico, evolução e notas clínicas individualmente
+- **Registros clínicos colapsáveis**: botão `▾ Ver registros clínicos` (oculto se nenhum campo preenchido); expande diagnóstico, evolução, notas clínicas, procedimentos internos e procedimentos externos individualmente
 
 #### Cores de status (`appointment_status.code`)
 
@@ -84,6 +84,24 @@ Cada registro é um card com:
 | 3 | Verde |
 | 4 | Vermelho |
 | outros | Muted |
+
+#### Registros clínicos expandidos
+
+| Campo | Condição de exibição |
+|-------|----------------------|
+| Diagnóstico | `appt.diagnostics` preenchido |
+| Evolução | `appt.evolution` preenchido |
+| Notas clínicas | `appt.clinicNotes` preenchido |
+| Procedimentos internos | `appt.requests.length > 0` |
+| Procedimentos externos | `appt.external_requests.length > 0` |
+
+**Procedimentos internos** (`requests`) — cada item exibe:
+- Código + descrição + badge de status (`request_status.code` usa a mesma paleta de `appointment_status`)
+- Valor (formatado como `R$ X,XX`), se realizado na unidade (`isPerformedInUnit`)
+- Data de realização (`performedAt`), info. complementar e justificativa (opcionais)
+- Indicador verde "Resultado disponível" quando `request_results.releasedAt` está preenchido, seguido de `request_results.complementaryInfo` (se presente)
+
+**Procedimentos externos** (`external_requests`) — cada item exibe apenas `code - description`.
 
 Estado vazio (sem atendimentos): ícone de documento + mensagem "Nenhum registro encontrado para este paciente."
 
@@ -125,6 +143,19 @@ Estado vazio (sem atendimentos): ícone de documento + mensagem "Nenhum registro
     units:               { name: string, address, city, state, ... }
     professionals:       { crm: string, ... }
     professional_user:   { name: string, socialName?: string, ... }
+    requests: {
+      id: string
+      complementaryInfo: string
+      performedAt: string
+      justification: string
+      internalProcedures: { code: string, description: string, price: string, isPerformedInUnit: boolean, ... }
+      request_status:     { code: number, description: string, ... }
+      request_results:    { releasedAt: string, complementaryInfo: string, ... } | null
+    }[]
+    external_requests: {
+      id: string
+      externalProcedures: { code: string, description: string, ... }
+    }[]
   }[]
 }
 ```
