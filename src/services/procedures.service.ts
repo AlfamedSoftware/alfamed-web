@@ -18,6 +18,7 @@ export interface ProcedureUnitFullData {
     specialtyId: string | null
     specialty: ProcedureSpecialty | null
     isActive: boolean
+    isPerformedInUnit: boolean
     createdAt: string
     updatedAt: string
 }
@@ -30,6 +31,7 @@ export type CreateProcedureInput = {
     type: number
     specialtyId?: string | null
     isActive?: boolean
+    isPerformedInUnit?: boolean
 }
 
 export type UpdateProcedureInput = {
@@ -41,6 +43,7 @@ export type UpdateProcedureInput = {
     type?: number
     specialtyId?: string | null
     isActive?: boolean
+    isPerformedInUnit?: boolean
 }
 
 export const proceduresService = {
