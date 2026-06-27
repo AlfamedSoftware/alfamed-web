@@ -173,6 +173,177 @@ function statusBadgeClass(statusCode: number): string {
     }
 }
 
+// --- PatientMedicalRecords (reusable) ---
+
+export function PatientMedicalRecords({ userId }: { userId: string }) {
+    const [patientData, setPatientData] = useState<PatientWithAppointments | null>(null)
+    const [isLoading, setIsLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+    const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
+
+    const toggleExpanded = (id: string) => {
+        setExpandedIds((prev) => {
+            const next = new Set(prev)
+            if (next.has(id)) { next.delete(id) } else { next.add(id) }
+            return next
+        })
+    }
+
+    useEffect(() => {
+        if (!userId) return
+        const load = async () => {
+            setIsLoading(true)
+            setError(null)
+            try {
+                const data = await fetchWithAuth<PatientWithAppointments>(
+                    `${authBaseUrl}/medical-records/list-patient-medical-records?userId=${userId}`,
+                )
+                setPatientData(data)
+            } catch {
+                setError("Erro ao carregar prontuário.")
+            } finally {
+                setIsLoading(false)
+            }
+        }
+        load()
+    }, [userId])
+
+    if (isLoading) {
+        return (
+            <div className="flex flex-col gap-3">
+                {[1, 2, 3].map((i) => (
+                    <div key={i} className="rounded-lg border border-border border-l-4 border-l-primary/30 bg-card overflow-hidden">
+                        <div className="flex items-center justify-between px-4 py-3 bg-muted/40 border-b border-border">
+                            <div className="h-4 w-32 rounded bg-muted animate-pulse" />
+                            <div className="h-5 w-20 rounded-full bg-muted animate-pulse" />
+                        </div>
+                        <div className="grid grid-cols-3 gap-x-6 gap-y-3 px-4 py-4">
+                            {[1, 2, 3, 4, 5, 6].map((j) => (
+                                <div key={j} className="flex flex-col gap-1.5">
+                                    <div className="h-3 w-16 rounded bg-muted animate-pulse" />
+                                    <div className="h-4 w-full rounded bg-muted animate-pulse" />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        )
+    }
+
+    if (error) {
+        return (
+            <div className="px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400">
+                {error}
+            </div>
+        )
+    }
+
+    if (!patientData || patientData.appointments.length === 0) {
+        return (
+            <div className="flex flex-col items-center justify-center gap-3 py-10 text-muted-foreground">
+                <FileText className="h-10 w-10 opacity-20" />
+                <p className="text-sm">Nenhum registro encontrado para este paciente.</p>
+            </div>
+        )
+    }
+
+    return (
+        <div className="flex flex-col gap-3">
+            {patientData.appointments.map((appt, index) => (
+                <div key={appt.id} className="rounded-lg border border-border border-l-4 border-l-primary bg-card shadow-sm overflow-hidden">
+                    <div className="flex items-center justify-between px-4 py-3 bg-muted/40 border-b border-border">
+                        <p className="text-base font-semibold text-primary">
+                            Atendimento {patientData.appointments.length - index}
+                        </p>
+                        <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${statusBadgeClass(appt.appointment_status.code)}`}>
+                            {appt.appointment_status.description}
+                        </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-x-6 gap-y-3 px-4 py-4">
+                        <div className="flex items-start gap-2">
+                            <MapPin className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                            <div>
+                                <p className="text-xs text-muted-foreground">Unidade</p>
+                                <p className="text-sm font-medium text-foreground">{appt.units.name}</p>
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-2">
+                            <CalendarDays className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                            <div>
+                                <p className="text-xs text-muted-foreground">Data</p>
+                                <p className="text-sm font-medium text-foreground">{formatDate(appt.schedules.date)}</p>
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-2">
+                            <Clock className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                            <div>
+                                <p className="text-xs text-muted-foreground">Horário</p>
+                                <p className="text-sm font-medium text-foreground">{appt.schedule_slots.startTime.slice(0, 5)} – {appt.schedule_slots.endTime.slice(0, 5)}</p>
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-2">
+                            <UserCheck className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                            <div>
+                                <p className="text-xs text-muted-foreground">Profissional</p>
+                                <p className="text-sm font-medium text-foreground">{appt.professional_user.socialName || appt.professional_user.name}</p>
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-2">
+                            <Stethoscope className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                            <div>
+                                <p className="text-xs text-muted-foreground">Especialidade</p>
+                                <p className="text-sm font-medium text-foreground">{appt.specialties.name}</p>
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-2">
+                            <FileText className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                            <div>
+                                <p className="text-xs text-muted-foreground">Procedimento</p>
+                                <p className="text-sm font-medium text-foreground">{appt.procedures.description}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {(appt.diagnostics || appt.evolution || appt.clinicNotes) && (
+                        <div className="border-t border-border px-4 py-3">
+                            <button
+                                type="button"
+                                onClick={() => toggleExpanded(appt.id)}
+                                className="flex items-center gap-1.5 text-xs text-primary/70 hover:text-primary transition-colors cursor-pointer"
+                            >
+                                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expandedIds.has(appt.id) ? "rotate-180" : ""}`} />
+                                {expandedIds.has(appt.id) ? "Ocultar registros clínicos" : "Ver registros clínicos"}
+                            </button>
+                            {expandedIds.has(appt.id) && (
+                                <div className="flex flex-col gap-3 mt-3">
+                                    {appt.diagnostics && (
+                                        <div>
+                                            <p className="text-xs text-muted-foreground mb-0.5">Diagnóstico</p>
+                                            <p className="text-sm text-foreground">{appt.diagnostics}</p>
+                                        </div>
+                                    )}
+                                    {appt.evolution && (
+                                        <div>
+                                            <p className="text-xs text-muted-foreground mb-0.5">Evolução</p>
+                                            <p className="text-sm text-foreground">{appt.evolution}</p>
+                                        </div>
+                                    )}
+                                    {appt.clinicNotes && (
+                                        <div>
+                                            <p className="text-xs text-muted-foreground mb-0.5">Notas clínicas</p>
+                                            <p className="text-sm text-foreground">{appt.clinicNotes}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            ))}
+        </div>
+    )
+}
+
 // --- Component ---
 
 export function Prontuario() {
