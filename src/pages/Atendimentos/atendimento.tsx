@@ -12,6 +12,8 @@ import { authBaseUrl } from "@/lib/auth"
 import { cn } from "@/lib/utils"
 import { PageHeader } from "@/components/page-header"
 import { BackButton, SaveButton } from "@/components/ui/buttons"
+import { useSessionUnit } from "@/contexts/session-unit-context"
+import { ExamRequestTab } from "./Componentes/ExamRequestTab"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -134,7 +136,7 @@ function useUpdateScheduleStatus() {
     const registrarFalta = (id: string) =>
         patch(`${authBaseUrl}/attendiments/${id}/falta`)
 
-    const finalizar = (id: string, data: { diagnostics: string; clinicNotes: string }) =>
+    const finalizar = (id: string, data: { diagnostics: string; clinicNotes: string; examProcedureIds: string[] }) =>
         patch(`${authBaseUrl}/attendiments/${id}/finalizar`, data)
 
     return { iniciar, registrarFalta, finalizar, isUpdating, error }
@@ -312,11 +314,14 @@ function ProntuarioTabs({
     onValuesChange,
 }: {
     data: AttendimentFullData
-    onValuesChange: (values: { clinicNotes: string; diagnostics: string }) => void
+    onValuesChange: (values: { clinicNotes: string; diagnostics: string; examProcedureIds: string[] }) => void
 }) {
+    const { sessionUnit } = useSessionUnit()
+    const unitId = sessionUnit?.selectedUnitId ?? null
     const [activeTab, setActiveTab] = useState<TabKey>("anamnese")
     const [clinicNotes, setClinicNotes] = useState(data.clinicNotes ?? "")
     const [diagnostics, setDiagnostics] = useState(data.diagnostics ?? "")
+    const [examIds, setExamIds] = useState<string[]>([])
     const isStarted = data.appointment_status.code === 2
     const isFinished = data.appointment_status.code === 3
 
@@ -326,7 +331,7 @@ function ProntuarioTabs({
                 return (
                     <TextEditorTab
                         value={clinicNotes}
-                        onChange={(v) => { setClinicNotes(v); onValuesChange({ clinicNotes: v, diagnostics }) }}
+                        onChange={(v) => { setClinicNotes(v); onValuesChange({ clinicNotes: v, diagnostics, examProcedureIds: examIds }) }}
                         placeholder="Registre as notas clínicas do atendimento..."
                         isStarted={isStarted}
                         readOnly={isFinished}
@@ -338,10 +343,20 @@ function ProntuarioTabs({
                 return (
                     <TextEditorTab
                         value={diagnostics}
-                        onChange={(v) => { setDiagnostics(v); onValuesChange({ clinicNotes, diagnostics: v }) }}
+                        onChange={(v) => { setDiagnostics(v); onValuesChange({ clinicNotes, diagnostics: v, examProcedureIds: examIds }) }}
                         placeholder="Registre o diagnóstico do atendimento..."
                         isStarted={isStarted}
                         readOnly={isFinished}
+                    />
+                )
+            case "exames":
+                return (
+                    <ExamRequestTab
+                        unitId={unitId}
+                        isStarted={isStarted}
+                        isFinished={isFinished}
+                        selectedIds={examIds}
+                        onChange={(ids) => { setExamIds(ids); onValuesChange({ clinicNotes, diagnostics, examProcedureIds: ids }) }}
                     />
                 )
             default:
@@ -393,13 +408,18 @@ export function Atendimento() {
     const { schedule, isLoading, error, refetch } = useAttendanceSchedule(appointmentId)
     const { iniciar, registrarFalta, finalizar, error: updateError } = useUpdateScheduleStatus()
     const [activeAction, setActiveAction] = useState<"falta" | "iniciar" | "finalizar" | null>(null)
-    const pendingValuesRef = useRef({ clinicNotes: "", diagnostics: "" })
+    const pendingValuesRef = useRef<{ clinicNotes: string; diagnostics: string; examProcedureIds: string[] }>({
+        clinicNotes: "",
+        diagnostics: "",
+        examProcedureIds: [],
+    })
 
     useEffect(() => {
         if (schedule) {
             pendingValuesRef.current = {
                 clinicNotes: schedule.clinicNotes ?? "",
                 diagnostics: schedule.diagnostics ?? "",
+                examProcedureIds: [],
             }
         }
     }, [schedule])
@@ -425,6 +445,7 @@ export function Atendimento() {
             await finalizar(appointmentId, {
                 diagnostics: pendingValuesRef.current.diagnostics,
                 clinicNotes: pendingValuesRef.current.clinicNotes,
+                examProcedureIds: pendingValuesRef.current.examProcedureIds,
             })
             await refetch()
         } finally { setActiveAction(null) }
