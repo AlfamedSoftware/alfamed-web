@@ -30,13 +30,14 @@ src/pages/Procedimentos/
 
 ### Tipos de Procedimento
 
-| Código | Descrição  | Especialidade Obrigatória |
-|--------|------------|--------------------------|
-| `1`    | Consulta   | Sim                      |
-| `2`    | Retorno    | Sim                      |
-| `3`    | Exame      | Não                      |
+| Código | Descrição  | Especialidade Obrigatória | Executado Internamente |
+|--------|------------|--------------------------|------------------------|
+| `1`    | Consulta   | Sim                      | Não                    |
+| `2`    | Retorno    | Sim                      | Não                    |
+| `3`    | Exame      | Não                      | Sim                    |
 
-Quando o tipo selecionado for **Consulta** ou **Retorno**, o campo de especialidade torna-se obrigatório e é exibido no formulário. Para **Exame**, o campo de especialidade é ocultado e ignorado.
+- **Consulta** ou **Retorno**: o campo de especialidade torna-se obrigatório e é exibido no formulário.
+- **Exame**: o campo de especialidade é ocultado e ignorado. O campo "Procedimento é executado internamente" é exibido, permitindo indicar se o exame é realizado dentro da unidade.
 
 ### Código do Procedimento
 
@@ -91,15 +92,16 @@ Quando o tipo selecionado for **Consulta** ou **Retorno**, o campo de especialid
 
 ## Campos do Formulário
 
-| Campo        | Obrigatório | Regras                                                          |
-|--------------|-------------|-----------------------------------------------------------------|
-| Descrição    | Sim         | Mínimo 1 caractere                                              |
-| Código       | Sim         | 10 caracteres alfanuméricos, maiúsculas                         |
-| Tipo         | Sim         | `1` Consulta / `2` Retorno / `3` Exame                         |
-| Especialidade| Condicional | Obrigatório se tipo = Consulta ou Retorno; oculto para Exame   |
-| Preço        | Sim         | Formato `0,00` ou `1.234,56`                                    |
-| Observação   | Não         | Texto livre (textarea)                                          |
-| Ativo        | —           | Toggle booleano; padrão `true`                                  |
+| Campo                    | Obrigatório | Regras                                                          |
+|--------------------------|-------------|-----------------------------------------------------------------|
+| Descrição                | Sim         | Mínimo 1 caractere                                              |
+| Código                   | Sim         | 10 caracteres alfanuméricos, maiúsculas                         |
+| Tipo                     | Sim         | `1` Consulta / `2` Retorno / `3` Exame                         |
+| Especialidade            | Condicional | Obrigatório se tipo = Consulta ou Retorno; oculto para Exame   |
+| Preço                    | Sim         | Formato `0,00` ou `1.234,56`                                    |
+| Observação               | Não         | Texto livre (textarea)                                          |
+| Ativo                    | —           | Toggle booleano; padrão `true`                                  |
+| Executado internamente   | Condicional | Exibido apenas se tipo = Exame; padrão `false`                  |
 
 ---
 
@@ -126,7 +128,10 @@ Quando o tipo selecionado for **Consulta** ou **Retorno**, o campo de especialid
   price: z.string().regex(/^(0|[1-9]\d*|[1-9]\d{0,2}(\.\d{3})+),\d{2}$/),
   observation: z.string().optional(),
   isActive: z.boolean().default(true),
+  isPerformedInUnit: z.boolean().default(false),
 }
 ```
 
-Refinamento customizado: se `type` é `"1"` ou `"2"` e `specialtyId` é nulo/vazio, o formulário emite erro no campo `specialtyId`.
+Refinamentos customizados:
+- Se `type` é `"1"` ou `"2"` e `specialtyId` é nulo/vazio, o formulário emite erro no campo `specialtyId`.
+- Se `type` não é `"3"` (Exame), `isPerformedInUnit` é automaticamente definido como `false`.

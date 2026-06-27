@@ -18,6 +18,22 @@ import { ExamRequestTab } from "./Componentes/ExamRequestTab"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+interface Anamnese {
+    id: string
+    appointmentId: string
+    mainComplaint: string
+    painLevel: number
+    takingMedication: string
+    knownAllergy: string
+    hadSurgery: boolean
+    surgeryDetails: string
+    familyHistory: boolean
+    familyHistoryDetails: string
+    isActive: boolean
+    createdAt: string
+    updatedAt: string
+}
+
 interface AttendimentFullData {
     id: string
     patientId: string
@@ -108,6 +124,30 @@ function useAttendanceSchedule(appointmentId?: string) {
     useEffect(() => { void refetch() }, [refetch])
 
     return { schedule, isLoading, error, refetch }
+}
+
+function useAnamnese(appointmentId?: string, enabled = false) {
+    const [anamnese, setAnamnese] = useState<Anamnese | null>(null)
+    const [isLoading, setIsLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+
+    const fetch = useCallback(async () => {
+        if (!appointmentId || !enabled) return
+        setIsLoading(true)
+        setError(null)
+        try {
+            const data = await fetchWithAuth<Anamnese[]>(`${authBaseUrl}/anamnesis/${appointmentId}`)
+            setAnamnese(data?.[0] ?? null)
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Falha ao carregar anamnese")
+        } finally {
+            setIsLoading(false)
+        }
+    }, [appointmentId, enabled])
+
+    useEffect(() => { void fetch() }, [fetch])
+
+    return { anamnese, isLoading, error }
 }
 
 function useUpdateScheduleStatus() {
@@ -244,7 +284,7 @@ function LockedState() {
             <div className="flex size-12 items-center justify-center rounded-full bg-muted">
                 <Lock className="size-5 text-muted-foreground" />
             </div>
-            <p className="text-sm text-muted-foreground">Inicie o atendimento para registrar este campo.</p>
+            <p className="text-sm text-muted-foreground">Inicie o atendimento para visualizar este campo.</p>
         </div>
     )
 }
@@ -286,15 +326,89 @@ function TextEditorTab({
     )
 }
 
-// Anamnese: preenchida no app mobile, exibição somente leitura
-function AnamneseTab() {
-    // TODO: buscar de GET /attendiments/:id/anamnese quando o endpoint for criado
+function AnamneseField({ label, value }: { label: string; value: string }) {
     return (
-        <EmptyState
-            Icon={ClipboardList}
-            label="Anamnese"
-            description="Nenhuma anamnese registrada pelo aplicativo móvel."
-        />
+        <div className="min-w-0">
+            <p className="text-xs text-muted-foreground">{label}</p>
+            <p className="text-sm font-medium text-foreground">{value || "—"}</p>
+        </div>
+    )
+}
+
+function AnamneseBoolField({ label, value, details, detailsLabel }: { label: string; value: boolean; details: string; detailsLabel: string }) {
+    return (
+        <div className="min-w-0">
+            <p className="text-xs text-muted-foreground">{label}</p>
+            <p className="text-sm font-medium text-foreground">{value ? "Sim" : "Não"}</p>
+            {value && (
+                <div className="mt-1 min-w-0">
+                    <p className="text-xs text-muted-foreground">{detailsLabel}</p>
+                    <p className="text-sm font-medium text-foreground">{details || "—"}</p>
+                </div>
+            )}
+        </div>
+    )
+}
+
+function AnamneseTab({ appointmentId, isStarted }: { appointmentId: string; isStarted: boolean }) {
+    const { anamnese, isLoading, error } = useAnamnese(appointmentId, isStarted)
+
+    if (!isStarted) return <LockedState />
+
+    if (isLoading) {
+        return (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="flex flex-col gap-1">
+                        <div className="h-3 w-24 rounded bg-muted animate-pulse" />
+                        <div className="h-9 w-full rounded-lg bg-muted animate-pulse" />
+                    </div>
+                ))}
+            </div>
+        )
+    }
+
+    if (error) {
+        return (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {error}
+            </div>
+        )
+    }
+
+    if (!anamnese) {
+        return (
+            <EmptyState
+                Icon={ClipboardList}
+                label="Anamnese não encontrada"
+                description="Nenhuma anamnese foi registrada pelo aplicativo móvel."
+            />
+        )
+    }
+
+    return (
+        <div className="flex flex-col gap-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                    <AnamneseField label="Queixa Principal" value={anamnese.mainComplaint} />
+                </div>
+                <AnamneseField label="Nível de Dor (0–10)" value={String(anamnese.painLevel)} />
+                <AnamneseField label="Medicamentos em Uso" value={anamnese.takingMedication} />
+                <AnamneseField label="Alergias Conhecidas" value={anamnese.knownAllergy} />
+                <AnamneseBoolField
+                    label="Passou por Cirurgia?"
+                    value={anamnese.hadSurgery}
+                    details={anamnese.surgeryDetails}
+                    detailsLabel="Detalhes da Cirurgia"
+                />
+                <AnamneseBoolField
+                    label="Histórico Familiar?"
+                    value={anamnese.familyHistory}
+                    details={anamnese.familyHistoryDetails}
+                    detailsLabel="Detalhes do Histórico Familiar"
+                />
+            </div>
+        </div>
     )
 }
 
@@ -339,7 +453,7 @@ function ProntuarioTabs({
                     />
                 )
             case "anamnese":
-                return <AnamneseTab />
+                return <AnamneseTab appointmentId={data.id} isStarted={isStarted} />
             case "diagnostics":
                 return (
                     <TextEditorTab
