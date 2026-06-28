@@ -73,7 +73,6 @@ const ADMINISTRATIVE_MENU_ITEMS: SidebarMenuItemConfig[] = [
     //{ title: "Vínculo de Especialidades", icon: ClipboardPaste, url: "/especialidades/vinculo-listagem-profissionais" },
     { title: "Procedimentos", icon: ClipboardList, url: "/procedimentos" },
     { title: "Agendas", icon: CalendarDays, url: "/agendas" },
-    { title: "Prontuário", icon: ClipboardList, url: "/prontuario" },
 ]
 
 const CLINICAL_MENU_ITEMS: SidebarMenuItemConfig[] = [
