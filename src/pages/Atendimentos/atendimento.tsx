@@ -12,6 +12,7 @@ import { authBaseUrl } from "@/lib/auth"
 import { cn } from "@/lib/utils"
 import { PageHeader } from "@/components/page-header"
 import { BackButton, SaveButton } from "@/components/ui/buttons"
+import { PatientMedicalRecords, useMedicalRecords } from "@/pages/Prontuario/prontuario"
 import { useSessionUnit } from "@/contexts/session-unit-context"
 import { requestsService } from "@/services/requests.service"
 import { ExamRequestTab } from "./Componentes/ExamRequestTab"
@@ -284,7 +285,7 @@ function LockedState() {
             <div className="flex size-12 items-center justify-center rounded-full bg-muted">
                 <Lock className="size-5 text-muted-foreground" />
             </div>
-            <p className="text-sm text-muted-foreground">Inicie o atendimento para visualizar este campo.</p>
+            <p className="text-sm text-muted-foreground">Este campo só pode ser visualizado durante o atendimento.</p>
         </div>
     )
 }
@@ -350,9 +351,12 @@ function AnamneseBoolField({ label, value, details, detailsLabel }: { label: str
     )
 }
 
-function AnamneseTab({ appointmentId, isStarted }: { appointmentId: string; isStarted: boolean }) {
-    const { anamnese, isLoading, error } = useAnamnese(appointmentId, isStarted)
-
+function AnamneseTab({ anamnese, isLoading, error, isStarted }: {
+    anamnese: Anamnese | null
+    isLoading: boolean
+    error: string | null
+    isStarted: boolean
+}) {
     if (!isStarted) return <LockedState />
 
     if (isLoading) {
@@ -439,6 +443,8 @@ function ProntuarioTabs({
     const [examIds, setExamIds] = useState<string[]>([])
     const isStarted = data.appointment_status.code === 2
     const isFinished = data.appointment_status.code === 3
+    const { anamnese, isLoading: anamneseLoading, error: anamneseError } = useAnamnese(data.id, isStarted || isFinished)
+    const { patientData: medicalRecords, isLoading: medicalRecordsLoading, error: medicalRecordsError } = useMedicalRecords(data.users.id, isStarted)
 
     function renderContent() {
         switch (activeTab) {
@@ -453,7 +459,7 @@ function ProntuarioTabs({
                     />
                 )
             case "anamnese":
-                return <AnamneseTab appointmentId={data.id} isStarted={isStarted} />
+                return <AnamneseTab anamnese={anamnese} isLoading={anamneseLoading} error={anamneseError} isStarted={isStarted || isFinished} />
             case "diagnostics":
                 return (
                     <TextEditorTab
@@ -464,6 +470,9 @@ function ProntuarioTabs({
                         readOnly={isFinished}
                     />
                 )
+            case "prontuario":
+                if (!isStarted) return <LockedState />
+                return <PatientMedicalRecords patientData={medicalRecords} isLoading={medicalRecordsLoading} error={medicalRecordsError} />
             case "exames":
                 return (
                     <ExamRequestTab

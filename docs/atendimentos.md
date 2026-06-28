@@ -29,17 +29,20 @@ listar-atendimentos.tsx
 
 ### Funcionalidade
 
-Exibe os agendamentos do dia agrupados por especialidade, com filtro de data e especialidade. Cada card de agendamento exibe horário, status e nome do paciente.
+Exibe os agendamentos do dia agrupados por especialidade, com filtros de data, especialidade e status. Cada card de agendamento exibe horário, status e nome do paciente.
 
 ### Filtros
 
-| Filtro        | Tipo   | Regra                                           |
-|---------------|--------|-------------------------------------------------|
-| Data          | Input  | DD/MM/YYYY; padrão: hoje; navegação por dia     |
-| Especialidade | Select | Filtra os grupos exibidos; opção "Todas"        |
+| Filtro        | Tipo   | Regra                                                                           |
+|---------------|--------|---------------------------------------------------------------------------------|
+| Data          | Input  | DD/MM/YYYY; padrão: hoje; navegação por dia                                     |
+| Especialidade | Select | Filtra client-side os grupos exibidos; opção "Todas as especialidades"          |
+| Status        | Select | Envia `statusId` como query param; opções carregadas da API; opção "Todos"     |
 
 - Filtro de especialidade usa scroll suave até a seção correspondente (`scrollIntoView`).
+- Ao alterar o filtro de status, o filtro de especialidade é resetado.
 - Os agendamentos retornados são escopados pelo `professionalUnitId` da unidade ativa na sessão, enviado como query param obrigatório.
+- Os três estados de fetch (loading / success / error) são gerenciados por `useReducer` para evitar renders cascateados.
 
 ### Seção de Especialidade
 
@@ -67,9 +70,10 @@ Cada card exibe:
 
 ### API
 
-| Endpoint                                                                                       | Quando é chamado          |
-|-----------------------------------------------------------------------------------------------|---------------------------|
-| `GET /attendiments/list-appointments-by-specialty?date=YYYY-MM-DD&professionalUnitId=X`      | Ao alterar data ou montar |
+| Endpoint                                                                                                        | Quando é chamado                          |
+|-----------------------------------------------------------------------------------------------------------------|-------------------------------------------|
+| `GET /attendiments/list-appointments-by-specialty?date=YYYY-MM-DD&professionalUnitId=X[&statusId=Y]`           | Ao alterar data, status ou ao montar      |
+| `GET /appointment-status?isActive=true`                                                                         | Uma vez ao montar (popula select de status) |
 
 ---
 
@@ -162,15 +166,19 @@ A aba padrão ao abrir a tela é sempre **Anamnese**.
 
 O estado dos campos **Notas Clínicas** e **Diagnóstico** é mantido em `ProntuarioTabs` — trocar de aba não descarta o conteúdo digitado.
 
+Os dados de **Anamnese** e **Prontuário** são buscados uma única vez assim que as condições de acesso são atendidas e armazenados no state de `ProntuarioTabs` — trocar de aba não gera nova chamada à API.
+
 | Aba                   | Status 1 (Agendado) | Status 2 (Em andamento) | Status 3 (Finalizado) |
 |-----------------------|---------------------|-------------------------|-----------------------|
-| Anamnese              | Empty state (mobile)| Empty state (mobile)    | Empty state (mobile)  |
+| Anamnese              | Bloqueado           | Dados da anamnese       | Dados da anamnese     |
 | Notas Clínicas        | Bloqueado           | Textarea editável       | Somente leitura       |
-| Prontuário            | Disponível em breve | Disponível em breve     | Disponível em breve   |
+| Prontuário            | Bloqueado           | Histórico do paciente   | Bloqueado             |
 | Diagnóstico           | Bloqueado           | Textarea editável       | Somente leitura       |
-| Receitas              | Disponível em breve | Disponível em breve     | Disponível em breve   |
-| Atestados             | Disponível em breve | Disponível em breve     | Disponível em breve   |
+| Receitas              | Bloqueado           | Disponível em breve     | Bloqueado             |
+| Atestados             | Bloqueado           | Disponível em breve     | Bloqueado             |
 | Solicitação de Exames | Bloqueado           | Cards selecionáveis     | Lista somente leitura |
+
+> **Bloqueado** exibe o `LockedState`: ícone de cadeado + mensagem _"Este campo só pode ser visualizado durante o atendimento."_
 
 **Não há botão Salvar individual** nas abas. Os campos `clinicNotes` e `diagnostics` são enviados apenas ao clicar em **Finalizar**, usando os valores atuais do textarea no momento da ação.
 
@@ -178,6 +186,31 @@ No modo somente leitura (status 3), o conteúdo gravado é exibido em um `div` e
 
 ---
 
+#### Aba Anamnese
+
+- Busca via `GET /anamnesis/{appointmentId}` (retorna array; usa o primeiro item).
+- Acessível nos status **2 (Em andamento)** e **3 (Finalizado)**.
+- Exibe os campos:
+
+| Campo | Label |
+|-------|-------|
+| `mainComplaint` | Queixa Principal |
+| `painLevel` | Nível de Dor (0–10) |
+| `takingMedication` | Medicamentos em Uso |
+| `knownAllergy` | Alergias Conhecidas |
+| `hadSurgery` + `surgeryDetails` | Passou por Cirurgia? + detalhes |
+| `familyHistory` + `familyHistoryDetails` | Histórico Familiar? + detalhes |
+
+- Se não houver anamnese registrada, exibe empty state: _"Nenhuma anamnese foi registrada pelo aplicativo móvel."_
+
+---
+
+#### Aba Prontuário
+
+- Usa o componente `PatientMedicalRecords` (importado de `src/pages/Prontuario/prontuario.tsx`).
+- Busca via `useMedicalRecords(users.id, isStarted)` — somente quando status = 2.
+- Exibe o histórico completo de atendimentos do paciente, idêntico à tela de Prontuário.
+- Acessível **somente no status 2 (Em andamento)**.
 ### Aba Solicitação de Exames (`Componentes/ExamRequestTab.tsx`)
 
 Permite ao médico solicitar exames (procedimentos do tipo `3` — Exames) durante o atendimento. O comportamento muda conforme o status:
@@ -197,16 +230,18 @@ Permite ao médico solicitar exames (procedimentos do tipo `3` — Exames) duran
 
 ### API
 
-| Endpoint                                                              | Método  | Quando é chamado                       |
-|-----------------------------------------------------------------------|---------|----------------------------------------|
-| `/attendiments/attendiment-full-data/:appointmentId`                  | GET     | Ao montar e após qualquer ação         |
-| `/attendiments/:appointmentId/iniciar`                                | PATCH   | Botão "Iniciar Atendimento"            |
-| `/attendiments/:appointmentId/falta`                                  | PATCH   | Botão "Registrar Falta"                |
-| `/attendiments/:appointmentId/finalizar`                              | PATCH   | Botão "Finalizar"                      |
-| `/attendiments/:appointmentId/anamnese`                               | GET     | Aba Anamnese *(endpoint não criado)*   |
-| `/requests/save-from-appointment`                                     | POST    | Ao Finalizar, **antes** do `finalizar`, se houver exames selecionados |
-| `/requests/by-appointment/:appointmentId`                             | GET     | Aba Solicitação de Exames, quando status = 3 |
-| `/procedures/list-procedures-by-unit/:unitId?type=3&isActive=true`    | GET     | Aba Solicitação de Exames, quando status = 2 |
+| Endpoint                                                                        | Método | Quando é chamado                                   |
+|---------------------------------------------------------------------------------|--------|----------------------------------------------------|
+| `/attendiments/attendiment-full-data/:appointmentId`                            | GET    | Ao montar e após qualquer ação                     |
+| `/attendiments/:appointmentId/iniciar`                                          | PATCH  | Botão "Iniciar Atendimento"                        |
+| `/attendiments/:appointmentId/falta`                                            | PATCH  | Botão "Registrar Falta"                            |
+| `/attendiments/:appointmentId/finalizar`                                        | PATCH  | Botão "Finalizar"                                  |
+| `/anamnesis/:appointmentId`                                                     | GET    | Aba Anamnese (status 2 ou 3); busca apenas uma vez |
+| `/medical-records/list-patient-medical-records?userId={userId}`                 | GET    | Aba Prontuário (status 2); busca apenas uma vez    |
+| `/external-requests/requisition/:appointmentId`                                 | GET    | Modal de PDF na aba Prontuário                     |
+| `/requests/save-from-appointment`                                               | POST   | Ao Finalizar, **antes** do `finalizar`, se houver exames selecionados |
+| `/requests/by-appointment/:appointmentId`                                       | GET    | Aba Solicitação de Exames, quando status = 3       |
+| `/procedures/list-procedures-by-unit/:unitId?type=3&isActive=true`              | GET    | Aba Solicitação de Exames, quando status = 2       |
 
 #### Payload — `finalizar`
 
@@ -265,6 +300,5 @@ interface AttendimentFullData {
 
 | Item                              | Status                                              |
 |-----------------------------------|-----------------------------------------------------|
-| Aba Anamnese                      | Aguarda criação da tabela e endpoint no backend     |
-| Campo `evolution`                 | Presente no payload, não utilizado no MVP           |
-| Prontuário, Receitas, Atestados   | Telas com empty state, implementação futura         |
+| Campo `evolution`                 | Presente no payload, não exibido no MVP             |
+| Receitas, Atestados, Solicitações | Abas bloqueadas, implementação futura               |

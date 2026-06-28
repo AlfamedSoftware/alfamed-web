@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { CalendarDays, ChevronDown, Clock, FileText, MapPin, Stethoscope, User, UserCheck } from "lucide-react"
+import { CalendarDays, ChevronDown, Clock, Download, FileText, MapPin, Printer, Stethoscope, User, UserCheck, X } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
 import { CpfNameSearch, type SearchResultItem } from "@/components/cpf-name-search"
 import { fetchWithAuth } from "@/lib/api-client"
@@ -115,6 +115,57 @@ interface Appointment {
         sex: string
         isActive: boolean
     }
+    requests: Array<{
+        id: string
+        appointmentId: string
+        procedureId: string
+        professionalUnitId: string
+        complementaryInfo: string
+        performedAt: string
+        justification: string
+        statusId: string
+        isActive: boolean
+        internalProcedures: {
+            id: string
+            type: number
+            description: string
+            observation: string
+            code: string
+            price: string
+            isActive: boolean
+            isPerformedInUnit: boolean
+        }
+        request_status: {
+            id: string
+            code: number
+            description: string
+            isActive: boolean
+        }
+        request_results: {
+            id: string
+            requestId: string
+            professionalUnitId: string
+            complementaryInfo: string
+            attachmentUrl: string
+            releasedAt: string
+            isActive: boolean
+        }
+    }>
+    external_requests: Array<{
+        id: string
+        appointmentId: string
+        procedureId: string
+        isActive: boolean
+        externalProcedures: {
+            id: string
+            type: number
+            description: string
+            observation: string
+            code: string
+            price: string
+            isActive: boolean
+        }
+    }>
 }
 
 type SearchMode = "cpf" | "nome"
@@ -153,6 +204,11 @@ function formatPhone(value: string): string {
 }
 
 function formatDate(dateStr: string): string {
+    if (!dateStr) return "—"
+    if (!dateStr.includes("T")) {
+        const [year, month, day] = dateStr.split("-").map(Number)
+        return new Date(year, month - 1, day).toLocaleDateString("pt-BR")
+    }
     return new Date(dateStr).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })
 }
 
@@ -173,6 +229,361 @@ function statusBadgeClass(statusCode: number): string {
     }
 }
 
+// --- useMedicalRecords hook ---
+
+export function useMedicalRecords(userId: string | null, enabled = true) {
+    const [patientData, setPatientData] = useState<PatientWithAppointments | null>(null)
+    const [isLoading, setIsLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+
+    useEffect(() => {
+        if (!userId || !enabled) {
+            setPatientData(null)
+            return
+        }
+        const load = async () => {
+            setIsLoading(true)
+            setError(null)
+            try {
+                const data = await fetchWithAuth<PatientWithAppointments>(
+                    `${authBaseUrl}/medical-records/list-patient-medical-records?userId=${userId}`,
+                )
+                setPatientData(data)
+            } catch {
+                setError("Erro ao carregar prontuário.")
+            } finally {
+                setIsLoading(false)
+            }
+        }
+        load()
+    }, [userId, enabled])
+
+    return { patientData, isLoading, error }
+}
+
+// --- PatientMedicalRecords (reusable display) ---
+
+export function PatientMedicalRecords({ patientData, isLoading, error }: {
+    patientData: PatientWithAppointments | null
+    isLoading: boolean
+    error: string | null
+}) {
+    const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
+    const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false)
+    const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null)
+    const [isPdfLoading, setIsPdfLoading] = useState(false)
+    const [pdfError, setPdfError] = useState<string | null>(null)
+    const pdfIframeRef = useRef<HTMLIFrameElement>(null)
+
+    const toggleExpanded = (id: string) => {
+        setExpandedIds((prev) => {
+            const next = new Set(prev)
+            if (next.has(id)) { next.delete(id) } else { next.add(id) }
+            return next
+        })
+    }
+
+    const openPdfPreview = async (appointmentId: string) => {
+        setPdfPreviewOpen(true)
+        setIsPdfLoading(true)
+        setPdfBlobUrl(null)
+        setPdfError(null)
+        try {
+            const response = await fetch(`${authBaseUrl}/external-requests/requisition/${appointmentId}`, {
+                credentials: "include",
+            })
+            if (!response.ok) throw new Error(`Erro ${response.status}`)
+            const blob = await response.blob()
+            setPdfBlobUrl(URL.createObjectURL(blob))
+        } catch {
+            setPdfError("Erro ao carregar o documento. Tente novamente.")
+        } finally {
+            setIsPdfLoading(false)
+        }
+    }
+
+    const closePdfPreview = () => {
+        setPdfPreviewOpen(false)
+        setPdfBlobUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return null })
+        setPdfError(null)
+    }
+
+    const handlePrint = () => pdfIframeRef.current?.contentWindow?.print()
+
+    const handleDownload = () => {
+        if (!pdfBlobUrl) return
+        const a = document.createElement("a")
+        a.href = pdfBlobUrl
+        a.download = "requisicao-externa.pdf"
+        a.click()
+    }
+
+    if (isLoading) {
+        return (
+            <div className="flex flex-col gap-3">
+                {[1, 2, 3].map((i) => (
+                    <div key={i} className="rounded-lg border border-border border-l-4 border-l-primary/30 bg-card overflow-hidden">
+                        <div className="flex items-center justify-between px-4 py-3 bg-muted/40 border-b border-border">
+                            <div className="h-4 w-32 rounded bg-muted animate-pulse" />
+                            <div className="h-5 w-20 rounded-full bg-muted animate-pulse" />
+                        </div>
+                        <div className="grid grid-cols-3 gap-x-6 gap-y-3 px-4 py-4">
+                            {[1, 2, 3, 4, 5, 6].map((j) => (
+                                <div key={j} className="flex flex-col gap-1.5">
+                                    <div className="h-3 w-16 rounded bg-muted animate-pulse" />
+                                    <div className="h-4 w-full rounded bg-muted animate-pulse" />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        )
+    }
+
+    if (error) {
+        return (
+            <div className="px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400">
+                {error}
+            </div>
+        )
+    }
+
+    if (!patientData || patientData.appointments.length === 0) {
+        return (
+            <div className="flex flex-col items-center justify-center gap-3 py-10 text-muted-foreground">
+                <FileText className="h-10 w-10 opacity-20" />
+                <p className="text-sm">Nenhum registro encontrado para este paciente.</p>
+            </div>
+        )
+    }
+
+    return (
+        <>
+            <div className="flex flex-col gap-3">
+                {patientData.appointments.map((appt, index) => (
+                    <div key={appt.id} className="rounded-lg border border-border border-l-4 border-l-primary bg-card shadow-sm overflow-hidden">
+                        <div className="flex items-center justify-between px-4 py-3 bg-muted/40 border-b border-border">
+                            <p className="text-base font-semibold text-primary">
+                                Atendimento {index + 1}
+                            </p>
+                            <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${statusBadgeClass(appt.appointment_status.code)}`}>
+                                {appt.appointment_status.description}
+                            </span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-x-6 gap-y-3 px-4 py-4">
+                            <div className="flex items-start gap-2">
+                                <MapPin className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                                <div>
+                                    <p className="text-xs text-muted-foreground">Unidade</p>
+                                    <p className="text-sm font-medium text-foreground">{appt.units.name}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-start gap-2">
+                                <CalendarDays className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                                <div>
+                                    <p className="text-xs text-muted-foreground">Data</p>
+                                    <p className="text-sm font-medium text-foreground">{formatDate(appt.schedules.date)}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-start gap-2">
+                                <Clock className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                                <div>
+                                    <p className="text-xs text-muted-foreground">Horário</p>
+                                    <p className="text-sm font-medium text-foreground">{appt.schedule_slots.startTime.slice(0, 5)} – {appt.schedule_slots.endTime.slice(0, 5)}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-start gap-2">
+                                <UserCheck className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                                <div>
+                                    <p className="text-xs text-muted-foreground">Profissional</p>
+                                    <p className="text-sm font-medium text-foreground">{appt.professional_user.socialName || appt.professional_user.name}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-start gap-2">
+                                <Stethoscope className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                                <div>
+                                    <p className="text-xs text-muted-foreground">Especialidade</p>
+                                    <p className="text-sm font-medium text-foreground">{appt.specialties.name}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-start gap-2">
+                                <FileText className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                                <div>
+                                    <p className="text-xs text-muted-foreground">Procedimento</p>
+                                    <p className="text-sm font-medium text-foreground">{appt.procedures.description}</p>
+                                </div>
+                            </div>
+                        </div>
+                        {(appt.diagnostics || appt.evolution || appt.clinicNotes || (appt.requests && appt.requests.length > 0) || (appt.external_requests && appt.external_requests.length > 0)) && (
+                            <div className="border-t border-border px-4 py-3">
+                                <button
+                                    type="button"
+                                    onClick={() => toggleExpanded(appt.id)}
+                                    className="flex items-center gap-1.5 text-xs text-primary/70 hover:text-primary transition-colors cursor-pointer"
+                                >
+                                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expandedIds.has(appt.id) ? "rotate-180" : ""}`} />
+                                    {expandedIds.has(appt.id) ? "Ocultar registros clínicos" : "Ver registros clínicos"}
+                                </button>
+                                {expandedIds.has(appt.id) && (
+                                    <div className="flex flex-col gap-3 mt-3">
+                                        {appt.diagnostics && (
+                                            <div>
+                                                <p className="text-xs text-muted-foreground mb-0.5">Diagnóstico</p>
+                                                <p className="text-sm text-foreground">{appt.diagnostics}</p>
+                                            </div>
+                                        )}
+                                        {appt.evolution && (
+                                            <div>
+                                                <p className="text-xs text-muted-foreground mb-0.5">Evolução</p>
+                                                <p className="text-sm text-foreground">{appt.evolution}</p>
+                                            </div>
+                                        )}
+                                        {appt.clinicNotes && (
+                                            <div>
+                                                <p className="text-xs text-muted-foreground mb-0.5">Notas clínicas</p>
+                                                <p className="text-sm text-foreground">{appt.clinicNotes}</p>
+                                            </div>
+                                        )}
+                                        {appt.requests && appt.requests.length > 0 && (
+                                            <div>
+                                                <p className="text-xs text-muted-foreground mb-1">Procedimentos internos</p>
+                                                <div className="flex flex-col gap-2">
+                                                    {appt.requests.map((req) => (
+                                                        <div key={req.id} className="rounded-md border border-border p-3 flex flex-col gap-2">
+                                                            <div className="flex items-center justify-between gap-2">
+                                                                <p className="text-sm font-medium text-foreground">
+                                                                    {req.internalProcedures.code} - {req.internalProcedures.description}
+                                                                </p>
+                                                                <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${statusBadgeClass(req.request_status.code)}`}>
+                                                                    {req.request_status.description}
+                                                                </span>
+                                                            </div>
+                                                            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                                                                <div>
+                                                                    <span className="font-medium">Valor:</span> R$ {parseFloat(req.internalProcedures.price).toFixed(2).replace(".", ",")}
+                                                                </div>
+                                                                {req.performedAt && (
+                                                                    <div>
+                                                                        <span className="font-medium">Realizado em:</span> {formatDate(req.performedAt)}
+                                                                    </div>
+                                                                )}
+                                                                {req.complementaryInfo && (
+                                                                    <div className="col-span-2">
+                                                                        <span className="font-medium">Info. complementar:</span> {req.complementaryInfo}
+                                                                    </div>
+                                                                )}
+                                                                {req.justification && (
+                                                                    <div className="col-span-2">
+                                                                        <span className="font-medium">Justificativa:</span> {req.justification}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            {req.request_results?.releasedAt && (
+                                                                <div className="pt-2 border-t border-border text-xs">
+                                                                    <span className="font-medium text-green-600 dark:text-green-400">Resultado disponível</span>
+                                                                    {req.request_results.complementaryInfo && (
+                                                                        <p className="mt-0.5 text-muted-foreground">{req.request_results.complementaryInfo}</p>
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                        {appt.external_requests && appt.external_requests.length > 0 && (
+                                            <div>
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <p className="text-xs text-muted-foreground">Procedimentos externos</p>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openPdfPreview(appt.id)}
+                                                        className="flex items-center gap-1 text-xs text-primary hover:underline cursor-pointer"
+                                                    >
+                                                        <FileText className="h-3 w-3" />
+                                                        Ver requisição
+                                                    </button>
+                                                </div>
+                                                <div className="flex flex-col gap-2">
+                                                    {appt.external_requests.map((req) => (
+                                                        <div key={req.id} className="text-sm text-foreground">
+                                                            {req.externalProcedures.code} - {req.externalProcedures.description}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                ))}
+            </div>
+
+            {pdfPreviewOpen && (
+                <div className="fixed inset-0 z-50 flex flex-col bg-black/60 backdrop-blur-sm">
+                    <div className="flex items-center justify-between px-4 py-3 bg-card border-b border-border shrink-0">
+                        <p className="text-sm font-semibold text-foreground">Requisição Externa</p>
+                        <div className="flex items-center gap-2">
+                            {pdfBlobUrl && (
+                                <>
+                                    <button
+                                        type="button"
+                                        onClick={handlePrint}
+                                        className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-border bg-background hover:bg-muted transition-colors cursor-pointer"
+                                    >
+                                        <Printer className="h-3.5 w-3.5" />
+                                        Imprimir
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleDownload}
+                                        className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer"
+                                    >
+                                        <Download className="h-3.5 w-3.5" />
+                                        Download
+                                    </button>
+                                </>
+                            )}
+                            <button
+                                type="button"
+                                onClick={closePdfPreview}
+                                className="flex items-center justify-center h-7 w-7 rounded-md hover:bg-muted transition-colors cursor-pointer"
+                            >
+                                <X className="h-4 w-4 text-muted-foreground" />
+                            </button>
+                        </div>
+                    </div>
+                    <div className="flex-1 overflow-hidden">
+                        {isPdfLoading && (
+                            <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
+                                Carregando documento...
+                            </div>
+                        )}
+                        {pdfError && (
+                            <div className="flex items-center justify-center h-full px-6">
+                                <div className="px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400">
+                                    {pdfError}
+                                </div>
+                            </div>
+                        )}
+                        {pdfBlobUrl && (
+                            <iframe
+                                ref={pdfIframeRef}
+                                src={pdfBlobUrl}
+                                className="w-full h-full"
+                                title="Requisição Externa"
+                            />
+                        )}
+                    </div>
+                </div>
+            )}
+        </>
+    )
+}
+
 // --- Component ---
 
 export function Prontuario() {
@@ -188,18 +599,7 @@ export function Prontuario() {
     const skipNameSearchRef = useRef(false)
 
     const [userId, setUserId] = useState<string | null>(null)
-    const [patientData, setPatientData] = useState<PatientWithAppointments | null>(null)
-    const [isLoadingRecords, setIsLoadingRecords] = useState(false)
-    const [recordsError, setRecordsError] = useState<string | null>(null)
-    const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
-
-    const toggleExpanded = (id: string) => {
-        setExpandedIds((prev) => {
-            const next = new Set(prev)
-            if (next.has(id)) { next.delete(id) } else { next.add(id) }
-            return next
-        })
-    }
+    const { patientData, isLoading: isLoadingRecords, error: recordsError } = useMedicalRecords(userId)
 
     useEffect(() => {
         if (skipNameSearchRef.current) {
@@ -236,28 +636,6 @@ export function Prontuario() {
         }, 300)
         return () => clearTimeout(timer)
     }, [nameInput, searchMode])
-
-    useEffect(() => {
-        if (!userId) {
-            setPatientData(null)
-            return
-        }
-        const load = async () => {
-            setIsLoadingRecords(true)
-            setRecordsError(null)
-            try {
-                const data = await fetchWithAuth<PatientWithAppointments>(
-                    `${authBaseUrl}/medical-records/list-patient-medical-records?userId=${userId}`,
-                )
-                setPatientData(data)
-            } catch {
-                setRecordsError("Erro ao carregar prontuário.")
-            } finally {
-                setIsLoadingRecords(false)
-            }
-        }
-        load()
-    }, [userId])
 
     const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const formatted = formatCpf(e.target.value)
@@ -349,7 +727,6 @@ export function Prontuario() {
 
                 {userId && (
                     <div className="rounded-xl border border-border bg-card overflow-hidden">
-                        {/* Título */}
                         <div className="px-6 py-4 border-b border-border bg-muted/30">
                             <h2 className="text-base font-semibold text-foreground">Prontuário do Paciente</h2>
                         </div>
@@ -408,139 +785,8 @@ export function Prontuario() {
                         </div>
 
                         {/* Registros */}
-                        <div>
-
-                            {isLoadingRecords ? (
-                                <div className="flex flex-col gap-3 p-4 bg-muted/20">
-                                    {[1, 2, 3].map((i) => (
-                                        <div key={i} className="rounded-lg border border-border border-l-4 border-l-primary/30 bg-card overflow-hidden">
-                                            <div className="flex items-center justify-between px-4 py-3 bg-muted/40 border-b border-border">
-                                                <div className="h-4 w-32 rounded bg-muted animate-pulse" />
-                                                <div className="h-5 w-20 rounded-full bg-muted animate-pulse" />
-                                            </div>
-                                            <div className="grid grid-cols-3 gap-x-6 gap-y-3 px-4 py-4">
-                                                {[1, 2, 3, 4, 5, 6].map((j) => (
-                                                    <div key={j} className="flex flex-col gap-1.5">
-                                                        <div className="h-3 w-16 rounded bg-muted animate-pulse" />
-                                                        <div className="h-4 w-full rounded bg-muted animate-pulse" />
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : recordsError ? (
-                                <div className="px-6 py-5">
-                                    <div className="px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400">
-                                        {recordsError}
-                                    </div>
-                                </div>
-                            ) : !patientData || patientData.appointments.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
-                                    <FileText className="h-10 w-10 opacity-20" />
-                                    <p className="text-sm">Nenhum registro encontrado para este paciente.</p>
-                                </div>
-                            ) : (
-                                <div className="flex flex-col gap-3 p-4 bg-muted/20">
-                                    {patientData.appointments.map((appt, index) => (
-                                        <div key={appt.id} className="rounded-lg border border-border border-l-4 border-l-primary bg-card shadow-sm overflow-hidden">
-
-                                            {/* Cabeçalho do registro */}
-                                            <div className="flex items-center justify-between px-4 py-3 bg-muted/40 border-b border-border">
-                                                <p className="text-base font-semibold text-primary">
-                                                    Atendimento {patientData.appointments.length - index}
-                                                </p>
-                                                <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${statusBadgeClass(appt.appointment_status.code)}`}>
-                                                    {appt.appointment_status.description}
-                                                </span>
-                                            </div>
-
-                                            {/* Informações */}
-                                            <div className="grid grid-cols-3 gap-x-6 gap-y-3 px-4 py-4">
-                                                <div className="flex items-start gap-2">
-                                                    <MapPin className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-                                                    <div>
-                                                        <p className="text-xs text-muted-foreground">Unidade</p>
-                                                        <p className="text-sm font-medium text-foreground">{appt.units.name}</p>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-start gap-2">
-                                                    <CalendarDays className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-                                                    <div>
-                                                        <p className="text-xs text-muted-foreground">Data</p>
-                                                        <p className="text-sm font-medium text-foreground">{formatDate(appt.schedules.date)}</p>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-start gap-2">
-                                                    <Clock className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-                                                    <div>
-                                                        <p className="text-xs text-muted-foreground">Horário</p>
-                                                        <p className="text-sm font-medium text-foreground">{appt.schedule_slots.startTime.slice(0, 5)} – {appt.schedule_slots.endTime.slice(0, 5)}</p>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-start gap-2">
-                                                    <UserCheck className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-                                                    <div>
-                                                        <p className="text-xs text-muted-foreground">Profissional</p>
-                                                        <p className="text-sm font-medium text-foreground">{appt.professional_user.socialName || appt.professional_user.name}</p>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-start gap-2">
-                                                    <Stethoscope className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-                                                    <div>
-                                                        <p className="text-xs text-muted-foreground">Especialidade</p>
-                                                        <p className="text-sm font-medium text-foreground">{appt.specialties.name}</p>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-start gap-2">
-                                                    <FileText className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-                                                    <div>
-                                                        <p className="text-xs text-muted-foreground">Procedimento</p>
-                                                        <p className="text-sm font-medium text-foreground">{appt.procedures.description}</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* Registros clínicos colapsáveis */}
-                                            {(appt.diagnostics || appt.evolution || appt.clinicNotes) && (
-                                                <div className="border-t border-border px-4 py-3">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => toggleExpanded(appt.id)}
-                                                        className="flex items-center gap-1.5 text-xs text-primary/70 hover:text-primary transition-colors cursor-pointer"
-                                                    >
-                                                        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expandedIds.has(appt.id) ? "rotate-180" : ""}`} />
-                                                        {expandedIds.has(appt.id) ? "Ocultar registros clínicos" : "Ver registros clínicos"}
-                                                    </button>
-
-                                                    {expandedIds.has(appt.id) && (
-                                                        <div className="flex flex-col gap-3 mt-3">
-                                                            {appt.diagnostics && (
-                                                                <div>
-                                                                    <p className="text-xs text-muted-foreground mb-0.5">Diagnóstico</p>
-                                                                    <p className="text-sm text-foreground">{appt.diagnostics}</p>
-                                                                </div>
-                                                            )}
-                                                            {appt.evolution && (
-                                                                <div>
-                                                                    <p className="text-xs text-muted-foreground mb-0.5">Evolução</p>
-                                                                    <p className="text-sm text-foreground">{appt.evolution}</p>
-                                                                </div>
-                                                            )}
-                                                            {appt.clinicNotes && (
-                                                                <div>
-                                                                    <p className="text-xs text-muted-foreground mb-0.5">Notas clínicas</p>
-                                                                    <p className="text-sm text-foreground">{appt.clinicNotes}</p>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                        <div className="p-4 bg-muted/20">
+                            <PatientMedicalRecords patientData={patientData} isLoading={isLoadingRecords} error={recordsError} />
                         </div>
                     </div>
                 )}
