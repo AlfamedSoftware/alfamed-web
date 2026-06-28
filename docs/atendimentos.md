@@ -176,7 +176,7 @@ Os dados de **Anamnese** e **Prontuário** são buscados uma única vez assim qu
 | Diagnóstico           | Bloqueado           | Textarea editável       | Somente leitura       |
 | Receitas              | Bloqueado           | Disponível em breve     | Bloqueado             |
 | Atestados             | Bloqueado           | Disponível em breve     | Bloqueado             |
-| Solicitação de Exames | Bloqueado           | Disponível em breve     | Bloqueado             |
+| Solicitação de Exames | Bloqueado           | Cards selecionáveis     | Lista somente leitura |
 
 > **Bloqueado** exibe o `LockedState`: ícone de cadeado + mensagem _"Este campo só pode ser visualizado durante o atendimento."_
 
@@ -211,6 +211,20 @@ No modo somente leitura (status 3), o conteúdo gravado é exibido em um `div` e
 - Busca via `useMedicalRecords(users.id, isStarted)` — somente quando status = 2.
 - Exibe o histórico completo de atendimentos do paciente, idêntico à tela de Prontuário.
 - Acessível **somente no status 2 (Em andamento)**.
+### Aba Solicitação de Exames (`Componentes/ExamRequestTab.tsx`)
+
+Permite ao médico solicitar exames (procedimentos do tipo `3` — Exames) durante o atendimento. O comportamento muda conforme o status:
+
+| Status | Comportamento |
+|--------|---------------|
+| 1 (Agendado)     | Bloqueado — "Inicie o atendimento para solicitar exames." |
+| 2 (Em andamento) | Grid de cards clicáveis dos exames ativos da unidade; clicar marca/desmarca (fica azul `primary`). Header mostra o contador de selecionados. |
+| 3 (Finalizado)   | Lista somente leitura dos exames solicitados, cada um com tag **Interno** (status do pedido) ou **Externo**. Sem exames: "Nenhum exame foi adicionado neste atendimento." |
+
+- A lista de exames disponíveis é carregada por `GET /procedures/list-procedures-by-unit/:unitId?type=3&isActive=true`, usando o `unitId` da sessão (`useSessionUnit`).
+- A seleção fica em estado local e é propagada para o componente pai (`ProntuarioTabs` → `pendingValuesRef.examProcedureIds`), junto com `clinicNotes`/`diagnostics`.
+- **Gravação separada da finalização:** ao clicar em **Finalizar**, o front primeiro chama `POST /requests/save-from-appointment` com os exames selecionados. **Se essa chamada falhar, a finalização é abortada** (o atendimento continua em andamento e pode ser repetido), exibindo um banner de erro. Só após o save com sucesso é que o `PATCH /finalizar` é enviado.
+- A separação por **interno/externo** é decidida no backend (parâmetro `modulo1GestaoExames` da unidade + `isPerformedInUnit` do procedimento) — ver doc do backend.
 
 ---
 
@@ -225,6 +239,9 @@ No modo somente leitura (status 3), o conteúdo gravado é exibido em um `div` e
 | `/anamnesis/:appointmentId`                                                     | GET    | Aba Anamnese (status 2 ou 3); busca apenas uma vez |
 | `/medical-records/list-patient-medical-records?userId={userId}`                 | GET    | Aba Prontuário (status 2); busca apenas uma vez    |
 | `/external-requests/requisition/:appointmentId`                                 | GET    | Modal de PDF na aba Prontuário                     |
+| `/requests/save-from-appointment`                                               | POST   | Ao Finalizar, **antes** do `finalizar`, se houver exames selecionados |
+| `/requests/by-appointment/:appointmentId`                                       | GET    | Aba Solicitação de Exames, quando status = 3       |
+| `/procedures/list-procedures-by-unit/:unitId?type=3&isActive=true`              | GET    | Aba Solicitação de Exames, quando status = 2       |
 
 #### Payload — `finalizar`
 
@@ -234,6 +251,8 @@ No modo somente leitura (status 3), o conteúdo gravado é exibido em um `div` e
   clinicNotes: string,   // valor atual digitado na aba Notas Clínicas
 }
 ```
+
+> Os exames **não** vão no payload de `finalizar` — são gravados antes, via `POST /requests/save-from-appointment` (`{ appointmentId, procedureIds }`).
 
 ---
 

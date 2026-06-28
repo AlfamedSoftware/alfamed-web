@@ -13,6 +13,9 @@ import { cn } from "@/lib/utils"
 import { PageHeader } from "@/components/page-header"
 import { BackButton, SaveButton } from "@/components/ui/buttons"
 import { PatientMedicalRecords, useMedicalRecords } from "@/pages/Prontuario/prontuario"
+import { useSessionUnit } from "@/contexts/session-unit-context"
+import { requestsService } from "@/services/requests.service"
+import { ExamRequestTab } from "./Componentes/ExamRequestTab"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -430,11 +433,14 @@ function ProntuarioTabs({
     onValuesChange,
 }: {
     data: AttendimentFullData
-    onValuesChange: (values: { clinicNotes: string; diagnostics: string }) => void
+    onValuesChange: (values: { clinicNotes: string; diagnostics: string; examProcedureIds: string[] }) => void
 }) {
+    const { sessionUnit } = useSessionUnit()
+    const unitId = sessionUnit?.selectedUnitId ?? null
     const [activeTab, setActiveTab] = useState<TabKey>("anamnese")
     const [clinicNotes, setClinicNotes] = useState(data.clinicNotes ?? "")
     const [diagnostics, setDiagnostics] = useState(data.diagnostics ?? "")
+    const [examIds, setExamIds] = useState<string[]>([])
     const isStarted = data.appointment_status.code === 2
     const isFinished = data.appointment_status.code === 3
     const { anamnese, isLoading: anamneseLoading, error: anamneseError } = useAnamnese(data.id, isStarted || isFinished)
@@ -446,7 +452,7 @@ function ProntuarioTabs({
                 return (
                     <TextEditorTab
                         value={clinicNotes}
-                        onChange={(v) => { setClinicNotes(v); onValuesChange({ clinicNotes: v, diagnostics }) }}
+                        onChange={(v) => { setClinicNotes(v); onValuesChange({ clinicNotes: v, diagnostics, examProcedureIds: examIds }) }}
                         placeholder="Registre as notas clínicas do atendimento..."
                         isStarted={isStarted}
                         readOnly={isFinished}
@@ -458,7 +464,7 @@ function ProntuarioTabs({
                 return (
                     <TextEditorTab
                         value={diagnostics}
-                        onChange={(v) => { setDiagnostics(v); onValuesChange({ clinicNotes, diagnostics: v }) }}
+                        onChange={(v) => { setDiagnostics(v); onValuesChange({ clinicNotes, diagnostics: v, examProcedureIds: examIds }) }}
                         placeholder="Registre o diagnóstico do atendimento..."
                         isStarted={isStarted}
                         readOnly={isFinished}
@@ -467,6 +473,17 @@ function ProntuarioTabs({
             case "prontuario":
                 if (!isStarted) return <LockedState />
                 return <PatientMedicalRecords patientData={medicalRecords} isLoading={medicalRecordsLoading} error={medicalRecordsError} />
+            case "exames":
+                return (
+                    <ExamRequestTab
+                        appointmentId={data.id}
+                        unitId={unitId}
+                        isStarted={isStarted}
+                        isFinished={isFinished}
+                        selectedIds={examIds}
+                        onChange={(ids) => { setExamIds(ids); onValuesChange({ clinicNotes, diagnostics, examProcedureIds: ids }) }}
+                    />
+                )
             default:
                 return (
                     <EmptyState
@@ -516,13 +533,19 @@ export function Atendimento() {
     const { schedule, isLoading, error, refetch } = useAttendanceSchedule(appointmentId)
     const { iniciar, registrarFalta, finalizar, error: updateError } = useUpdateScheduleStatus()
     const [activeAction, setActiveAction] = useState<"falta" | "iniciar" | "finalizar" | null>(null)
-    const pendingValuesRef = useRef({ clinicNotes: "", diagnostics: "" })
+    const [examError, setExamError] = useState<string | null>(null)
+    const pendingValuesRef = useRef<{ clinicNotes: string; diagnostics: string; examProcedureIds: string[] }>({
+        clinicNotes: "",
+        diagnostics: "",
+        examProcedureIds: [],
+    })
 
     useEffect(() => {
         if (schedule) {
             pendingValuesRef.current = {
                 clinicNotes: schedule.clinicNotes ?? "",
                 diagnostics: schedule.diagnostics ?? "",
+                examProcedureIds: [],
             }
         }
     }, [schedule])
@@ -544,7 +567,20 @@ export function Atendimento() {
     const handleFinalizar = async () => {
         if (!appointmentId || !schedule) return
         setActiveAction("finalizar")
+        setExamError(null)
         try {
+            // Grava os exames selecionados ANTES de finalizar. Se falhar, aborta a
+            // finalização para o atendimento continuar em andamento e poder repetir.
+            const examIds = pendingValuesRef.current.examProcedureIds
+            if (examIds.length > 0) {
+                try {
+                    await requestsService.saveFromAppointment(appointmentId, examIds)
+                } catch (err) {
+                    setExamError(err instanceof Error ? err.message : "Falha ao salvar os exames. Tente novamente.")
+                    return
+                }
+            }
+
             await finalizar(appointmentId, {
                 diagnostics: pendingValuesRef.current.diagnostics,
                 clinicNotes: pendingValuesRef.current.clinicNotes,
@@ -657,6 +693,9 @@ export function Atendimento() {
             <main className="flex flex-1 min-h-0 flex-col gap-4 p-4 overflow-hidden">
                 {updateError ? (
                     <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{updateError}</div>
+                ) : null}
+                {examError ? (
+                    <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{examError}</div>
                 ) : null}
 
                 {/* Info cards */}

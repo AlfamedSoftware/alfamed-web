@@ -49,11 +49,12 @@ export type UpdateProcedureInput = {
 export const proceduresService = {
     listByUnit: (
         unitId: string,
-        options?: { specialtyId?: string; isActive?: boolean },
+        options?: { specialtyId?: string; isActive?: boolean; type?: number },
     ): Promise<ProcedureUnitFullData[]> => {
         const params = new URLSearchParams()
         if (options?.specialtyId) params.set("specialtyId", options.specialtyId)
         if (typeof options?.isActive === "boolean") params.set("isActive", String(options.isActive))
+        if (typeof options?.type === "number") params.set("type", String(options.type))
         const query = params.toString()
         return fetchWithAuth<ProcedureUnitFullData[]>(
             `${authBaseUrl}/procedures/list-procedures-by-unit/${unitId}${query ? `?${query}` : ""}`,
