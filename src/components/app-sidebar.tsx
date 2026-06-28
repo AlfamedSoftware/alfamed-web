@@ -21,6 +21,7 @@ import {
     CalendarDays,
     ChevronsUpDown,
     ClipboardList,
+    FlaskConical,
     Home as HomeIcon,
     Lock,
     LogOut,
@@ -30,6 +31,7 @@ import {
     HeartPulse,
 } from "lucide-react"
 import { useSession } from "@/hooks/use-session"
+import { useUnitParameters } from "@/hooks/use-unit-parameters"
 import { auth } from "@/lib/auth"
 import { useSidebarMenu } from "@/contexts/sidebar-menu-context"
 import { useSessionUnit } from "@/contexts/session-unit-context"
@@ -53,8 +55,6 @@ const MENU_ROLE_KEYS = {
 
 type RoleMenuKey = (typeof MENU_ROLE_KEYS)[keyof typeof MENU_ROLE_KEYS]
 
-const allowedRoleKeys = new Set<RoleMenuKey>(Object.values(MENU_ROLE_KEYS))
-
 const roleLabels: Record<RoleMenuKey, string> = {
     [MENU_ROLE_KEYS.administrative]: "Administrativo",
     [MENU_ROLE_KEYS.assistant]: "Assistente administrativo",
@@ -62,115 +62,20 @@ const roleLabels: Record<RoleMenuKey, string> = {
     [MENU_ROLE_KEYS.technical_executor]: "Técnico Executante",
 }
 
-// ─── Menu Definitions ───────────────────────────────────────────────────────
+// ─── Shared helper ───────────────────────────────────────────────────────────
 
-const ADMINISTRATIVE_MENU_ITEMS: SidebarMenuItemConfig[] = [
-    { title: "Início", icon: HomeIcon, url: "/home" },
-    { title: "Unidade", icon: Building2, url: "/unidade" },
-    { title: "Profissionais", icon: User, url: "/profissionais" },
-    { title: "Especialidades", icon: Stethoscope, url: "/especialidades" },
-    //Vínculo ficara desativado pois não está pronto para adicionar na busca da agenda
-    //{ title: "Vínculo de Especialidades", icon: ClipboardPaste, url: "/especialidades/vinculo-listagem-profissionais" },
-    { title: "Procedimentos", icon: ClipboardList, url: "/procedimentos" },
-    { title: "Agendas", icon: CalendarDays, url: "/agendas" },
-]
-
-const CLINICAL_MENU_ITEMS: SidebarMenuItemConfig[] = [
-    { title: "Início", icon: HomeIcon, url: "/home" },
-    { title: "Agendas", icon: CalendarDays, url: "/agendas" },
-]
-
-const MEDICAL_MENU_ITEMS: SidebarMenuItemConfig[] = [
-    { title: "Início", icon: HomeIcon, url: "/home" },
-    { title: "Agendas", icon: CalendarDays, url: "/agendas" },
-    { title: "Atendimentos", icon: HeartPulse, url: "/atendimentos" },
-    { title: "Prontuário", icon: ClipboardList, url: "/prontuario" },
-]
-
-const TECHNICAL_EXECUTOR_MENU_ITEMS: SidebarMenuItemConfig[] = [
-    { title: "Início", icon: HomeIcon, url: "/home" },
-    { title: "Atendimentos?", icon: CalendarDays, url: "/atendimentosgestao" },
-]
-
-const menuItemsByRole: Record<RoleMenuKey, SidebarMenuItemConfig[]> = {
-    [MENU_ROLE_KEYS.administrative]: ADMINISTRATIVE_MENU_ITEMS,
-    [MENU_ROLE_KEYS.medic]: MEDICAL_MENU_ITEMS,
-    [MENU_ROLE_KEYS.assistant]: CLINICAL_MENU_ITEMS,
-    [MENU_ROLE_KEYS.technical_executor]: TECHNICAL_EXECUTOR_MENU_ITEMS,
-} as const
-
-// ─── Sub-components ─────────────────────────────────────────────────────────
-
-function AdminSidebarMenu({ pathname }: { pathname: string }) {
-    return (
-        <>
-            <SidebarMenuItem>
-                <SidebarMenuButton
-                    asChild
-                    isActive={pathname.startsWith("/admin/unidades")}
-                    tooltip="Admin/Interno"
-                >
-                    <Link to="/admin/unidades">
-                        <Lock className="h-4 w-4" />
-                        <span>Central de Unidades</span>
-                    </Link>
-                </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-                <SidebarMenuButton
-                    asChild
-                    isActive={pathname.startsWith("/admin/upm")}
-                    tooltip="UPM"
-                >
-                    <Link to="/admin/upm">
-                        <User className="h-4 w-4" />
-                        <span>UPM</span>
-                    </Link>
-                </SidebarMenuButton>
-            </SidebarMenuItem>
-        </>
-    )
-}
-
-function RegularSidebarMenu({
-    menuItems,
-    isMenuRolesLoading,
-    hasMenuItems,
+function MenuItemList({
+    items,
     isMenuItemActive,
 }: {
-    menuItems: SidebarMenuItemConfig[]
-    isMenuRolesLoading: boolean
-    hasMenuItems: boolean
+    items: SidebarMenuItemConfig[]
     isMenuItemActive: (item: SidebarMenuItemConfig) => boolean
 }) {
-    if (!hasMenuItems) {
-        if (isMenuRolesLoading) {
-            return (
-                <>
-                    <SidebarMenuItem><SidebarMenuSkeleton showIcon /></SidebarMenuItem>
-                    <SidebarMenuItem><SidebarMenuSkeleton showIcon /></SidebarMenuItem>
-                    <SidebarMenuItem><SidebarMenuSkeleton showIcon /></SidebarMenuItem>
-                </>
-            )
-        }
-        return (
-            <SidebarMenuItem>
-                <div className="px-3 py-2 text-sm text-muted-foreground">
-                    Nenhum cargo definido.<br />Entre em contato com o administrador.
-                </div>
-            </SidebarMenuItem>
-        )
-    }
-
     return (
         <>
-            {menuItems.map((item) => (
+            {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                        asChild
-                        isActive={isMenuItemActive(item)}
-                        tooltip={item.title}
-                    >
+                    <SidebarMenuButton asChild isActive={isMenuItemActive(item)} tooltip={item.title}>
                         <Link to={item.url}>
                             <item.icon className="h-4 w-4" />
                             <span>{item.title}</span>
@@ -182,13 +87,127 @@ function RegularSidebarMenu({
     )
 }
 
+// ─── Role menu components ────────────────────────────────────────────────────
+
+type MenuProps = { isMenuItemActive: (item: SidebarMenuItemConfig) => boolean }
+type MenuPropsWithUnit = MenuProps & { unitId: string | null }
+
+function AdminSidebarMenu({ isMenuItemActive }: MenuProps) {
+    return (
+        <MenuItemList
+            items={[
+                { title: "Central de Unidades", icon: Lock, url: "/admin/unidades" },
+                { title: "UPM",                 icon: User, url: "/admin/upm" },
+            ]}
+            isMenuItemActive={isMenuItemActive}
+        />
+    )
+}
+
+function AdministrativeSidebarMenu({ isMenuItemActive }: MenuProps) {
+    return (
+        <MenuItemList
+            items={[
+                { title: "Início",          icon: HomeIcon,      url: "/home" },
+                { title: "Unidade",         icon: Building2,     url: "/unidade" },
+                { title: "Profissionais",   icon: User,          url: "/profissionais" },
+                { title: "Especialidades",  icon: Stethoscope,   url: "/especialidades" },
+                { title: "Procedimentos",   icon: ClipboardList, url: "/procedimentos" },
+                { title: "Agendas",         icon: CalendarDays,  url: "/agendas" },
+            ]}
+            isMenuItemActive={isMenuItemActive}
+        />
+    )
+}
+
+function MedicSidebarMenu({ isMenuItemActive }: MenuProps) {
+    return (
+        <MenuItemList
+            items={[
+                { title: "Início",        icon: HomeIcon,      url: "/home" },
+                { title: "Agendas",       icon: CalendarDays,  url: "/agendas" },
+                { title: "Atendimentos",  icon: HeartPulse,    url: "/atendimentos" },
+                { title: "Prontuário",    icon: ClipboardList, url: "/prontuario" },
+            ]}
+            isMenuItemActive={isMenuItemActive}
+        />
+    )
+}
+
+function AssistantSidebarMenu({ unitId, isMenuItemActive }: MenuPropsWithUnit) {
+    const { modulo1GestaoExames, isLoading } = useUnitParameters(unitId)
+
+    return (
+        <>
+            <MenuItemList
+                items={[
+                    { title: "Início",   icon: HomeIcon,     url: "/home" },
+                    { title: "Agendas",  icon: CalendarDays, url: "/agendas" },
+                ]}
+                isMenuItemActive={isMenuItemActive}
+            />
+
+            {isLoading ? (
+                <SidebarMenuItem><SidebarMenuSkeleton showIcon /></SidebarMenuItem>
+            ) : modulo1GestaoExames ? (
+                <SidebarMenuItem>
+                    <SidebarMenuButton
+                        asChild
+                        isActive={isMenuItemActive({ title: "Exames", icon: FlaskConical, url: "/exames" })}
+                        tooltip="Exames"
+                    >
+                        <Link to="/exames">
+                            <FlaskConical className="h-4 w-4" />
+                            <span>Exames</span>
+                        </Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+            ) : null}
+        </>
+    )
+}
+
+function TechnicalExecutorSidebarMenu({ unitId, isMenuItemActive }: MenuPropsWithUnit) {
+    const { modulo1GestaoExames, isLoading } = useUnitParameters(unitId)
+
+    if (isLoading) {
+        return (
+            <>
+                <SidebarMenuItem><SidebarMenuSkeleton showIcon /></SidebarMenuItem>
+                <SidebarMenuItem><SidebarMenuSkeleton showIcon /></SidebarMenuItem>
+                <SidebarMenuItem><SidebarMenuSkeleton showIcon /></SidebarMenuItem>
+            </>
+        )
+    }
+
+    if (!modulo1GestaoExames) {
+        return (
+            <SidebarMenuItem>
+                <div className="px-3 py-2 text-sm text-muted-foreground">
+                    O módulo de Gestão de Exames está desativado. Para contratar, entre em contato com a Alfamed.
+                </div>
+            </SidebarMenuItem>
+        )
+    }
+
+    return (
+        <MenuItemList
+            items={[
+                { title: "Início",        icon: HomeIcon,     url: "/home" },
+                { title: "Atendimentos?", icon: CalendarDays, url: "/atendimentosgestao" },
+            ]}
+            isMenuItemActive={isMenuItemActive}
+        />
+    )
+}
+
+// ─── Footer ──────────────────────────────────────────────────────────────────
+
 function SidebarUserFooter({
     user,
     isLoading,
     isAdminArea,
     unitName,
-    isSessionUnitLoading,
-    isMenuRolesLoading,
     currentRoleLabel,
     onLogout,
 }: {
@@ -196,8 +215,6 @@ function SidebarUserFooter({
     isLoading: boolean
     isAdminArea: boolean
     unitName: string | null | undefined
-    isSessionUnitLoading: boolean
-    isMenuRolesLoading: boolean
     currentRoleLabel: string | null
     onLogout: () => void
 }) {
@@ -220,11 +237,7 @@ function SidebarUserFooter({
                                         {isLoading ? "Carregando..." : user?.name || "Usuário"}
                                     </span>
                                     <span className="w-full truncate text-xs opacity-70 leading-tight">
-                                        {isAdminArea
-                                            ? "ServiceDesk"
-                                            : isSessionUnitLoading
-                                                ? "Carregando unidade..."
-                                                : unitName || "Unidade selecionada"}
+                                        {isAdminArea ? "ServiceDesk" : unitName || "Unidade selecionada"}
                                     </span>
                                 </div>
                                 <ChevronsUpDown className="ml-auto h-4 w-4 group-data-[collapsible=icon]:hidden" />
@@ -243,22 +256,10 @@ function SidebarUserFooter({
                                         {isLoading ? "Carregando..." : user?.name || "Usuário"}
                                     </span>
                                     <span className="truncate text-xs text-muted-foreground">
-                                        {isAdminArea
-                                            ? "Alfamed"
-                                            : isSessionUnitLoading
-                                                ? "Carregando unidade..."
-                                                : unitName
-                                                    ? `Unidade: ${unitName}`
-                                                    : "Unidade: Não selecionada"}
+                                        {isAdminArea ? "Alfamed" : unitName ? `Unidade: ${unitName}` : "Unidade: Não selecionada"}
                                     </span>
                                     <span className="truncate text-xs text-muted-foreground">
-                                        {isAdminArea
-                                            ? "ServiceDesk"
-                                            : isMenuRolesLoading
-                                                ? "Carregando cargo..."
-                                                : currentRoleLabel
-                                                    ? `Cargo: ${currentRoleLabel}`
-                                                    : "Cargo: Não definido"}
+                                        {isAdminArea ? "ServiceDesk" : currentRoleLabel ? `Cargo: ${currentRoleLabel}` : "Cargo: Não definido"}
                                     </span>
                                 </div>
                             </div>
@@ -302,6 +303,7 @@ export function AppSidebar() {
     const navigate = useNavigate()
     const location = useLocation()
     const { sessionUnit, isLoading: isSessionUnitLoading } = useSessionUnit()
+    const unitId = sessionUnit?.selectedUnitId ?? null
     const { menuRoles, isMenuRolesLoading } = useSidebarMenu()
 
     const isAdminArea = location.pathname.startsWith("/admin")
@@ -310,36 +312,66 @@ export function AppSidebar() {
         (new URLSearchParams(location.search).get("isSpecialtyLink") === "true" ||
          location.pathname === "/profissionais/vinculo-especialidades")
 
-    const isSidebarDataLoading = isLoading || isSessionUnitLoading
+    const isSidebarDataLoading = isLoading || isSessionUnitLoading || isMenuRolesLoading
     if (isSidebarDataLoading) {
-        return null
+        return (
+            <Sidebar collapsible="icon">
+                <SidebarHeader />
+                <SidebarContent>
+                    <SidebarGroup>
+                        <SidebarGroupContent>
+                            <SidebarMenu>
+                                {Array.from({ length: 3 }).map((_, i) => (
+                                    <SidebarMenuItem key={i}>
+                                        <SidebarMenuSkeleton showIcon />
+                                    </SidebarMenuItem>
+                                ))}
+                            </SidebarMenu>
+                        </SidebarGroupContent>
+                    </SidebarGroup>
+                </SidebarContent>
+                <SidebarFooter>
+                    <SidebarMenu>
+                        <SidebarMenuItem>
+                            <SidebarMenuSkeleton showIcon />
+                        </SidebarMenuItem>
+                    </SidebarMenu>
+                </SidebarFooter>
+            </Sidebar>
+        )
     }
 
-    // ── Role-based menu computation ──────────────────────────────────────────
-    const menuItemsForRoles = menuRoles.flatMap((role) => {
-        if (role === "internal_alfamed") return ADMINISTRATIVE_MENU_ITEMS
-        if (allowedRoleKeys.has(role as RoleMenuKey)) return menuItemsByRole[role as RoleMenuKey]
-        return []
-    })
-    const menuItems = Array.from(
-        new Map<string, SidebarMenuItemConfig>(
-            menuItemsForRoles.map((item) => [item.url, item])
-        ).values()
-    )
+    const currentRoleLabel =
+        menuRoles.includes("internal_alfamed") || menuRoles.includes(MENU_ROLE_KEYS.administrative) ? roleLabels[MENU_ROLE_KEYS.administrative] :
+        menuRoles.includes(MENU_ROLE_KEYS.medic)               ? roleLabels[MENU_ROLE_KEYS.medic] :
+        menuRoles.includes(MENU_ROLE_KEYS.assistant)           ? roleLabels[MENU_ROLE_KEYS.assistant] :
+        menuRoles.includes(MENU_ROLE_KEYS.technical_executor)  ? roleLabels[MENU_ROLE_KEYS.technical_executor] :
+        null
 
-    const activeRoleKey = menuRoles.find((role) => {
-        if (role === "internal_alfamed") return MENU_ROLE_KEYS.administrative
-        return allowedRoleKeys.has(role as RoleMenuKey) ? (role as RoleMenuKey) : undefined
-    }) as RoleMenuKey | undefined
-    const currentRoleLabel = activeRoleKey ? roleLabels[activeRoleKey] : null
-
-    // ── Active item detection ────────────────────────────────────────────────
     const isMenuItemActive = (item: SidebarMenuItemConfig) => {
-        if (isProfessionalSpecialtyLinkRoute) {
-            return item.url === "/profissionais"
-        }
-
+        if (isProfessionalSpecialtyLinkRoute) return item.url === "/profissionais"
         return location.pathname === item.url || location.pathname.startsWith(`${item.url}/`)
+    }
+
+    function renderMenu() {
+        if (isAdminArea) return <AdminSidebarMenu isMenuItemActive={isMenuItemActive} />
+
+        if (menuRoles.includes("internal_alfamed") || menuRoles.includes(MENU_ROLE_KEYS.administrative))
+            return <AdministrativeSidebarMenu isMenuItemActive={isMenuItemActive} />
+        if (menuRoles.includes(MENU_ROLE_KEYS.medic))
+            return <MedicSidebarMenu isMenuItemActive={isMenuItemActive} />
+        if (menuRoles.includes(MENU_ROLE_KEYS.assistant))
+            return <AssistantSidebarMenu unitId={unitId} isMenuItemActive={isMenuItemActive} />
+        if (menuRoles.includes(MENU_ROLE_KEYS.technical_executor))
+            return <TechnicalExecutorSidebarMenu unitId={unitId} isMenuItemActive={isMenuItemActive} />
+
+        return (
+            <SidebarMenuItem>
+                <div className="px-3 py-2 text-sm text-muted-foreground">
+                    Nenhum cargo definido.<br />Entre em contato com a Alfamed.
+                </div>
+            </SidebarMenuItem>
+        )
     }
 
     const handleLogout = async () => {
@@ -355,17 +387,7 @@ export function AppSidebar() {
                 <SidebarGroup>
                     <SidebarGroupContent>
                         <SidebarMenu>
-                            {isAdminArea
-                                ? <AdminSidebarMenu pathname={location.pathname} />
-                                : (
-                                    <RegularSidebarMenu
-                                        menuItems={menuItems}
-                                        hasMenuItems={menuItems.length > 0}
-                                        isMenuRolesLoading={isMenuRolesLoading}
-                                        isMenuItemActive={isMenuItemActive}
-                                    />
-                                )
-                            }
+                            {renderMenu()}
                         </SidebarMenu>
                     </SidebarGroupContent>
                 </SidebarGroup>
@@ -376,8 +398,6 @@ export function AppSidebar() {
                 isLoading={isLoading}
                 isAdminArea={isAdminArea}
                 unitName={sessionUnit?.selectedUnitName}
-                isSessionUnitLoading={isSessionUnitLoading}
-                isMenuRolesLoading={isMenuRolesLoading}
                 currentRoleLabel={currentRoleLabel}
                 onLogout={handleLogout}
             />
