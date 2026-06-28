@@ -118,6 +118,12 @@ function formatPhone(value: string) {
     return `(${ddd}) ${first}-${second}`
 }
 
+function formatSex(value?: string) {
+    if (value === "M") return "Masculino"
+    if (value === "F") return "Feminino"
+    return value ? "Outro" : "Não informado"
+}
+
 // --- Component ---
 
 export function Agendamentos() {
@@ -239,7 +245,7 @@ export function Agendamentos() {
                 birthdate: new Date(data.users.birthdate).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }),
                 email: data.users.email,
                 phone: formatPhone(data.users.phone ?? ""),
-                sex: data.users.sex ?? "Não informado",
+                sex: formatSex(data.users.sex),
             })
         } catch (err) {
             const message = err instanceof Error ? err.message : ""
