@@ -39,6 +39,7 @@ const procedureFormSchema = z
             ),
         observation: z.string().optional(),
         isActive: z.boolean(),
+        isPerformedInUnit: z.boolean(),
     })
     .superRefine((data, ctx) => {
         if ((data.type === "1" || data.type === "2") && !data.specialtyId) {
@@ -164,17 +165,22 @@ export function ProcedureProfile({
             price: "",
             observation: "",
             isActive: true,
+            isPerformedInUnit: false,
         },
     })
 
     const watchedType = form.watch("type")
     const showSpecialty = watchedType === "1" || watchedType === "2"
+    const showIsPerformedInUnit = watchedType === "3"
 
     useEffect(() => {
         if (!showSpecialty) {
             form.setValue("specialtyId", "", { shouldDirty: true })
         }
-    }, [showSpecialty, form])
+        if (!showIsPerformedInUnit) {
+            form.setValue("isPerformedInUnit", false, { shouldDirty: true })
+        }
+    }, [showSpecialty, showIsPerformedInUnit, form])
 
     const pageTitle = useMemo(() => getProcedureLabel(isRegisterMode), [isRegisterMode])
     const priceField = form.register("price", {
@@ -245,6 +251,7 @@ export function ProcedureProfile({
                     price: formatPriceValue(current.price),
                     observation: normalizeValue(current.observation),
                     isActive: current.isActive,
+                    isPerformedInUnit: current.isPerformedInUnit,
                     type: String(current.type),
                     specialtyId: current.specialtyId ?? "",
                 })
@@ -280,6 +287,7 @@ export function ProcedureProfile({
                     code: normalizeCodeValue(values.code),
                     price: values.price.trim(),
                     isActive: values.isActive,
+                    isPerformedInUnit: values.isPerformedInUnit,
                     type: Number(values.type),
                     specialtyId: values.specialtyId || null,
                 })
@@ -301,6 +309,7 @@ export function ProcedureProfile({
                 code: normalizeCodeValue(values.code),
                 price: values.price.trim(),
                 isActive: values.isActive,
+                isPerformedInUnit: values.isPerformedInUnit,
                 type: Number(values.type),
                 specialtyId: values.specialtyId || null,
             })
@@ -346,7 +355,7 @@ export function ProcedureProfile({
                             onClick={() => {
                                 setRegisterSuccess(false)
                                 setRegisteredName("")
-                                form.reset({ description: "", code: "", type: "", specialtyId: "", price: "0,00", observation: "", isActive: true })
+                                form.reset({ description: "", code: "", type: "", specialtyId: "", price: "0,00", observation: "", isActive: true, isPerformedInUnit: false })
                             }}
                             className="cursor-pointer"
                         >
@@ -430,27 +439,54 @@ export function ProcedureProfile({
                                     ) : null}
                                 </label>
 
-                                {showSpecialty ? (
-                                    <label className="grid gap-2 md:col-span-3">
-                                        <span className="text-sm font-medium">Especialidade</span>
-                                        <select
-                                            className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:opacity-60 disabled:cursor-not-allowed"
-                                            disabled={isLoadingSpecialties}
-                                            {...form.register("specialtyId")}
-                                        >
-                                            <option value="">{isLoadingSpecialties ? "Carregando..." : "Nenhuma"}</option>
-                                            {specialties.map((s) => (
-                                                <option key={s.id} value={s.id}>
-                                                    {s.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        {form.formState.errors.specialtyId ? (
-                                            <span className="text-xs text-destructive">
-                                                {form.formState.errors.specialtyId.message}
-                                            </span>
+                                {(showSpecialty || showIsPerformedInUnit) ? (
+                                    <div className="grid gap-4 md:col-span-3 md:grid-cols-2">
+                                        {showSpecialty ? (
+                                            <label className="grid gap-2">
+                                                <span className="text-sm font-medium">Especialidade</span>
+                                                <select
+                                                    className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:opacity-60 disabled:cursor-not-allowed"
+                                                    disabled={isLoadingSpecialties}
+                                                    {...form.register("specialtyId")}
+                                                >
+                                                    <option value="">{isLoadingSpecialties ? "Carregando..." : "Nenhuma"}</option>
+                                                    {specialties.map((s) => (
+                                                        <option key={s.id} value={s.id}>
+                                                            {s.name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                {form.formState.errors.specialtyId ? (
+                                                    <span className="text-xs text-destructive">
+                                                        {form.formState.errors.specialtyId.message}
+                                                    </span>
+                                                ) : null}
+                                            </label>
                                         ) : null}
-                                    </label>
+
+                                        {showIsPerformedInUnit ? (
+                                            <div className="grid gap-2">
+                                                <p className="text-sm font-semibold text-foreground">Procedimento é executado internamente</p>
+                                                <div className="rounded-2xl border border-border bg-muted/30 px-5 py-4">
+                                                    <div className="flex items-center justify-between gap-4">
+                                                        <div>
+                                                            <p className="text-xs text-muted-foreground">
+                                                                Marque se o procedimento é realizado dentro da unidade.
+                                                            </p>
+                                                        </div>
+
+                                                        <input type="checkbox" className="sr-only" tabIndex={-1} aria-hidden="true" {...form.register("isPerformedInUnit")} />
+                                                        <ToggleSwitch
+                                                            checked={form.watch("isPerformedInUnit") ?? false}
+                                                            onClick={() =>
+                                                                form.setValue("isPerformedInUnit", !(form.watch("isPerformedInUnit") ?? false), { shouldDirty: true })
+                                                            }
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ) : null}
+                                    </div>
                                 ) : null}
 
                                 <label className="grid gap-2 md:col-span-3">
