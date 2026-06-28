@@ -1,9 +1,8 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useNavigate, useSearchParams } from "react-router"
-import { AlertTriangle, Calendar, CheckCircle2, ClipboardList, Clock, Info, MapPin, Search, User, UserCheck, Wallet } from "lucide-react"
+import { AlertTriangle, Calendar, CheckCircle2, ClipboardList, Clock, Info, MapPin, User, UserCheck, Wallet } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { CpfNameSearch } from "@/components/cpf-name-search"
 import { fetchWithAuth } from "@/lib/api-client"
 import { authBaseUrl } from "@/lib/auth"
 import { digitsOnly } from "../Profissionais/edicao-profissionais"
@@ -149,6 +148,7 @@ export function Agendamentos() {
     const [isScheduling, setIsScheduling] = useState(false)
     const [scheduleSuccess, setScheduleSuccess] = useState(false)
     const [scheduleError, setScheduleError] = useState<string | null>(null)
+    const skipNameSearchRef = useRef(false)
 
     useEffect(() => {
         if (!scheduleSlotId) return
@@ -175,6 +175,10 @@ export function Agendamentos() {
     }, [scheduleSlotId])
 
     useEffect(() => {
+        if (skipNameSearchRef.current) {
+            skipNameSearchRef.current = false
+            return
+        }
         if (searchMode !== "nome" || nameInput.trim().length < 3) {
             setNameResults([])
             setShowDropdown(false)
@@ -183,9 +187,8 @@ export function Agendamentos() {
         setIsNameSearching(true)
         const timer = setTimeout(async () => {
             try {
-                // TODO: substituir pela rota real de busca por nome quando disponível
                 const data = await fetchWithAuth<PatientApiResponse[]>(
-                    `${authBaseUrl}/patients/search?name=${encodeURIComponent(nameInput.trim())}&isActive=true`,
+                    `${authBaseUrl}/patients/patient-full-data-by-user-name?name=${encodeURIComponent(nameInput.trim())}&isActive=true`,
                 )
                 const results = Array.isArray(data) ? data.map((item) => ({
                     id: item.id,
@@ -263,6 +266,7 @@ export function Agendamentos() {
     }
 
     const handleSelectPatient = (p: PatientInfo) => {
+        skipNameSearchRef.current = true
         setPatient(p)
         setShowDropdown(false)
         setNameInput(p.name)
@@ -317,91 +321,26 @@ export function Agendamentos() {
             <main className="flex-1 flex flex-col px-4 py-6 md:px-6 md:py-8 gap-6">
 
                 {/* Busca full-width */}
-                <div className="relative flex flex-col gap-1.5">
-                    <div className="flex gap-2 items-center">
-                        {/* Toggle CPF | Nome */}
-                        <div className="flex rounded-md border border-border overflow-hidden shrink-0 text-sm font-medium">
-                            <button
-                                type="button"
-                                onClick={() => handleSelectMode("cpf")}
-                                className={`px-4 py-2 transition-colors cursor-pointer ${searchMode === "cpf" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
-                            >
-                                CPF
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => handleSelectMode("nome")}
-                                className={`px-4 py-2 transition-colors border-l border-border cursor-pointer ${searchMode === "nome" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
-                            >
-                                Nome
-                            </button>
-                        </div>
-
-                        {searchMode === "cpf" ? (
-                            <>
-                                <Input
-                                    value={cpfInput}
-                                    onChange={handleCpfChange}
-                                    onKeyDown={(e) => e.key === "Enter" && !isSearching && isValidCpf(cpfInput) && handleSearch()}
-                                    placeholder="000.000.000-00"
-                                    maxLength={14}
-                                    className={`flex-1 ${cpfError ? "border-red-500 focus-visible:ring-red-300" : ""}`}
-                                />
-                                <Button
-                                    onClick={handleSearch}
-                                    disabled={isSearching || !isValidCpf(cpfInput)}
-                                    className="cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-                                >
-                                    <Search className="w-4 h-4 mr-1.5" />
-                                    {isSearching ? "Buscando..." : "Buscar"}
-                                </Button>
-                            </>
-                        ) : (
-                            <div className="relative flex-1">
-                                <Input
-                                    value={nameInput}
-                                    onChange={(e) => { setNameInput(e.target.value); setPatient(null); setSearchError(null) }}
-                                    placeholder="Digite o nome do paciente..."
-                                    className="pr-9"
-                                    autoFocus
-                                />
-                                {isNameSearching ? (
-                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
-                                ) : (
-                                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                                )}
-                            </div>
-                        )}
-                    </div>
-
-                    {cpfError && searchMode === "cpf" && (
-                        <span className="text-xs text-red-500 pl-1">{cpfError}</span>
-                    )}
-
-                    {/* Dropdown resultados por nome */}
-                    {searchMode === "nome" && showDropdown && nameResults.length > 0 && (
-                        <div className="absolute top-full left-0 right-0 z-20 mt-1 rounded-md border border-border bg-popover shadow-lg overflow-hidden">
-                            {nameResults.map((p) => (
-                                <button
-                                    key={p.id}
-                                    type="button"
-                                    onClick={() => handleSelectPatient(p)}
-                                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted transition-colors border-b border-border last:border-0 cursor-pointer"
-                                >
-                                    <User className="h-4 w-4 text-muted-foreground shrink-0" />
-                                    <div>
-                                        <p className="text-sm font-medium text-foreground">{p.name}</p>
-                                        <p className="text-xs text-muted-foreground">{p.cpf}</p>
-                                    </div>
-                                </button>
-                            ))}
-                        </div>
-                    )}
-
-                    {searchMode === "nome" && !isNameSearching && nameInput.trim().length >= 3 && nameResults.length === 0 && !showDropdown && !patient && (
-                        <span className="text-xs text-muted-foreground pl-1">Nenhum paciente encontrado.</span>
-                    )}
-                </div>
+                <CpfNameSearch
+                    cpfValue={cpfInput}
+                    onCpfChange={handleCpfChange}
+                    cpfError={cpfError}
+                    onSearch={handleSearch}
+                    isSearching={isSearching}
+                    isValidCpf={isValidCpf(cpfInput)}
+                    searchMode={searchMode}
+                    onModeChange={handleSelectMode}
+                    nameValue={nameInput}
+                    onNameChange={(e) => { setNameInput(e.target.value); setPatient(null); setSearchError(null) }}
+                    isNameSearching={isNameSearching}
+                    nameResults={nameResults}
+                    showDropdown={showDropdown}
+                    onSelectResult={(result) => {
+                        const p = nameResults.find((n) => n.id === result.id)
+                        if (p) handleSelectPatient(p)
+                    }}
+                    noResultsText="Nenhum paciente encontrado."
+                />
 
                 {searchError && (
                     <div className="px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400">

@@ -1,12 +1,12 @@
-import { useEffect, useState } from "react"
+﻿import { useEffect, useState } from "react"
 import { useNavigate, useSearchParams } from "react-router"
 import { AlertTriangle, CheckCircle2, Clock, Info, Plus } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { professionalsService, type ProfessionalUnitFullData } from "@/Servicos/professionals.service"
-import { specialtiesService, type SpecialtyUnitFullData } from "@/Servicos/specialties.service"
-import { proceduresService, type ProcedureUnitFullData } from "@/Servicos/procedures.service"
+import { professionalsService, type ProfessionalUnitFullData } from "@/services/professionals.service"
+import { specialtiesService, type SpecialtyUnitFullData } from "@/services/specialties.service"
+import { proceduresService, type ProcedureUnitFullData } from "@/services/procedures.service"
 import { useSessionUnit } from "@/contexts/session-unit-context"
 import { fetchWithAuth } from "@/lib/api-client"
 import { authBaseUrl } from "@/lib/auth"
@@ -299,6 +299,13 @@ export function CadastrarAgendas() {
                                 if (specialtyId) params.set("specialtyId", specialtyId)
                                 if (dateInput.length === 10 && isValidDateFormat(dateInput)) params.set("date", dateInput)
                                 const qs = params.toString()
+                                setCreateSuccess(false)
+                                setProcedureId("")
+                                setTimeInput("")
+                                setSlots("")
+                                setDurationMinutes("")
+                                setErrors({})
+                                setSaveError(null)
                                 navigate(`/agendas/cadastro${qs ? `?${qs}` : ""}`)
                             }}
                             className="cursor-pointer"

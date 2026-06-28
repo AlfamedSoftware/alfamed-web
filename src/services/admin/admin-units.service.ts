@@ -1,6 +1,6 @@
 import { authBaseUrl } from "@/lib/auth"
 
-export type AdminUnitOwner = {
+type AdminUnitOwner = {
     id: string
     name: string
     email: string
@@ -72,7 +72,7 @@ export type UpdateAdminUnitInput = Partial<
     ownerUserId?: string | null
 }
 
-export type CreateAdminProfessionalInput = {
+type CreateAdminProfessionalInput = {
     user: {
         name: string
         email: string

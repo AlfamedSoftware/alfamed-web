@@ -1,7 +1,7 @@
 import { authBaseUrl } from "@/lib/auth"
 import { fetchWithAuth } from "@/lib/api-client"
 
-export interface ProcedureSpecialty {
+interface ProcedureSpecialty {
     id: string
     name: string
     isActive: boolean
@@ -18,6 +18,7 @@ export interface ProcedureUnitFullData {
     specialtyId: string | null
     specialty: ProcedureSpecialty | null
     isActive: boolean
+    isPerformedInUnit: boolean
     createdAt: string
     updatedAt: string
 }
@@ -30,6 +31,7 @@ export type CreateProcedureInput = {
     type: number
     specialtyId?: string | null
     isActive?: boolean
+    isPerformedInUnit?: boolean
 }
 
 export type UpdateProcedureInput = {
@@ -41,16 +43,18 @@ export type UpdateProcedureInput = {
     type?: number
     specialtyId?: string | null
     isActive?: boolean
+    isPerformedInUnit?: boolean
 }
 
 export const proceduresService = {
     listByUnit: (
         unitId: string,
-        options?: { specialtyId?: string; isActive?: boolean },
+        options?: { specialtyId?: string; isActive?: boolean; type?: number },
     ): Promise<ProcedureUnitFullData[]> => {
         const params = new URLSearchParams()
         if (options?.specialtyId) params.set("specialtyId", options.specialtyId)
         if (typeof options?.isActive === "boolean") params.set("isActive", String(options.isActive))
+        if (typeof options?.type === "number") params.set("type", String(options.type))
         const query = params.toString()
         return fetchWithAuth<ProcedureUnitFullData[]>(
             `${authBaseUrl}/procedures/list-procedures-by-unit/${unitId}${query ? `?${query}` : ""}`,

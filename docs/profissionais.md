@@ -11,11 +11,10 @@ O módulo de Profissionais gerencia o cadastro, edição, vínculo a unidades e 
 ```
 src/pages/Profissionais/
 ├── listar-profissionais.tsx                  # Listagem com filtros e busca
-├── novo-profissional.tsx                     # Ponto de entrada: busca por CPF antes de cadastrar
+├── importar-profissional.tsx                 # Importação: busca por CPF ou nome antes de cadastrar
 ├── cadastro-profissionais.tsx                # Wrapper para cadastro completo
 ├── edicao-profissionais.tsx                  # Formulário principal (cadastro + edição)
 ├── perfil.tsx                                # Perfil do profissional logado
-├── professional-profile.tsx                  # Editor alternativo com gestão de agenda
 ├── profissionais-especialidades.tsx          # Vínculo profissional → especialidades
 └── Componentes/
     ├── listar-profissionais-card.tsx
@@ -26,8 +25,7 @@ src/pages/Profissionais/
     └── Skeleton/
         ├── listar-profissionais-skeleton.tsx
         ├── edicao-profissional-skeleton.tsx
-        ├── profissionais-especialidades-skeleton.tsx
-        └── agenda-profissional-skeleton.tsx
+        └── profissionais-especialidades-skeleton.tsx
 ```
 
 ---
@@ -35,11 +33,12 @@ src/pages/Profissionais/
 ## Fluxo Geral
 
 ```
-listar-profissionais.tsx
-  ├── clica em card           → edicao-profissionais.tsx (/{id})
-  └── clica em "Novo"         → novo-profissional.tsx
-        ├── CPF não encontrado → cadastro-profissionais.tsx (/cadastro?cpf=XXX)
-        └── CPF encontrado     → seleciona papel e vincula à unidade
+listar-profissionais.tsx  (/profissionais)
+  ├── clica em card           → edicao-profissionais.tsx (/profissionais/edicao/:id)
+  └── clica em "Novo"         → importar-profissional.tsx (/profissionais/importacao)
+        ├── CPF/nome não encontrado → cadastro-profissionais.tsx (/profissionais/cadastro?cpf=XXX)
+        │     └── sucesso → tela de confirmação → Voltar para profissionais | Cadastrar novo profissional
+        └── CPF/nome encontrado, não vinculado → seleciona cargo → vincula → banner verde na mesma tela
 
 perfil.tsx
   └── renderiza edicao-profissionais em modo isProfileView
@@ -54,7 +53,7 @@ profissionais-especialidades.tsx
 
 ### Funcionalidade
 
-Exibe todos os profissionais da unidade em grade responsiva, com filtros por status e busca por nome ou CPF.
+Exibe todos os profissionais da unidade em grade responsiva, com filtros por status e busca por nome ou CPF. Exibe um banner verde no topo após redirecionamento de edição bem-sucedida (`?salvo=true`), com auto-dismiss em **5 segundos**.
 
 ### Filtros e Busca
 
@@ -75,29 +74,39 @@ Exibe todos os profissionais da unidade em grade responsiva, com filtros por sta
 
 ---
 
-## Novo Profissional (`novo-profissional.tsx`)
+## Importar Profissional (`importar-profissional.tsx`)
 
 ### Funcionalidade
 
-Ponto de entrada para adicionar um profissional. Verifica se o usuário já existe no sistema pelo CPF antes de decidir o caminho:
+Ponto de entrada para adicionar um profissional à unidade. Suporta dois modos de busca (alternáveis por toggle): **CPF** e **Nome**. Verifica se o usuário já existe no sistema antes de decidir o caminho:
 
-| Resultado da busca            | Ação                                                       |
-|-------------------------------|------------------------------------------------------------|
-| CPF não encontrado            | Redireciona para `/profissionais/cadastro?cpf={cpf}`       |
-| CPF encontrado, não vinculado | Exibe seletor de papel e vincula o usuário à unidade atual |
-| CPF encontrado, já vinculado  | Exibe mensagem informando o vínculo existente              |
+| Resultado da busca            | Ação                                                                    |
+|-------------------------------|-------------------------------------------------------------------------|
+| Não encontrado                | Redireciona para `/profissionais/cadastro?cpf={cpf}`                    |
+| Encontrado, não vinculado     | Exibe card verde + seletor de cargo → vincula → banner verde na tela    |
+| Encontrado, já vinculado      | Exibe card âmbar informando o vínculo existente                         |
+
+### Busca por Nome
+
+- Debounce de 300ms após digitar ao menos 3 caracteres.
+- Dropdown posicionado abaixo do campo de busca com os resultados.
+- Ao selecionar um resultado, o formulário é preenchido com os dados já retornados — sem segunda chamada à API.
+- `skipNameSearchRef` evita re-busca ao selecionar um item do dropdown.
 
 ### Regras
 
 - CPF deve ter exatamente 11 dígitos.
-- O vínculo é feito via `professionalsService.linkUserToUnit()` com o `roleId` selecionado.
+- O vínculo exige seleção de cargo (`roleId`) antes de confirmar.
+- Após vínculo bem-sucedido: banner verde no topo da tela some após **5 segundos**, busca é limpa.
 
 ### API
 
-| Endpoint                                      | Quando é chamado        |
-|-----------------------------------------------|-------------------------|
-| `GET /professionals/check-by-cpf/{cpf}`       | Ao buscar o CPF         |
-| `POST /professional-units/link`               | Ao confirmar o vínculo  |
+| Endpoint                                                          | Quando é chamado              |
+|-------------------------------------------------------------------|-------------------------------|
+| `GET /professionals/professional-by-user-cpf?cpf={cpf}`          | Ao buscar por CPF             |
+| `GET /professionals/professional-by-user-name?name={nome}`       | Ao buscar por nome (debounce) |
+| `GET /roles?isActive=true&internal=false`                         | Ao montar (lista de cargos)   |
+| `POST /professional-units/create-by-user-cpf`                    | Ao confirmar o vínculo        |
 
 ---
 
@@ -105,11 +114,18 @@ Ponto de entrada para adicionar um profissional. Verifica se o usuário já exis
 
 Componente central de formulário, usado em três modos:
 
-| Modo             | Prop                    | Comportamento                                      |
-|------------------|-------------------------|----------------------------------------------------|
-| Cadastro         | `isRegisterMode={true}` | Cria usuário + profissional via `full-create`      |
-| Edição completa  | padrão                  | Atualiza todos os campos via `full-update`         |
-| Perfil           | `isProfileView={true}`  | Edição limitada do próprio perfil via `profile-update` |
+| Modo             | Prop                    | Comportamento                                                         |
+|------------------|-------------------------|-----------------------------------------------------------------------|
+| Cadastro         | `isRegisterMode={true}` | Cria usuário + profissional via `full-create` → tela de confirmação   |
+| Edição completa  | padrão                  | Atualiza todos os campos via `full-update` → banner verde na lista    |
+| Perfil           | `isProfileView={true}`  | Edição limitada do próprio perfil via `profile-update`                |
+
+#### Tela de Confirmação (modo Cadastro)
+
+Após salvar com sucesso no modo cadastro, o formulário é substituído por uma tela de confirmação com:
+- Ícone verde `CheckCircle2` + nome do profissional cadastrado.
+- **Voltar para profissionais** → `/profissionais`
+- **Cadastrar novo profissional** → `/profissionais/importacao`
 
 ### Campos do Formulário
 
@@ -207,17 +223,17 @@ Permite adicionar e remover vínculos entre um profissional e especialidades da 
 
 ## Toast (`Componentes/Toast.tsx`)
 
-Sistema de notificação interno do módulo. Utilizado para feedback de ações assíncronas.
+Sistema de notificação interno do módulo. Utilizado para feedback de **erros** em ações assíncronas (ex.: falha ao vincular profissional, CPF inválido).
 
 ```ts
 const { toasts, dismiss, toast } = useToast()
 
-toast.success("Profissional salvo com sucesso!")
-toast.error("Erro ao salvar profissional.")
+toast.error("Erro ao vincular profissional.")
 ```
 
 - Auto-dismiss após **4000ms**.
 - Exporta hook `useToast()` e componente `ToastContainer`.
+- Feedback de **sucesso** é exibido via banner verde no topo da tela ou via tela de confirmação, não via Toast.
 
 ---
 

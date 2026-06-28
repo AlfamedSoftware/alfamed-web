@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, useRef } from "react"
 import { useForm, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { SaveButton } from "@/components/ui/buttons"
+import { CheckCircle2 } from "lucide-react"
 
 import { PageHeader } from "@/components/page-header"
 import { Input } from "@/components/ui/input"
@@ -61,7 +62,8 @@ export function Unidade() {
 	const [isSaving, setIsSaving] = useState(false)
 	const [loadError, setLoadError] = useState<string | null>(null)
 	const [saveError, setSaveError] = useState<string | null>(null)
-	const [saveSuccess, setSaveSuccess] = useState<string | null>(null)
+	const [saveSuccess, setSaveSuccess] = useState(false)
+	const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
 	const unitId = sessionUnit?.selectedUnitId ?? ""
 
@@ -143,7 +145,7 @@ export function Unidade() {
 
 		setIsSaving(true)
 		setSaveError(null)
-		setSaveSuccess(null)
+		setSaveSuccess(false)
 
 		const payload: UpdateUnitPayload = {
 			name: values.name.trim(),
@@ -160,7 +162,9 @@ export function Unidade() {
 				method: "PATCH",
 				body: JSON.stringify(payload),
 			})
-			alert("Unidade atualizada com sucesso.")
+			setSaveSuccess(true)
+			if (successTimerRef.current) clearTimeout(successTimerRef.current)
+			successTimerRef.current = setTimeout(() => setSaveSuccess(false), 5000)
 		} catch (error) {
 			setSaveError(error instanceof Error ? error.message : "Erro ao editar unidade")
 		} finally {
@@ -171,6 +175,12 @@ export function Unidade() {
 	return (
 		<div className="flex min-h-screen flex-col bg-background text-foreground">
 			<PageHeader title={pageTitle} />
+			{saveSuccess && (
+				<div className="flex items-center gap-3 bg-green-600 px-6 py-3 text-white text-sm font-medium">
+					<CheckCircle2 className="h-4 w-4 shrink-0" />
+					Unidade atualizada com sucesso.
+				</div>
+			)}
 
 			<main className="flex-1 flex flex-col px-4 py-6 md:px-6 md:py-8">
 				{isSessionUnitLoading || isLoading ? (
@@ -256,9 +266,6 @@ export function Unidade() {
                             <p className="text-sm text-muted-foreground"></p>
 							<div className="flex flex-col items-start gap-2 sm:items-end">
 								<SaveButton isSaving={isSaving} disabled={isLoading} />
-								{saveSuccess ? (
-									<p className="text-sm font-medium text-green-600">{saveSuccess}</p>
-								) : null}
 								{saveError ? (
 									<p className="text-sm font-medium text-destructive">{saveError}</p>
 								) : null}

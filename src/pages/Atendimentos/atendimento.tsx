@@ -12,8 +12,29 @@ import { authBaseUrl } from "@/lib/auth"
 import { cn } from "@/lib/utils"
 import { PageHeader } from "@/components/page-header"
 import { BackButton, SaveButton } from "@/components/ui/buttons"
+import { PatientMedicalRecords, useMedicalRecords } from "@/pages/Prontuario/prontuario"
+import { useSessionUnit } from "@/contexts/session-unit-context"
+import { requestsService, type ExamRequestItem } from "@/services/requests.service"
+import { proceduresService, type ProcedureUnitFullData } from "@/services/procedures.service"
+import { ExamRequestTab } from "./Componentes/ExamRequestTab"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+interface Anamnese {
+    id: string
+    appointmentId: string
+    mainComplaint: string
+    painLevel: number
+    takingMedication: string
+    knownAllergy: string
+    hadSurgery: boolean
+    surgeryDetails: string
+    familyHistory: boolean
+    familyHistoryDetails: string
+    isActive: boolean
+    createdAt: string
+    updatedAt: string
+}
 
 interface AttendimentFullData {
     id: string
@@ -105,6 +126,30 @@ function useAttendanceSchedule(appointmentId?: string) {
     useEffect(() => { void refetch() }, [refetch])
 
     return { schedule, isLoading, error, refetch }
+}
+
+function useAnamnese(appointmentId?: string, enabled = false) {
+    const [anamnese, setAnamnese] = useState<Anamnese | null>(null)
+    const [isLoading, setIsLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+
+    const fetch = useCallback(async () => {
+        if (!appointmentId || !enabled) return
+        setIsLoading(true)
+        setError(null)
+        try {
+            const data = await fetchWithAuth<Anamnese[]>(`${authBaseUrl}/anamnesis/${appointmentId}`)
+            setAnamnese(data?.[0] ?? null)
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Falha ao carregar anamnese")
+        } finally {
+            setIsLoading(false)
+        }
+    }, [appointmentId, enabled])
+
+    useEffect(() => { void fetch() }, [fetch])
+
+    return { anamnese, isLoading, error }
 }
 
 function useUpdateScheduleStatus() {
@@ -221,7 +266,7 @@ function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label:
 
 // ─── Prontuário Tabs ──────────────────────────────────────────────────────────
 
-function EmptyState({ Icon, label, description }: { Icon: React.ElementType; label: string; description: string }) {
+export function EmptyState({ Icon, label, description }: { Icon: React.ElementType; label: string; description: string }) {
     return (
         <div className="flex flex-col items-center justify-center h-full gap-3 py-10 text-center">
             <div className="flex size-12 items-center justify-center rounded-full bg-muted">
@@ -235,13 +280,13 @@ function EmptyState({ Icon, label, description }: { Icon: React.ElementType; lab
     )
 }
 
-function LockedState() {
+export function LockedState() {
     return (
         <div className="flex flex-col items-center justify-center h-full gap-3 py-10 text-center">
             <div className="flex size-12 items-center justify-center rounded-full bg-muted">
                 <Lock className="size-5 text-muted-foreground" />
             </div>
-            <p className="text-sm text-muted-foreground">Inicie o atendimento para registrar este campo.</p>
+            <p className="text-sm text-muted-foreground">Este campo só pode ser visualizado durante o atendimento.</p>
         </div>
     )
 }
@@ -283,15 +328,92 @@ function TextEditorTab({
     )
 }
 
-// Anamnese: preenchida no app mobile, exibição somente leitura
-function AnamneseTab() {
-    // TODO: buscar de GET /attendiments/:id/anamnese quando o endpoint for criado
+function AnamneseField({ label, value }: { label: string; value: string }) {
     return (
-        <EmptyState
-            Icon={ClipboardList}
-            label="Anamnese"
-            description="Nenhuma anamnese registrada pelo aplicativo móvel."
-        />
+        <div className="min-w-0">
+            <p className="text-xs text-muted-foreground">{label}</p>
+            <p className="text-sm font-medium text-foreground">{value || "—"}</p>
+        </div>
+    )
+}
+
+function AnamneseBoolField({ label, value, details, detailsLabel }: { label: string; value: boolean; details: string; detailsLabel: string }) {
+    return (
+        <div className="min-w-0">
+            <p className="text-xs text-muted-foreground">{label}</p>
+            <p className="text-sm font-medium text-foreground">{value ? "Sim" : "Não"}</p>
+            {value && (
+                <div className="mt-1 min-w-0">
+                    <p className="text-xs text-muted-foreground">{detailsLabel}</p>
+                    <p className="text-sm font-medium text-foreground">{details || "—"}</p>
+                </div>
+            )}
+        </div>
+    )
+}
+
+function AnamneseTab({ anamnese, isLoading, error, isStarted }: {
+    anamnese: Anamnese | null
+    isLoading: boolean
+    error: string | null
+    isStarted: boolean
+}) {
+    if (!isStarted) return <LockedState />
+
+    if (isLoading) {
+        return (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="flex flex-col gap-1">
+                        <div className="h-3 w-24 rounded bg-muted animate-pulse" />
+                        <div className="h-9 w-full rounded-lg bg-muted animate-pulse" />
+                    </div>
+                ))}
+            </div>
+        )
+    }
+
+    if (error) {
+        return (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {error}
+            </div>
+        )
+    }
+
+    if (!anamnese) {
+        return (
+            <EmptyState
+                Icon={ClipboardList}
+                label="Anamnese não encontrada"
+                description="Nenhuma anamnese foi registrada pelo aplicativo móvel."
+            />
+        )
+    }
+
+    return (
+        <div className="flex flex-col gap-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                    <AnamneseField label="Queixa Principal" value={anamnese.mainComplaint} />
+                </div>
+                <AnamneseField label="Nível de Dor (0–10)" value={String(anamnese.painLevel)} />
+                <AnamneseField label="Medicamentos em Uso" value={anamnese.takingMedication} />
+                <AnamneseField label="Alergias Conhecidas" value={anamnese.knownAllergy} />
+                <AnamneseBoolField
+                    label="Passou por Cirurgia?"
+                    value={anamnese.hadSurgery}
+                    details={anamnese.surgeryDetails}
+                    detailsLabel="Detalhes da Cirurgia"
+                />
+                <AnamneseBoolField
+                    label="Histórico Familiar?"
+                    value={anamnese.familyHistory}
+                    details={anamnese.familyHistoryDetails}
+                    detailsLabel="Detalhes do Histórico Familiar"
+                />
+            </div>
+        </div>
     )
 }
 
@@ -312,13 +434,53 @@ function ProntuarioTabs({
     onValuesChange,
 }: {
     data: AttendimentFullData
-    onValuesChange: (values: { clinicNotes: string; diagnostics: string }) => void
+    onValuesChange: (values: { clinicNotes: string; diagnostics: string; examProcedureIds: string[] }) => void
 }) {
+    const { sessionUnit } = useSessionUnit()
+    const unitId = sessionUnit?.selectedUnitId ?? null
     const [activeTab, setActiveTab] = useState<TabKey>("anamnese")
     const [clinicNotes, setClinicNotes] = useState(data.clinicNotes ?? "")
     const [diagnostics, setDiagnostics] = useState(data.diagnostics ?? "")
+    const [examIds, setExamIds] = useState<string[]>([])
     const isStarted = data.appointment_status.code === 2
     const isFinished = data.appointment_status.code === 3
+    const [savedExams, setSavedExams] = useState<ExamRequestItem[]>([])
+    const [savedExamsLoading, setSavedExamsLoading] = useState(false)
+    const [savedExamsError, setSavedExamsError] = useState<string | null>(null)
+    const [examProcedures, setExamProcedures] = useState<ProcedureUnitFullData[]>([])
+    const [examProceduresLoading, setExamProceduresLoading] = useState(false)
+    const [examProceduresError, setExamProceduresError] = useState<string | null>(null)
+    const { anamnese, isLoading: anamneseLoading, error: anamneseError } = useAnamnese(data.id, isStarted || isFinished)
+    const { patientData: medicalRecords, isLoading: medicalRecordsLoading, error: medicalRecordsError } = useMedicalRecords(data.users.id, isStarted)
+
+    useEffect(() => {
+        if (!isFinished) return
+        let cancelled = false
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setSavedExamsLoading(true)
+        setSavedExamsError(null)
+        requestsService
+            .listByAppointment(data.id)
+            .then((d) => { if (!cancelled) setSavedExams(d) })
+            .catch((err) => { if (!cancelled) setSavedExamsError(err instanceof Error ? err.message : "Erro ao carregar exames solicitados") })
+            .finally(() => { if (!cancelled) setSavedExamsLoading(false) })
+        return () => { cancelled = true }
+    }, [isFinished, data.id])
+
+    useEffect(() => {
+        const canSelect = isStarted && !isFinished
+        if (!canSelect || !unitId) return
+        let cancelled = false
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setExamProceduresLoading(true)
+        setExamProceduresError(null)
+        proceduresService
+            .listByUnit(unitId, { type: 3, isActive: true })
+            .then((d) => { if (!cancelled) setExamProcedures(d) })
+            .catch((err) => { if (!cancelled) setExamProceduresError(err instanceof Error ? err.message : "Erro ao carregar exames") })
+            .finally(() => { if (!cancelled) setExamProceduresLoading(false) })
+        return () => { cancelled = true }
+    }, [isStarted, isFinished, unitId])
 
     function renderContent() {
         switch (activeTab) {
@@ -326,22 +488,42 @@ function ProntuarioTabs({
                 return (
                     <TextEditorTab
                         value={clinicNotes}
-                        onChange={(v) => { setClinicNotes(v); onValuesChange({ clinicNotes: v, diagnostics }) }}
+                        onChange={(v) => { setClinicNotes(v); onValuesChange({ clinicNotes: v, diagnostics, examProcedureIds: examIds }) }}
                         placeholder="Registre as notas clínicas do atendimento..."
                         isStarted={isStarted}
                         readOnly={isFinished}
                     />
                 )
             case "anamnese":
-                return <AnamneseTab />
+                return <AnamneseTab anamnese={anamnese} isLoading={anamneseLoading} error={anamneseError} isStarted={isStarted || isFinished} />
             case "diagnostics":
                 return (
                     <TextEditorTab
                         value={diagnostics}
-                        onChange={(v) => { setDiagnostics(v); onValuesChange({ clinicNotes, diagnostics: v }) }}
+                        onChange={(v) => { setDiagnostics(v); onValuesChange({ clinicNotes, diagnostics: v, examProcedureIds: examIds }) }}
                         placeholder="Registre o diagnóstico do atendimento..."
                         isStarted={isStarted}
                         readOnly={isFinished}
+                    />
+                )
+            case "prontuario":
+                if (!isStarted) return <LockedState />
+                return <PatientMedicalRecords patientData={medicalRecords} isLoading={medicalRecordsLoading} error={medicalRecordsError} />
+            case "exames":
+                return (
+                    <ExamRequestTab
+                        appointmentId={data.id}
+                        unitId={unitId}
+                        isStarted={isStarted}
+                        isFinished={isFinished}
+                        selectedIds={examIds}
+                        onChange={(ids) => { setExamIds(ids); onValuesChange({ clinicNotes, diagnostics, examProcedureIds: ids }) }}
+                        savedExams={savedExams}
+                        savedExamsLoading={savedExamsLoading}
+                        savedExamsError={savedExamsError}
+                        procedures={examProcedures}
+                        proceduresLoading={examProceduresLoading}
+                        proceduresError={examProceduresError}
                     />
                 )
             default:
@@ -393,13 +575,19 @@ export function Atendimento() {
     const { schedule, isLoading, error, refetch } = useAttendanceSchedule(appointmentId)
     const { iniciar, registrarFalta, finalizar, error: updateError } = useUpdateScheduleStatus()
     const [activeAction, setActiveAction] = useState<"falta" | "iniciar" | "finalizar" | null>(null)
-    const pendingValuesRef = useRef({ clinicNotes: "", diagnostics: "" })
+    const [examError, setExamError] = useState<string | null>(null)
+    const pendingValuesRef = useRef<{ clinicNotes: string; diagnostics: string; examProcedureIds: string[] }>({
+        clinicNotes: "",
+        diagnostics: "",
+        examProcedureIds: [],
+    })
 
     useEffect(() => {
         if (schedule) {
             pendingValuesRef.current = {
                 clinicNotes: schedule.clinicNotes ?? "",
                 diagnostics: schedule.diagnostics ?? "",
+                examProcedureIds: [],
             }
         }
     }, [schedule])
@@ -421,7 +609,20 @@ export function Atendimento() {
     const handleFinalizar = async () => {
         if (!appointmentId || !schedule) return
         setActiveAction("finalizar")
+        setExamError(null)
         try {
+            // Grava os exames selecionados ANTES de finalizar. Se falhar, aborta a
+            // finalização para o atendimento continuar em andamento e poder repetir.
+            const examIds = pendingValuesRef.current.examProcedureIds
+            if (examIds.length > 0) {
+                try {
+                    await requestsService.saveFromAppointment(appointmentId, examIds)
+                } catch (err) {
+                    setExamError(err instanceof Error ? err.message : "Falha ao salvar os exames. Tente novamente.")
+                    return
+                }
+            }
+
             await finalizar(appointmentId, {
                 diagnostics: pendingValuesRef.current.diagnostics,
                 clinicNotes: pendingValuesRef.current.clinicNotes,
@@ -534,6 +735,9 @@ export function Atendimento() {
             <main className="flex flex-1 min-h-0 flex-col gap-4 p-4 overflow-hidden">
                 {updateError ? (
                     <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{updateError}</div>
+                ) : null}
+                {examError ? (
+                    <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{examError}</div>
                 ) : null}
 
                 {/* Info cards */}

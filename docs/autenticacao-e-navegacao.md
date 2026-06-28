@@ -81,6 +81,7 @@ src/
 
 - Após login com sucesso, redireciona para `/session`.
 - Possui link "Esqueci minha senha" que abre o diálogo `ForgotPasswordDialog`.
+- Quando redirecionado por sessão expirada (`?motivo=sessao-expirada`), exibe banner vermelho no topo da tela: "Sua sessão expirou por inatividade. Faça login novamente para continuar."
 
 ---
 
@@ -280,7 +281,7 @@ Disponível globalmente (exceto em rotas públicas como `/login`, `/reset-passwo
 Wrapper sobre `fetch` que:
 - Inclui `credentials: "include"` (cookies de sessão).
 - Adiciona `Content-Type: application/json` automaticamente em `POST`/`PUT`/`PATCH`.
-- **401** → exibe alerta global + redireciona para `/login`.
+- **401** → redireciona para `/login?motivo=sessao-expirada` (uma única vez por ciclo de vida, via flag de módulo `isRedirectingToLogin`). Na tela de login, um banner vermelho no topo informa que a sessão expirou por inatividade.
 - **Resposta não-ok** → parseia JSON de erro e lança exceção.
 - **204 / corpo vazio** → retorna `undefined`.
 

@@ -1,4 +1,4 @@
-import { ProfessionalProfile } from "./edicao-profissionais"
+import { EdicaoProfissionais } from "./edicao-profissionais"
 import { useSearchParams } from "react-router"
 
 interface CadastroProfissionaisFormProps {
@@ -18,7 +18,7 @@ export function CadastroProfissionaisForm({
 }: CadastroProfissionaisFormProps) {
     return (
         <div className={className}>
-            <ProfessionalProfile
+            <EdicaoProfissionais
                 isRegisterMode
                 afterSavePath={showHeader ? "/profissionais" : null}
                 onCreated={onCreated}
