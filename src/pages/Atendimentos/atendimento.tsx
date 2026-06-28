@@ -12,7 +12,7 @@ import { authBaseUrl } from "@/lib/auth"
 import { cn } from "@/lib/utils"
 import { PageHeader } from "@/components/page-header"
 import { BackButton, SaveButton } from "@/components/ui/buttons"
-import { PatientMedicalRecords } from "@/pages/Prontuario/prontuario"
+import { PatientMedicalRecords, useMedicalRecords } from "@/pages/Prontuario/prontuario"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -438,6 +438,7 @@ function ProntuarioTabs({
     const isStarted = data.appointment_status.code === 2
     const isFinished = data.appointment_status.code === 3
     const { anamnese, isLoading: anamneseLoading, error: anamneseError } = useAnamnese(data.id, isStarted || isFinished)
+    const { patientData: medicalRecords, isLoading: medicalRecordsLoading, error: medicalRecordsError } = useMedicalRecords(data.users.id, isStarted)
 
     function renderContent() {
         switch (activeTab) {
@@ -465,7 +466,7 @@ function ProntuarioTabs({
                 )
             case "prontuario":
                 if (!isStarted) return <LockedState />
-                return <PatientMedicalRecords userId={data.users.id} />
+                return <PatientMedicalRecords patientData={medicalRecords} isLoading={medicalRecordsLoading} error={medicalRecordsError} />
             default:
                 return (
                     <EmptyState
