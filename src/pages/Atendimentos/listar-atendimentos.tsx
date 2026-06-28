@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useReducer, useState } from "react"
 import { useNavigate } from "react-router"
 import { ChevronLeft, ChevronRight, Clock } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
@@ -87,6 +87,22 @@ function shiftDateByDays(dateStr: string, days: number): string {
     ].join("/")
 }
 
+// --- Fetch reducer ---
+
+type FetchState = { groups: SpecialtyGroup[]; isLoading: boolean; error: string | null }
+type FetchAction =
+    | { type: "loading" }
+    | { type: "success"; data: SpecialtyGroup[] }
+    | { type: "error"; message: string }
+
+function fetchReducer(_: FetchState, action: FetchAction): FetchState {
+    switch (action.type) {
+        case "loading": return { groups: [], isLoading: true, error: null }
+        case "success": return { groups: action.data, isLoading: false, error: null }
+        case "error":   return { groups: [], isLoading: false, error: action.message }
+    }
+}
+
 // --- Status badge ---
 
 function statusBadgeClass(statusCode: number): string {
@@ -109,33 +125,35 @@ export function Atendimentos() {
     const [dateInput, setDateInput] = useState(getTodayFormatted)
     const [dateError, setDateError] = useState<string | null>(null)
     const [activeSpecialtyId, setActiveSpecialtyId] = useState<string | null>(null)
+    const [selectedStatusCode, setSelectedStatusCode] = useState<string>("")
 
-    const [groups, setGroups] = useState<SpecialtyGroup[]>([])
-    const [isLoading, setIsLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
+    const [{ groups, isLoading, error }, dispatch] = useReducer(fetchReducer, { groups: [], isLoading: false, error: null })
+
+    const [statusOptions, setStatusOptions] = useState<{ id: string; code: number; description: string }[]>([])
 
     useEffect(() => {
-        if (!professionalUnitId || !isValidDateFormat(dateInput)) {
-            setGroups([])
-            return
-        }
+        fetchWithAuth<{ id: string; code: number; description: string }[]>(`${authBaseUrl}/appointment-status?isActive=true`)
+            .then((data) => setStatusOptions(Array.isArray(data) ? data : []))
+            .catch(() => {})
+    }, [])
 
-        setIsLoading(true)
-        setError(null)
-        setGroups([])
+    useEffect(() => {
+        if (!professionalUnitId || !isValidDateFormat(dateInput)) return
 
         const params = new URLSearchParams({
             date: dateInputToApiFormat(dateInput),
             professionalUnitId,
         })
+        if (selectedStatusCode) params.set("statusId", selectedStatusCode)
+
+        dispatch({ type: "loading" })
 
         fetchWithAuth<SpecialtyGroup[]>(
             `${authBaseUrl}/attendiments/list-appointments-by-specialty?${params.toString()}`,
         )
-            .then((data) => setGroups(Array.isArray(data) ? data : []))
-            .catch((err) => setError(err instanceof Error ? err.message : "Erro ao carregar atendimentos"))
-            .finally(() => setIsLoading(false))
-    }, [professionalUnitId, dateInput])
+            .then((data) => dispatch({ type: "success", data: Array.isArray(data) ? data : [] }))
+            .catch((err) => dispatch({ type: "error", message: err instanceof Error ? err.message : "Erro ao carregar atendimentos" }))
+    }, [professionalUnitId, dateInput, selectedStatusCode])
 
     const visibleGroups = useMemo(() => {
         if (!activeSpecialtyId) return groups
@@ -224,6 +242,26 @@ export function Atendimentos() {
                         {groups.map((g) => (
                             <option key={g.specialtyId} value={g.specialtyId}>
                                 {g.specialtyName}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                    <label className="text-sm font-medium">Status</label>
+                    <select
+                        value={selectedStatusCode}
+                        onChange={(e) => {
+                            setSelectedStatusCode(e.target.value)
+                            setActiveSpecialtyId(null)
+                        }}
+                        disabled={isLoading}
+                        className="h-10 w-48 rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50 cursor-pointer"
+                    >
+                        <option value="">Todos os status</option>
+                        {statusOptions.map((s) => (
+                            <option key={s.id} value={s.id}>
+                                {s.description}
                             </option>
                         ))}
                     </select>

@@ -29,17 +29,20 @@ listar-atendimentos.tsx
 
 ### Funcionalidade
 
-Exibe os agendamentos do dia agrupados por especialidade, com filtro de data e especialidade. Cada card de agendamento exibe horário, status e nome do paciente.
+Exibe os agendamentos do dia agrupados por especialidade, com filtros de data, especialidade e status. Cada card de agendamento exibe horário, status e nome do paciente.
 
 ### Filtros
 
-| Filtro        | Tipo   | Regra                                           |
-|---------------|--------|-------------------------------------------------|
-| Data          | Input  | DD/MM/YYYY; padrão: hoje; navegação por dia     |
-| Especialidade | Select | Filtra os grupos exibidos; opção "Todas"        |
+| Filtro        | Tipo   | Regra                                                                           |
+|---------------|--------|---------------------------------------------------------------------------------|
+| Data          | Input  | DD/MM/YYYY; padrão: hoje; navegação por dia                                     |
+| Especialidade | Select | Filtra client-side os grupos exibidos; opção "Todas as especialidades"          |
+| Status        | Select | Envia `statusId` como query param; opções carregadas da API; opção "Todos"     |
 
 - Filtro de especialidade usa scroll suave até a seção correspondente (`scrollIntoView`).
+- Ao alterar o filtro de status, o filtro de especialidade é resetado.
 - Os agendamentos retornados são escopados pelo `professionalUnitId` da unidade ativa na sessão, enviado como query param obrigatório.
+- Os três estados de fetch (loading / success / error) são gerenciados por `useReducer` para evitar renders cascateados.
 
 ### Seção de Especialidade
 
@@ -67,9 +70,10 @@ Cada card exibe:
 
 ### API
 
-| Endpoint                                                                                       | Quando é chamado          |
-|-----------------------------------------------------------------------------------------------|---------------------------|
-| `GET /attendiments/list-appointments-by-specialty?date=YYYY-MM-DD&professionalUnitId=X`      | Ao alterar data ou montar |
+| Endpoint                                                                                                        | Quando é chamado                          |
+|-----------------------------------------------------------------------------------------------------------------|-------------------------------------------|
+| `GET /attendiments/list-appointments-by-specialty?date=YYYY-MM-DD&professionalUnitId=X[&statusId=Y]`           | Ao alterar data, status ou ao montar      |
+| `GET /appointment-status?isActive=true`                                                                         | Uma vez ao montar (popula select de status) |
 
 ---
 
