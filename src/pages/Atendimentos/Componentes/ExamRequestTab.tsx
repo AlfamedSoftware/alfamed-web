@@ -1,13 +1,10 @@
-import { useEffect, useState } from "react"
-import { Check, Lock, Microscope } from "lucide-react"
+import { Check, Microscope } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { EmptyState, LockedState } from "@/pages/Atendimentos/atendimento"
 import { Skeleton } from "@/components/ui/skeleton"
-import { proceduresService, type ProcedureUnitFullData } from "@/services/procedures.service"
-import { requestsService, type ExamRequestItem } from "@/services/requests.service"
-
-// Tipo "Exame" no cadastro de procedimentos
-const EXAM_PROCEDURE_TYPE = 3
+import { type ProcedureUnitFullData } from "@/services/procedures.service"
+import { type ExamRequestItem } from "@/services/requests.service"
 
 const GRID_CLASS = "grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
 
@@ -18,6 +15,12 @@ interface ExamRequestTabProps {
     isFinished: boolean
     selectedIds: string[]
     onChange: (ids: string[]) => void
+    savedExams: ExamRequestItem[]
+    savedExamsLoading: boolean
+    savedExamsError: string | null
+    procedures: ProcedureUnitFullData[]
+    proceduresLoading: boolean
+    proceduresError: string | null
 }
 
 function CenteredMessage({ Icon, title, description }: { Icon: React.ElementType; title: string; description?: string }) {
@@ -123,74 +126,38 @@ function LoadingGrid() {
     )
 }
 
-export function ExamRequestTab({ appointmentId, unitId, isStarted, isFinished, selectedIds, onChange }: ExamRequestTabProps) {
-    const [procedures, setProcedures] = useState<ProcedureUnitFullData[]>([])
-    const [saved, setSaved] = useState<ExamRequestItem[]>([])
-    const [isLoading, setIsLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
-
+export function ExamRequestTab({ isStarted, isFinished, selectedIds, onChange, savedExams, savedExamsLoading, savedExamsError, procedures, proceduresLoading, proceduresError }: ExamRequestTabProps) {
     const canSelect = isStarted && !isFinished
-
-    // Atendimento em andamento: carrega exames disponíveis para seleção.
-    useEffect(() => {
-        if (!canSelect || !unitId) return
-        let cancelled = false
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setIsLoading(true)
-        setError(null)
-        proceduresService
-            .listByUnit(unitId, { type: EXAM_PROCEDURE_TYPE, isActive: true })
-            .then((data) => { if (!cancelled) setProcedures(data) })
-            .catch((err) => { if (!cancelled) setError(err instanceof Error ? err.message : "Erro ao carregar exames") })
-            .finally(() => { if (!cancelled) setIsLoading(false) })
-        return () => { cancelled = true }
-    }, [canSelect, unitId])
-
-    // Atendimento finalizado: carrega os exames que foram solicitados.
-    useEffect(() => {
-        if (!isFinished) return
-        let cancelled = false
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setIsLoading(true)
-        setError(null)
-        requestsService
-            .listByAppointment(appointmentId)
-            .then((data) => { if (!cancelled) setSaved(data) })
-            .catch((err) => { if (!cancelled) setError(err instanceof Error ? err.message : "Erro ao carregar exames solicitados") })
-            .finally(() => { if (!cancelled) setIsLoading(false) })
-        return () => { cancelled = true }
-    }, [isFinished, appointmentId])
 
     // ─── Atendimento finalizado: lista somente leitura ───
     if (isFinished) {
-        if (isLoading) return <LoadingGrid />
-        if (error) return <CenteredMessage Icon={Microscope} title="Não foi possível carregar os exames" description={error} />
-        if (saved.length === 0) {
-            return <CenteredMessage Icon={Microscope} title="Nenhum exame foi adicionado neste atendimento." />
+        if (savedExamsLoading) return <LoadingGrid />
+        if (savedExamsError) return <CenteredMessage Icon={Microscope} title="Não foi possível carregar os exames" description={savedExamsError} />
+        if (savedExams.length === 0) {
+            return <EmptyState Icon={Microscope} label="Nenhum registro" description="Nenhum exame foi adicionado neste atendimento." />
         }
         return (
             <div className="flex flex-col gap-4">
                 <div>
                     <h3 className="text-sm font-semibold text-foreground">Exames solicitados</h3>
                     <p className="mt-0.5 text-xs text-muted-foreground">
-                        {saved.length} {saved.length === 1 ? "exame solicitado" : "exames solicitados"} neste atendimento.
+                        {savedExams.length} {savedExams.length === 1 ? "exame solicitado" : "exames solicitados"} neste atendimento.
                     </p>
                 </div>
                 <div className={GRID_CLASS}>
-                    {saved.map((item) => <SavedExamCard key={item.id} item={item} />)}
+                    {savedExams.map((item) => <SavedExamCard key={item.id} item={item} />)}
                 </div>
             </div>
         )
     }
 
-    // ─── Atendimento não iniciado ───
     if (!canSelect) {
-        return <CenteredMessage Icon={Lock} title="Inicie o atendimento para solicitar exames." />
+        return <LockedState />
     }
 
     // ─── Atendimento em andamento: seleção ───
-    if (isLoading) return <LoadingGrid />
-    if (error) return <CenteredMessage Icon={Microscope} title="Não foi possível carregar os exames" description={error} />
+    if (proceduresLoading) return <LoadingGrid />
+    if (proceduresError) return <CenteredMessage Icon={Microscope} title="Não foi possível carregar os exames" description={proceduresError} />
     if (procedures.length === 0) {
         return (
             <CenteredMessage

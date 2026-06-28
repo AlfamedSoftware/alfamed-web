@@ -14,7 +14,8 @@ import { PageHeader } from "@/components/page-header"
 import { BackButton, SaveButton } from "@/components/ui/buttons"
 import { PatientMedicalRecords, useMedicalRecords } from "@/pages/Prontuario/prontuario"
 import { useSessionUnit } from "@/contexts/session-unit-context"
-import { requestsService } from "@/services/requests.service"
+import { requestsService, type ExamRequestItem } from "@/services/requests.service"
+import { proceduresService, type ProcedureUnitFullData } from "@/services/procedures.service"
 import { ExamRequestTab } from "./Componentes/ExamRequestTab"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -265,7 +266,7 @@ function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label:
 
 // ─── Prontuário Tabs ──────────────────────────────────────────────────────────
 
-function EmptyState({ Icon, label, description }: { Icon: React.ElementType; label: string; description: string }) {
+export function EmptyState({ Icon, label, description }: { Icon: React.ElementType; label: string; description: string }) {
     return (
         <div className="flex flex-col items-center justify-center h-full gap-3 py-10 text-center">
             <div className="flex size-12 items-center justify-center rounded-full bg-muted">
@@ -279,7 +280,7 @@ function EmptyState({ Icon, label, description }: { Icon: React.ElementType; lab
     )
 }
 
-function LockedState() {
+export function LockedState() {
     return (
         <div className="flex flex-col items-center justify-center h-full gap-3 py-10 text-center">
             <div className="flex size-12 items-center justify-center rounded-full bg-muted">
@@ -443,8 +444,43 @@ function ProntuarioTabs({
     const [examIds, setExamIds] = useState<string[]>([])
     const isStarted = data.appointment_status.code === 2
     const isFinished = data.appointment_status.code === 3
+    const [savedExams, setSavedExams] = useState<ExamRequestItem[]>([])
+    const [savedExamsLoading, setSavedExamsLoading] = useState(false)
+    const [savedExamsError, setSavedExamsError] = useState<string | null>(null)
+    const [examProcedures, setExamProcedures] = useState<ProcedureUnitFullData[]>([])
+    const [examProceduresLoading, setExamProceduresLoading] = useState(false)
+    const [examProceduresError, setExamProceduresError] = useState<string | null>(null)
     const { anamnese, isLoading: anamneseLoading, error: anamneseError } = useAnamnese(data.id, isStarted || isFinished)
     const { patientData: medicalRecords, isLoading: medicalRecordsLoading, error: medicalRecordsError } = useMedicalRecords(data.users.id, isStarted)
+
+    useEffect(() => {
+        if (!isFinished) return
+        let cancelled = false
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setSavedExamsLoading(true)
+        setSavedExamsError(null)
+        requestsService
+            .listByAppointment(data.id)
+            .then((d) => { if (!cancelled) setSavedExams(d) })
+            .catch((err) => { if (!cancelled) setSavedExamsError(err instanceof Error ? err.message : "Erro ao carregar exames solicitados") })
+            .finally(() => { if (!cancelled) setSavedExamsLoading(false) })
+        return () => { cancelled = true }
+    }, [isFinished, data.id])
+
+    useEffect(() => {
+        const canSelect = isStarted && !isFinished
+        if (!canSelect || !unitId) return
+        let cancelled = false
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setExamProceduresLoading(true)
+        setExamProceduresError(null)
+        proceduresService
+            .listByUnit(unitId, { type: 3, isActive: true })
+            .then((d) => { if (!cancelled) setExamProcedures(d) })
+            .catch((err) => { if (!cancelled) setExamProceduresError(err instanceof Error ? err.message : "Erro ao carregar exames") })
+            .finally(() => { if (!cancelled) setExamProceduresLoading(false) })
+        return () => { cancelled = true }
+    }, [isStarted, isFinished, unitId])
 
     function renderContent() {
         switch (activeTab) {
@@ -482,6 +518,12 @@ function ProntuarioTabs({
                         isFinished={isFinished}
                         selectedIds={examIds}
                         onChange={(ids) => { setExamIds(ids); onValuesChange({ clinicNotes, diagnostics, examProcedureIds: ids }) }}
+                        savedExams={savedExams}
+                        savedExamsLoading={savedExamsLoading}
+                        savedExamsError={savedExamsError}
+                        procedures={examProcedures}
+                        proceduresLoading={examProceduresLoading}
+                        proceduresError={examProceduresError}
                     />
                 )
             default:

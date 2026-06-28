@@ -10,8 +10,10 @@ O módulo de Atendimentos gerencia o fluxo clínico de uma consulta médica, des
 
 ```
 src/pages/Atendimentos/
-├── listar-atendimentos.tsx   # Listagem de agendamentos do dia por especialidade
-└── atendimento.tsx           # Tela de condução do atendimento (prontuário, status, ações)
+├── listar-atendimentos.tsx        # Listagem de agendamentos do dia por especialidade
+├── atendimento.tsx                # Tela de condução do atendimento (prontuário, status, ações)
+└── Componentes/
+    └── ExamRequestTab.tsx         # Aba de solicitação de exames (renderização pura; estado no pai)
 ```
 
 ---
@@ -166,7 +168,7 @@ A aba padrão ao abrir a tela é sempre **Anamnese**.
 
 O estado dos campos **Notas Clínicas** e **Diagnóstico** é mantido em `ProntuarioTabs` — trocar de aba não descarta o conteúdo digitado.
 
-Os dados de **Anamnese** e **Prontuário** são buscados uma única vez assim que as condições de acesso são atendidas e armazenados no state de `ProntuarioTabs` — trocar de aba não gera nova chamada à API.
+Os dados de **Anamnese**, **Prontuário** e **Solicitação de Exames** (tanto a lista de exames disponíveis quanto os exames salvos) são buscados uma única vez assim que as condições de acesso são atendidas e armazenados no state de `ProntuarioTabs` — trocar de aba não gera nova chamada à API.
 
 | Aba                   | Status 1 (Agendado) | Status 2 (Em andamento) | Status 3 (Finalizado) |
 |-----------------------|---------------------|-------------------------|-----------------------|
@@ -217,12 +219,12 @@ Permite ao médico solicitar exames (procedimentos do tipo `3` — Exames) duran
 
 | Status | Comportamento |
 |--------|---------------|
-| 1 (Agendado)     | Bloqueado — "Inicie o atendimento para solicitar exames." |
+| 1 (Agendado)     | Bloqueado — `LockedState` padrão (cadeado + _"Este campo só pode ser visualizado durante o atendimento."_) |
 | 2 (Em andamento) | Grid de cards clicáveis dos exames ativos da unidade; clicar marca/desmarca (fica azul `primary`). Header mostra o contador de selecionados. |
 | 3 (Finalizado)   | Lista somente leitura dos exames solicitados, cada um com tag **Interno** (status do pedido) ou **Externo**. Sem exames: "Nenhum exame foi adicionado neste atendimento." |
 
-- A lista de exames disponíveis é carregada por `GET /procedures/list-procedures-by-unit/:unitId?type=3&isActive=true`, usando o `unitId` da sessão (`useSessionUnit`).
-- A seleção fica em estado local e é propagada para o componente pai (`ProntuarioTabs` → `pendingValuesRef.examProcedureIds`), junto com `clinicNotes`/`diagnostics`.
+- A lista de exames disponíveis (`GET /procedures/list-procedures-by-unit/:unitId?type=3&isActive=true`) e os exames salvos (`GET /requests/by-appointment/:appointmentId`) são **buscados uma única vez em `ProntuarioTabs`** ao atender as condições de acesso — trocar de aba não gera nova requisição nem perde o estado.
+- A seleção dos exames fica em `examIds` no `ProntuarioTabs` e é propagada via `onChange` para `ExamRequestTab` — trocar de aba preserva as seleções feitas.
 - **Gravação separada da finalização:** ao clicar em **Finalizar**, o front primeiro chama `POST /requests/save-from-appointment` com os exames selecionados. **Se essa chamada falhar, a finalização é abortada** (o atendimento continua em andamento e pode ser repetido), exibindo um banner de erro. Só após o save com sucesso é que o `PATCH /finalizar` é enviado.
 - A separação por **interno/externo** é decidida no backend (parâmetro `modulo1GestaoExames` da unidade + `isPerformedInUnit` do procedimento) — ver doc do backend.
 
@@ -240,8 +242,8 @@ Permite ao médico solicitar exames (procedimentos do tipo `3` — Exames) duran
 | `/medical-records/list-patient-medical-records?userId={userId}`                 | GET    | Aba Prontuário (status 2); busca apenas uma vez    |
 | `/external-requests/requisition/:appointmentId`                                 | GET    | Modal de PDF na aba Prontuário                     |
 | `/requests/save-from-appointment`                                               | POST   | Ao Finalizar, **antes** do `finalizar`, se houver exames selecionados |
-| `/requests/by-appointment/:appointmentId`                                       | GET    | Aba Solicitação de Exames, quando status = 3       |
-| `/procedures/list-procedures-by-unit/:unitId?type=3&isActive=true`              | GET    | Aba Solicitação de Exames, quando status = 2       |
+| `/requests/by-appointment/:appointmentId`                                       | GET    | Status = 3: uma vez ao montar `ProntuarioTabs`     |
+| `/procedures/list-procedures-by-unit/:unitId?type=3&isActive=true`              | GET    | Status = 2: uma vez ao montar `ProntuarioTabs`     |
 
 #### Payload — `finalizar`
 
