@@ -93,7 +93,11 @@ export function CpfNameSearch({
                             disabled={disabled || isSearching || !isValidCpf}
                             className="cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
                         >
-                            <Search className="w-4 h-4 mr-1.5" />
+                            {isSearching ? (
+                                <div className="w-4 h-4 mr-1.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                            ) : (
+                                <Search className="w-4 h-4 mr-1.5" />
+                            )}
                             {isSearching ? "Buscando..." : "Buscar"}
                         </Button>
                     </>

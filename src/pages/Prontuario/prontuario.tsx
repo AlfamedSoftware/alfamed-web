@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { CalendarDays, ChevronDown, Clock, Download, FileText, MapPin, Printer, Stethoscope, User, UserCheck, X } from "lucide-react"
+import { Building2, Calendar, CalendarDays, ChevronDown, ClipboardList, Clock, Download, FileText, Mail, PersonStanding, Phone, Printer, Stethoscope, User, X } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
 import { CpfNameSearch, type SearchResultItem } from "@/components/cpf-name-search"
 import { fetchWithAuth } from "@/lib/api-client"
@@ -219,6 +219,20 @@ function formatSex(value?: string): string {
     return "Não informado"
 }
 
+function formatAge(yyyymmdd: string): string {
+    if (!yyyymmdd) return "—"
+    const [y, m, d] = yyyymmdd.split("-")
+    const birth = new Date(Number(y), Number(m) - 1, Number(d))
+    if (isNaN(birth.getTime())) return "—"
+    const today = new Date()
+    let age = today.getFullYear() - birth.getFullYear()
+    if (today.getMonth() < birth.getMonth() || (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate())) age--
+    if (age > 0) return `${age} anos`
+    let months = (today.getFullYear() - birth.getFullYear()) * 12 + (today.getMonth() - birth.getMonth())
+    if (today.getDate() < birth.getDate()) months--
+    return `${Math.max(0, months)} meses`
+}
+
 function statusBadgeClass(statusCode: number): string {
     switch (statusCode) {
         case 1: return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
@@ -323,15 +337,18 @@ export function PatientMedicalRecords({ patientData, isLoading, error }: {
             <div className="flex flex-col gap-3">
                 {[1, 2, 3].map((i) => (
                     <div key={i} className="rounded-lg border border-border border-l-4 border-l-primary/30 bg-card overflow-hidden">
-                        <div className="flex items-center justify-between px-4 py-3 bg-muted/40 border-b border-border">
-                            <div className="h-4 w-32 rounded bg-muted animate-pulse" />
-                            <div className="h-5 w-20 rounded-full bg-muted animate-pulse" />
-                        </div>
                         <div className="grid grid-cols-3 gap-x-6 gap-y-3 px-4 py-4">
+                            <div className="col-span-3 flex items-center justify-between">
+                                <div className="h-4 w-32 rounded bg-muted animate-pulse" />
+                                <div className="h-5 w-20 rounded-full bg-muted animate-pulse" />
+                            </div>
                             {[1, 2, 3, 4, 5, 6].map((j) => (
-                                <div key={j} className="flex flex-col gap-1.5">
-                                    <div className="h-3 w-16 rounded bg-muted animate-pulse" />
-                                    <div className="h-4 w-full rounded bg-muted animate-pulse" />
+                                <div key={j} className="flex items-start gap-3">
+                                    <div className="mt-0.5 size-7 shrink-0 rounded-lg bg-muted animate-pulse" />
+                                    <div className="flex flex-col gap-1.5 flex-1">
+                                        <div className="h-3 w-16 rounded bg-muted animate-pulse" />
+                                        <div className="h-4 w-full rounded bg-muted animate-pulse" />
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -361,55 +378,67 @@ export function PatientMedicalRecords({ patientData, isLoading, error }: {
     return (
         <>
             <div className="flex flex-col gap-3">
-                {patientData.appointments.map((appt, index) => (
+                {patientData.appointments.map((appt, index) => {
+                    const num = patientData.appointments.length - index
+                    return (
                     <div key={appt.id} className="rounded-lg border border-border border-l-4 border-l-primary bg-card shadow-sm overflow-hidden">
-                        <div className="flex items-center justify-between px-4 py-3 bg-muted/40 border-b border-border">
-                            <p className="text-base font-semibold text-primary">
-                                Atendimento {index + 1}
-                            </p>
+                        <div className="grid grid-cols-3 gap-x-6 gap-y-3 px-4 py-4">
+                        <div className="col-span-3 flex items-center justify-between">
+                            <p className="text-base font-semibold text-primary">Atendimento {num}</p>
                             <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${statusBadgeClass(appt.appointment_status.code)}`}>
                                 {appt.appointment_status.description}
                             </span>
                         </div>
-                        <div className="grid grid-cols-3 gap-x-6 gap-y-3 px-4 py-4">
-                            <div className="flex items-start gap-2">
-                                <MapPin className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-                                <div>
+                            <div className="flex items-start gap-3">
+                                <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-muted">
+                                    <Building2 className="size-3.5 text-muted-foreground" />
+                                </div>
+                                <div className="min-w-0">
                                     <p className="text-xs text-muted-foreground">Unidade</p>
                                     <p className="text-sm font-medium text-foreground">{appt.units.name}</p>
                                 </div>
                             </div>
-                            <div className="flex items-start gap-2">
-                                <CalendarDays className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-                                <div>
+                            <div className="flex items-start gap-3">
+                                <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-muted">
+                                    <CalendarDays className="size-3.5 text-muted-foreground" />
+                                </div>
+                                <div className="min-w-0">
                                     <p className="text-xs text-muted-foreground">Data</p>
                                     <p className="text-sm font-medium text-foreground">{formatDate(appt.schedules.date)}</p>
                                 </div>
                             </div>
-                            <div className="flex items-start gap-2">
-                                <Clock className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-                                <div>
+                            <div className="flex items-start gap-3">
+                                <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-muted">
+                                    <Clock className="size-3.5 text-muted-foreground" />
+                                </div>
+                                <div className="min-w-0">
                                     <p className="text-xs text-muted-foreground">Horário</p>
                                     <p className="text-sm font-medium text-foreground">{appt.schedule_slots.startTime.slice(0, 5)} – {appt.schedule_slots.endTime.slice(0, 5)}</p>
                                 </div>
                             </div>
-                            <div className="flex items-start gap-2">
-                                <UserCheck className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-                                <div>
+                            <div className="flex items-start gap-3">
+                                <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-muted">
+                                    <User className="size-3.5 text-muted-foreground" />
+                                </div>
+                                <div className="min-w-0">
                                     <p className="text-xs text-muted-foreground">Profissional</p>
                                     <p className="text-sm font-medium text-foreground">{appt.professional_user.socialName || appt.professional_user.name}</p>
                                 </div>
                             </div>
-                            <div className="flex items-start gap-2">
-                                <Stethoscope className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-                                <div>
+                            <div className="flex items-start gap-3">
+                                <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-muted">
+                                    <Stethoscope className="size-3.5 text-muted-foreground" />
+                                </div>
+                                <div className="min-w-0">
                                     <p className="text-xs text-muted-foreground">Especialidade</p>
                                     <p className="text-sm font-medium text-foreground">{appt.specialties.name}</p>
                                 </div>
                             </div>
-                            <div className="flex items-start gap-2">
-                                <FileText className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-                                <div>
+                            <div className="flex items-start gap-3">
+                                <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-muted">
+                                    <ClipboardList className="size-3.5 text-muted-foreground" />
+                                </div>
+                                <div className="min-w-0">
                                     <p className="text-xs text-muted-foreground">Procedimento</p>
                                     <p className="text-sm font-medium text-foreground">{appt.procedures.description}</p>
                                 </div>
@@ -519,7 +548,8 @@ export function PatientMedicalRecords({ patientData, isLoading, error }: {
                             </div>
                         )}
                     </div>
-                ))}
+                    )
+                })}
             </div>
 
             {pdfPreviewOpen && (
@@ -727,57 +757,89 @@ export function Prontuario() {
 
                 {userId && (
                     <div className="rounded-xl border border-border bg-card overflow-hidden">
-                        <div className="px-6 py-4 border-b border-border bg-muted/30">
-                            <h2 className="text-base font-semibold text-foreground">Prontuário do Paciente</h2>
+                        <div className="px-6 py-4 bg-primary">
+                            <h2 className="text-base font-semibold text-white">Prontuário do Paciente</h2>
                         </div>
 
                         {/* Dados do paciente */}
                         <div className="px-6 py-5 border-b border-border">
                             {isLoadingRecords ? (
-                                <div className="flex flex-col gap-5">
-                                    <div className="flex items-center gap-4">
-                                        <div className="h-12 w-12 rounded-full bg-muted animate-pulse shrink-0" />
+                                <div className="grid grid-cols-3 gap-6">
+                                    {/* Bloco 1 skeleton */}
+                                    <div className="flex items-center gap-3">
+                                        <div className="size-12 rounded-full bg-muted animate-pulse shrink-0" />
                                         <div className="flex flex-col gap-2 flex-1">
-                                            <div className="h-4 w-40 rounded bg-muted animate-pulse" />
-                                            <div className="h-3 w-28 rounded bg-muted animate-pulse" />
+                                            <div className="h-4 w-32 rounded bg-muted animate-pulse" />
+                                            <div className="h-3 w-24 rounded bg-muted animate-pulse" />
                                         </div>
                                     </div>
-                                    <div className="grid grid-cols-4 gap-x-6 gap-y-3">
-                                        {[1, 2, 3, 4].map((i) => (
-                                            <div key={i} className="flex flex-col gap-1.5">
-                                                <div className="h-3 w-20 rounded bg-muted animate-pulse" />
-                                                <div className="h-4 w-full rounded bg-muted animate-pulse" />
-                                            </div>
-                                        ))}
-                                    </div>
+                                    {/* Blocos 2 e 3 skeleton */}
+                                    {[0, 1].map((b) => (
+                                        <div key={b} className="flex flex-col gap-3">
+                                            {[0, 1].map((i) => (
+                                                <div key={i} className="flex items-start gap-3">
+                                                    <div className="mt-0.5 size-7 shrink-0 rounded-lg bg-muted animate-pulse" />
+                                                    <div className="flex flex-col gap-1.5 flex-1">
+                                                        <div className="h-3 w-16 rounded bg-muted animate-pulse" />
+                                                        <div className="h-4 w-full rounded bg-muted animate-pulse" />
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ))}
                                 </div>
                             ) : patientData ? (
-                                <div className="flex flex-col gap-5">
-                                    <div className="flex items-center gap-4">
-                                        <div className="h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
-                                            <UserCheck className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                                <div className="grid grid-cols-3 gap-6">
+                                    {/* Bloco 1: Avatar + nome + CPF */}
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30 text-lg font-bold text-blue-600 dark:text-blue-400">
+                                            {(patientData.socialName || patientData.name).charAt(0).toUpperCase()}
                                         </div>
-                                        <div>
+                                        <div className="min-w-0">
                                             <p className="text-base font-semibold text-foreground">{patientData.socialName || patientData.name}</p>
                                             <p className="text-sm text-muted-foreground">{formatCpf(patientData.cpf)}</p>
                                         </div>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-x-6 gap-y-4 md:grid-cols-4">
-                                        <div>
-                                            <p className="text-xs text-muted-foreground mb-1">Data de nascimento</p>
-                                            <p className="text-sm font-medium text-foreground">{formatDate(patientData.birthdate)}</p>
+                                    {/* Bloco 2: Nascimento + sexo */}
+                                    <div className="flex flex-col gap-3">
+                                        <div className="flex items-start gap-3">
+                                            <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-muted">
+                                                <Calendar className="size-3.5 text-muted-foreground" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-xs text-muted-foreground">Nascimento</p>
+                                                <p className="text-sm font-medium text-foreground">{formatDate(patientData.birthdate)} · {formatAge(patientData.birthdate)}</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p className="text-xs text-muted-foreground mb-1">Sexo</p>
-                                            <p className="text-sm font-medium text-foreground">{formatSex(patientData.sex)}</p>
+                                        <div className="flex items-start gap-3">
+                                            <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-muted">
+                                                <PersonStanding className="size-3.5 text-muted-foreground" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-xs text-muted-foreground">Sexo</p>
+                                                <p className="text-sm font-medium text-foreground">{formatSex(patientData.sex)}</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p className="text-xs text-muted-foreground mb-1">Telefone</p>
-                                            <p className="text-sm font-medium text-foreground">{formatPhone(patientData.phone ?? "")}</p>
+                                    </div>
+                                    {/* Bloco 3: Telefone + email */}
+                                    <div className="flex flex-col gap-3">
+                                        <div className="flex items-start gap-3">
+                                            <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-muted">
+                                                <Phone className="size-3.5 text-muted-foreground" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-xs text-muted-foreground">Telefone</p>
+                                                <p className="text-sm font-medium text-foreground">{formatPhone(patientData.phone ?? "")}</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p className="text-xs text-muted-foreground mb-1">E-mail</p>
-                                            <p className="text-sm font-medium text-foreground truncate">{patientData.email}</p>
+                                        <div className="flex items-start gap-3">
+                                            <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-muted">
+                                                <Mail className="size-3.5 text-muted-foreground" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-xs text-muted-foreground">E-mail</p>
+                                                <p className="text-sm font-medium text-foreground truncate">{patientData.email}</p>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
