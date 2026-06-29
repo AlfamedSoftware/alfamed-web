@@ -164,10 +164,26 @@ Agenda um paciente em uma vaga de horário específica. Recebe o `scheduleSlotId
 ### Informações Exibidas
 
 **Dados do paciente (somente leitura após seleção):**
-- Nome, CPF, data de nascimento, sexo, telefone, e-mail
 
-**Dados da vaga (somente leitura, carregados via URL):**
-- Profissional, especialidade, procedimento, unidade, endereço, data, horário, duração, preço
+| Campo      | Formato                      |
+|------------|------------------------------|
+| Nome       | Exibição direta              |
+| CPF        | `XXX.XXX.XXX-XX`            |
+| Nascimento | `DD/MM/AAAA · N anos`       |
+| Sexo       | Masculino / Feminino / Outro |
+| Telefone   | `(DDD) XXXXX-XXXX`          |
+| E-mail     | Exibição direta              |
+
+**Dados da vaga (somente leitura, carregados via API pelo `scheduleSlotId`):**
+
+| Campo        | Formato                                        |
+|--------------|------------------------------------------------|
+| Profissional | Exibição direta                                |
+| Especialidade| Exibição direta                                |
+| Procedimento | Exibição direta                                |
+| Data         | `DD/MM/AAAA · Dia da semana` (ex: Segunda-feira) |
+| Horário      | `HH:MM – HH:MM · N min` (duração calculada)   |
+| Valor        | `R$ X.XXX,XX` (exibido apenas se houver preço) |
 
 ### Regras de Negócio
 

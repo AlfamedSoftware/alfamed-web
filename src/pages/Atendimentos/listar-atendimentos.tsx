@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useReducer, useState } from "react"
 import { useNavigate } from "react-router"
-import { ChevronLeft, ChevronRight, Clock } from "lucide-react"
+import { ChevronLeft, ChevronRight, ClipboardList, Clock } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
 import { Input } from "@/components/ui/input"
 import { fetchWithAuth } from "@/lib/api-client"
@@ -13,6 +13,7 @@ interface Appointment {
     id: string
     patientId: string
     patientName: string
+    patientCpf: string
     patientUserEmail: string
     professionalUnitId: string
     scheduleSlotId: string
@@ -21,6 +22,7 @@ interface Appointment {
     scheduleDate: string
     scheduleStartTime: string
     scheduleEndTime: string
+    scheduleProcedureName: string
     startAt: string
     endAt: string
     diagnostics: string
@@ -268,7 +270,7 @@ export function Atendimentos() {
                 </div>
             </div>
 
-            <main className="flex-1 px-6 pb-6 space-y-8">
+            <main className="flex-1 px-6 pb-6 space-y-6">
                 {error && (
                     <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400">
                         {error}
@@ -345,6 +347,20 @@ function SpecialtySection({
 
 // --- Appointment Card ---
 
+function calcDuration(start?: string, end?: string): number | null {
+    if (!start || !end) return null
+    const [sh, sm] = start.split(":").map(Number)
+    const [eh, em] = end.split(":").map(Number)
+    const diff = (eh * 60 + em) - (sh * 60 + sm)
+    return diff > 0 ? diff : null
+}
+
+function formatCpf(cpf: string): string {
+    const d = cpf?.replace(/\D/g, "") ?? ""
+    if (d.length !== 11) return cpf
+    return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`
+}
+
 function AppointmentCard({
     appointment,
     onClick,
@@ -358,27 +374,47 @@ function AppointmentCard({
         <button
             type="button"
             onClick={onClick}
-            className="w-full text-left rounded-xl border border-border bg-card p-4 shadow-sm hover:border-primary/40 hover:shadow-md transition-all cursor-pointer active:scale-[0.99]"
+            className="w-full text-left rounded-xl border border-border bg-card overflow-hidden shadow-sm hover:border-primary/40 hover:shadow-md transition-all cursor-pointer active:scale-[0.99]"
         >
-            {/* Time + status */}
-            <div className="flex items-center justify-between gap-2 mb-3">
-                <span className="flex items-center gap-1.5 text-sm font-medium text-foreground">
-                    <Clock className="size-3.5 text-muted-foreground shrink-0" />
-                    {appointment.scheduleSlotStartTime?.slice(0, 5)} – {appointment.scheduleSlotEndTime?.slice(0, 5)}
-                </span>
-                <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${statusBadgeClass(appointment.statusCode)}`}>
-                    {appointment.statusDescription}
-                </span>
-            </div>
-
-            <div className="h-px bg-border my-3" />
-
-            {/* Patient */}
-            <div className="flex items-center gap-3">
-                <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold text-foreground">
+            {/* Patient header */}
+            <div className="flex items-center gap-3 p-4 pb-3">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30 text-sm font-bold text-blue-600 dark:text-blue-400">
                     {initial}
                 </div>
-                <p className="text-sm font-semibold text-foreground truncate">{appointment.patientName}</p>
+                <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground truncate">{appointment.patientName}</p>
+                    {appointment.patientCpf && (
+                        <p className="text-xs text-muted-foreground">{formatCpf(appointment.patientCpf)}</p>
+                    )}
+                </div>
+            </div>
+
+            <div className="h-px bg-border" />
+
+            {/* Fields */}
+            <div className="flex flex-col gap-2 p-4 pt-3">
+                <span className={`self-start rounded-full px-2.5 py-0.5 text-xs font-medium ${statusBadgeClass(appointment.statusCode)}`}>
+                    {appointment.statusDescription}
+                </span>
+                {appointment.scheduleProcedureName && (
+                    <div className="flex items-center gap-2">
+                        <div className="flex size-6 shrink-0 items-center justify-center rounded-md bg-muted">
+                            <ClipboardList className="size-3 text-muted-foreground" />
+                        </div>
+                        <p className="text-xs text-foreground truncate">{appointment.scheduleProcedureName}</p>
+                    </div>
+                )}
+                <div className="flex items-center gap-2">
+                    <div className="flex size-6 shrink-0 items-center justify-center rounded-md bg-muted">
+                        <Clock className="size-3 text-muted-foreground" />
+                    </div>
+                    <span className="text-xs font-medium text-foreground">
+                        {appointment.scheduleSlotStartTime?.slice(0, 5)} – {appointment.scheduleSlotEndTime?.slice(0, 5)}
+                        {calcDuration(appointment.scheduleSlotStartTime, appointment.scheduleSlotEndTime) !== null && (
+                            <span className="text-muted-foreground"> · {calcDuration(appointment.scheduleSlotStartTime, appointment.scheduleSlotEndTime)} min</span>
+                        )}
+                    </span>
+                </div>
             </div>
         </button>
     )

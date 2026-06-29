@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { useNavigate, useSearchParams } from "react-router"
-import { AlertTriangle, Calendar, CheckCircle2, ClipboardList, Clock, Info, MapPin, User, UserCheck, Wallet } from "lucide-react"
+import { AlertTriangle, Calendar, CalendarDays, CheckCircle2, ClipboardList, Clock, Hash, Info, Mail, PersonStanding, Phone, Stethoscope, User, Wallet } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
 import { CpfNameSearch } from "@/components/cpf-name-search"
 import { fetchWithAuth } from "@/lib/api-client"
@@ -122,6 +122,40 @@ function formatSex(value?: string) {
     if (value === "M") return "Masculino"
     if (value === "F") return "Feminino"
     return value ? "Outro" : "Não informado"
+}
+
+function getDayOfWeek(ddmmyyyy: string): string {
+    if (!ddmmyyyy) return ""
+    const [d, m, y] = ddmmyyyy.split("/")
+    const day = new Date(`${y}-${m}-${d}T12:00:00`).toLocaleDateString("pt-BR", { weekday: "long", timeZone: "America/Sao_Paulo" })
+    return day.charAt(0).toUpperCase() + day.slice(1)
+}
+
+function calcAge(ddmmyyyy: string): number | null {
+    const [d, m, y] = ddmmyyyy.split("/")
+    if (!d || !m || !y) return null
+    const birth = new Date(Number(y), Number(m) - 1, Number(d))
+    if (isNaN(birth.getTime())) return null
+    const today = new Date()
+    let age = today.getFullYear() - birth.getFullYear()
+    if (today.getMonth() < birth.getMonth() || (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate())) age--
+    return age
+}
+
+// --- InfoRow ---
+
+function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string }) {
+    return (
+        <div className="flex items-start gap-3">
+            <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-muted">
+                <Icon className="size-3.5 text-muted-foreground" />
+            </div>
+            <div className="min-w-0">
+                <p className="text-xs text-muted-foreground">{label}</p>
+                <p className="text-sm font-medium text-foreground">{value}</p>
+            </div>
+        </div>
+    )
 }
 
 // --- Component ---
@@ -358,40 +392,19 @@ export function Agendamentos() {
                 <div className="grid grid-cols-2 gap-6">
 
                     {/* Card paciente */}
-                    <div className="rounded-xl border border-border bg-card overflow-hidden">
-                        <div className="px-6 py-4 border-b border-border bg-muted/30">
-                            <h2 className="text-base font-semibold text-foreground">Paciente</h2>
+                    <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
+                        <div className="px-4 py-3 bg-primary">
+                            <p className="text-base font-semibold text-white">Paciente</p>
                         </div>
-                        <div className="px-6 py-5">
+                        <div className="p-4">
                             {patient ? (
-                                <div className="flex flex-col gap-5">
-                                    <div className="flex items-center gap-4">
-                                        <div className="h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
-                                            <UserCheck className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                                        </div>
-                                        <div>
-                                            <p className="text-base font-semibold text-foreground">{patient.name}</p>
-                                            <p className="text-sm text-muted-foreground">{patient.cpf}</p>
-                                        </div>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-x-6 gap-y-4">
-                                        <div>
-                                            <p className="text-xs text-muted-foreground mb-1">Data de nascimento</p>
-                                            <p className="text-sm font-medium text-foreground">{patient.birthdate}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-xs text-muted-foreground mb-1">Sexo</p>
-                                            <p className="text-sm font-medium text-foreground">{patient.sex}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-xs text-muted-foreground mb-1">Telefone</p>
-                                            <p className="text-sm font-medium text-foreground">{patient.phone}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-xs text-muted-foreground mb-1">E-mail</p>
-                                            <p className="text-sm font-medium text-foreground truncate">{patient.email}</p>
-                                        </div>
-                                    </div>
+                                <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                                    <InfoRow icon={User}           label="Nome"       value={patient.name} />
+                                    <InfoRow icon={Hash}           label="CPF"        value={patient.cpf} />
+                                    <InfoRow icon={Calendar}       label="Nascimento" value={patient.birthdate ? `${patient.birthdate} · ${calcAge(patient.birthdate) ?? "—"} anos` : "—"} />
+                                    <InfoRow icon={PersonStanding} label="Sexo"       value={patient.sex} />
+                                    <InfoRow icon={Phone}          label="Telefone"   value={patient.phone} />
+                                    <InfoRow icon={Mail}           label="E-mail"     value={patient.email} />
                                 </div>
                             ) : (
                                 <div className="flex flex-col items-center justify-center gap-3 py-10 text-muted-foreground">
@@ -403,91 +416,29 @@ export function Agendamentos() {
                     </div>
 
                     {/* Card resumo da consulta */}
-                    <div className="rounded-xl border border-border bg-card overflow-hidden">
-                        <div className="px-6 py-4 border-b border-border bg-muted/30">
-                            <h2 className="text-base font-semibold text-foreground">Resumo da Consulta</h2>
+                    <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
+                        <div className="px-4 py-3 bg-primary">
+                            <p className="text-base font-semibold text-white">Resumo do Agendamento</p>
                         </div>
-                        <div className="px-6 py-5">
+                        <div className="p-4">
                             {isSlotLoading ? (
-                                <div className="flex flex-col gap-4 border-l-2 border-primary pl-4">
+                                <div className="flex flex-col gap-3">
                                     {[1, 2, 3, 4, 5, 6].map((i) => (
-                                        <div key={i} className="flex items-center gap-4">
-                                            <div className="h-5 w-5 rounded bg-muted animate-pulse shrink-0" />
+                                        <div key={i} className="flex items-center gap-3">
+                                            <div className="size-7 rounded-lg bg-muted animate-pulse shrink-0" />
                                             <div className="h-4 rounded bg-muted animate-pulse flex-1" />
                                         </div>
                                     ))}
                                 </div>
                             ) : (
-                                <div className="flex flex-col gap-4 border-l-2 border-primary pl-4">
-                                    {/* Médico */}
-                                    <div className="flex items-center gap-4">
-                                        <UserCheck className="h-5 w-5 text-muted-foreground shrink-0" />
-                                        <div>
-                                            <p className="text-base font-semibold text-foreground">{professionalName || "Profissional"}</p>
-                                            <p className="text-sm text-muted-foreground">{slotInfo?.specialtyName || specialtyName || "Especialidade"}</p>
-                                        </div>
-                                    </div>
-
-                                    {/* Unidade */}
-                                    {slotInfo?.unitName && (
-                                        <div className="flex items-start gap-4">
-                                            <MapPin className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
-                                            <div>
-                                                <p className="text-base font-semibold text-foreground">{slotInfo.unitName}</p>
-                                                {slotInfo.unitAddress && (
-                                                    <p className="text-sm text-muted-foreground">{slotInfo.unitAddress}</p>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Procedimento */}
-                                    {slotInfo?.procedureDescription && (
-                                        <div className="flex items-start gap-4">
-                                            <ClipboardList className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
-                                            <div>
-                                                <p className="text-base font-semibold text-foreground">{slotInfo.procedureDescription}</p>
-                                                {slotInfo.procedureCode && (
-                                                    <p className="text-sm text-muted-foreground">Cód. {slotInfo.procedureCode}</p>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Data */}
-                                    <div className="flex items-center gap-4">
-                                        <Calendar className="h-5 w-5 text-muted-foreground shrink-0" />
-                                        <div>
-                                            <p className="text-base font-semibold text-foreground">{slotInfo?.date || date || "—"}</p>
-                                            {slotInfo?.date && (
-                                                <p className="text-sm text-muted-foreground capitalize">
-                                                    {new Date(`${slotInfo.date.split("/").reverse().join("-")}T12:00:00`).toLocaleDateString("pt-BR", { weekday: "long", timeZone: "America/Sao_Paulo" })}
-                                                </p>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {/* Hora */}
-                                    <div className="flex items-center gap-4">
-                                        <Clock className="h-5 w-5 text-muted-foreground shrink-0" />
-                                        <div>
-                                            <p className="text-base font-semibold text-foreground">
-                                                {slotInfo ? `${slotInfo.time} – ${slotInfo.endTime}` : "—"}
-                                            </p>
-                                            {slotInfo?.durationMinutes && (
-                                                <p className="text-sm text-muted-foreground">{slotInfo.durationMinutes} min</p>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {/* Valor */}
+                                <div className="flex flex-col gap-3 border-l-2 border-primary pl-4">
+                                    <InfoRow icon={User}          label="Profissional"  value={professionalName || "—"} />
+                                    <InfoRow icon={Stethoscope}   label="Especialidade" value={slotInfo?.specialtyName || specialtyName || "—"} />
+                                    <InfoRow icon={ClipboardList} label="Procedimento"  value={slotInfo?.procedureDescription || "—"} />
+                                    <InfoRow icon={CalendarDays}  label="Data"          value={slotInfo?.date ? `${slotInfo.date} · ${getDayOfWeek(slotInfo.date)}` : date || "—"} />
+                                    <InfoRow icon={Clock}         label="Horário"       value={slotInfo ? `${slotInfo.time} – ${slotInfo.endTime} · ${slotInfo.durationMinutes} min` : "—"} />
                                     {slotInfo?.procedurePrice && (
-                                        <div className="flex items-center gap-4">
-                                            <Wallet className="h-5 w-5 text-muted-foreground shrink-0" />
-                                            <p className="text-base font-semibold text-foreground">
-                                                R$ {parseFloat(slotInfo.procedurePrice).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                            </p>
-                                        </div>
+                                        <InfoRow icon={Wallet} label="Valor" value={`R$ ${parseFloat(slotInfo.procedurePrice).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
                                     )}
                                 </div>
                             )}

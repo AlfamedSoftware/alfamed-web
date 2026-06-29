@@ -137,6 +137,16 @@ function MedicSidebarMenu({ isMenuItemActive }: MenuProps) {
 function AssistantSidebarMenu({ unitId, isMenuItemActive }: MenuPropsWithUnit) {
     const { modulo1GestaoExames, isLoading } = useUnitParameters(unitId)
 
+    if (isLoading) {
+        return (
+            <>
+                <SidebarMenuItem><SidebarMenuSkeleton showIcon /></SidebarMenuItem>
+                <SidebarMenuItem><SidebarMenuSkeleton showIcon /></SidebarMenuItem>
+                <SidebarMenuItem><SidebarMenuSkeleton showIcon /></SidebarMenuItem>
+            </>
+        )
+    }
+
     return (
         <>
             <MenuItemList
@@ -147,16 +157,14 @@ function AssistantSidebarMenu({ unitId, isMenuItemActive }: MenuPropsWithUnit) {
                 isMenuItemActive={isMenuItemActive}
             />
 
-            {isLoading ? (
-                <SidebarMenuItem><SidebarMenuSkeleton showIcon /></SidebarMenuItem>
-            ) : modulo1GestaoExames ? (
+            {modulo1GestaoExames ? (
                 <SidebarMenuItem>
                     <SidebarMenuButton
                         asChild
-                        isActive={isMenuItemActive({ title: "Exames", icon: FlaskConical, url: "/exames" })}
+                        isActive={isMenuItemActive({ title: "Exames", icon: FlaskConical, url: "/gestao-exames" })}
                         tooltip="Exames"
                     >
-                        <Link to="/exames">
+                        <Link to="/gestao-exames/listar-pendentes">
                             <FlaskConical className="h-4 w-4" />
                             <span>Exames</span>
                         </Link>
@@ -331,11 +339,14 @@ export function AppSidebar() {
                     </SidebarGroup>
                 </SidebarContent>
                 <SidebarFooter>
-                    <SidebarMenu>
-                        <SidebarMenuItem>
-                            <SidebarMenuSkeleton showIcon />
-                        </SidebarMenuItem>
-                    </SidebarMenu>
+                    <div className="flex items-center gap-2 px-2 py-3">
+                        <div className="h-8 w-8 shrink-0 rounded-full bg-muted animate-pulse" />
+                        <div className="flex flex-1 flex-col gap-1.5 group-data-[collapsible=icon]:hidden">
+                            <div className="h-3 w-24 rounded bg-muted animate-pulse" />
+                            <div className="h-2.5 w-16 rounded bg-muted animate-pulse" />
+                        </div>
+                        <div className="h-4 w-4 shrink-0 rounded bg-muted animate-pulse group-data-[collapsible=icon]:hidden" />
+                    </div>
                 </SidebarFooter>
             </Sidebar>
         )

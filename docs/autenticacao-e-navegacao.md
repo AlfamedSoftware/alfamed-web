@@ -185,7 +185,10 @@ Executada imediatamente após o login, antes do acesso às funcionalidades.
                                                  ├── /profissionais (+ CRUD)
                                                  ├── /procedimentos (+ CRUD)
                                                  ├── /especialidades (+ CRUD)
-                                                 └── /agendas (+ agendamentos)
+                                                 ├── /agendas (+ agendamentos)
+                                                 ├── /atendimentos (+ detalhes)
+                                                 ├── /prontuario
+                                                 └── /gestao-exames/listar-pendentes (+ detalhes)
 
 /admin                         → ProtectedRoute
                                      └── InternalProtectedRoute
@@ -202,7 +205,7 @@ Executada imediatamente após o login, antes do acesso às funcionalidades.
 
 ### Comportamento de Loading
 
-Enquanto qualquer um destes estados estiver carregando — sessão do usuário (`isLoading`), unidade da sessão (`isSessionUnitLoading`) ou papéis do menu (`isMenuRolesLoading`) — o sidebar exibe skeletons: 4 itens no menu e 1 no footer. O conteúdo real substitui os skeletons assim que todos os dados estão prontos.
+Enquanto qualquer um destes estados estiver carregando — sessão do usuário (`isLoading`), unidade da sessão (`isSessionUnitLoading`) ou papéis do menu (`isMenuRolesLoading`) — o sidebar exibe skeletons: **3 itens** no menu e um footer customizado (círculo pulsante + 2 linhas de texto + ícone de chevron). O conteúdo real substitui os skeletons assim que todos os dados estão prontos.
 
 ### Arquitetura dos Menus
 
@@ -221,22 +224,22 @@ Cada contexto tem seu próprio componente, todos com a mesma interface `{ isMenu
 
 ### Itens por Papel
 
-| Papel / Contexto           | Itens                                                                   |
-|----------------------------|-------------------------------------------------------------------------|
-| Admin (`/admin/*`)         | Central de Unidades, UPM                                                |
-| `administrative`           | Início, Unidade, Profissionais, Especialidades, Procedimentos, Agendas  |
-| `medic`                    | Início, Agendas, Atendimentos, Prontuário                               |
-| `administrative_assistant` | Início, Agendas + **Exames** _(condicional por parâmetro de unidade)_   |
-| `technical_executor`       | **Todos os itens condicionais** — dependem de `modulo1GestaoExames`     |
+| Papel / Contexto           | Itens                                                                        |
+|----------------------------|------------------------------------------------------------------------------|
+| Admin (`/admin/*`)         | Central de Unidades, UPM                                                     |
+| `administrative`           | Início, Unidade, Profissionais, Especialidades, Procedimentos, Agendas       |
+| `medic`                    | Início, Agendas, Atendimentos, Prontuário                                    |
+| `administrative_assistant` | Início, Agendas + **Exames** _(condicional, rota `/gestao-exames/listar-pendentes`)_ |
+| `technical_executor`       | **Todos os itens condicionais** — dependem de `modulo1GestaoExames`. Quando ativo: Início, Atendimentos _(em desenvolvimento, rota `/atendimentosgestao`)_ |
 
 ### Menus Condicionais por Parâmetro de Unidade
 
 `AssistantSidebarMenu` e `TechnicalExecutorSidebarMenu` consultam `GET /unit-parameters/get-parameters/:unitId` via `useUnitParameters` ao montar, verificando `modulo1GestaoExames`.
 
-| Papel                      | Carregando              | `modulo1GestaoExames = true`          | `modulo1GestaoExames = false`                                                                    |
-|----------------------------|-------------------------|---------------------------------------|--------------------------------------------------------------------------------------------------|
-| `administrative_assistant` | 1 skeleton (item extra) | Itens base + **Exames** (`/exames`)   | Apenas itens base (Início, Agendas)                                                              |
-| `technical_executor`       | 2 skeletons             | **Início**, **Atendimentos?**         | Mensagem: _"O módulo de Gestão de Exames está desativado. Para contratar, entre em contato com a Alfamed."_ |
+| Papel                      | Carregando   | `modulo1GestaoExames = true`                             | `modulo1GestaoExames = false`                                                                                |
+|----------------------------|--------------|----------------------------------------------------------|--------------------------------------------------------------------------------------------------------------|
+| `administrative_assistant` | 3 skeletons  | Itens base + **Exames** (`/gestao-exames/listar-pendentes`) | Apenas itens base (Início, Agendas)                                                                       |
+| `technical_executor`       | 3 skeletons  | **Início**, **Atendimentos** _(em desenvolvimento)_      | Mensagem: _"O módulo de Gestão de Exames está desativado. Para contratar, entre em contato com a Alfamed."_ |
 
 > Para `technical_executor`, **todos** os itens do menu dependem do parâmetro — nada é exibido enquanto carrega, e nenhum item aparece se o módulo estiver desativado.
 
@@ -249,10 +252,14 @@ Cada contexto tem seu próprio componente, todos com a mesma interface `{ isMenu
 
 ### Rodapé do Sidebar
 
-Exibe:
-- Avatar com inicial do nome do usuário.
+Exibe um botão que abre um `DropdownMenu`:
+- Avatar com inicial do nome do usuário (círculo com cor `sidebar-primary`).
+- Nome completo do usuário (fallback: "Usuário").
 - Nome da unidade selecionada (fallback: "Unidade selecionada") — ou "ServiceDesk" na área admin.
-- Papel atual (fallback: "Cargo: Não definido") — ou "ServiceDesk" na área admin.
+
+O dropdown exibe nome + unidade + cargo (`Cargo: <label>`) e as ações abaixo.
+
+**Durante o loading inicial**, o footer exibe um skeleton customizado: círculo pulsante + duas linhas de texto + ícone de chevron.
 
 Dropdown com ações:
 - **Perfil** → `/perfil` (apenas área não-admin).

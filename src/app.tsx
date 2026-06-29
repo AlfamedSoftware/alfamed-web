@@ -45,6 +45,8 @@ import { Atendimentos } from "@/pages/Atendimentos/listar-atendimentos"
 import { Atendimento } from "@/pages/Atendimentos/atendimento"
 
 import { Prontuario } from "@/pages/Prontuario/prontuario"
+import { ListarPendentesGestaoExames } from "@/pages/GestaoExames/listar-pendentes-gestao-exames"
+import { DetalhesPendentesGestaoExames } from "@/pages/GestaoExames/detalhes-pendentes-gestao-exames"
 
 export function App() {
   return (
@@ -104,7 +106,10 @@ export function App() {
             <Route path="atendimentos/:appointmentId" element={<Atendimento />} />
 
             <Route path="prontuario" element={<Prontuario />} />
-            
+
+            <Route path="gestao-exames/listar-pendentes" element={<ListarPendentesGestaoExames />} />
+            <Route path="gestao-exames/detalhes-pendentes/:appointmentId" element={<DetalhesPendentesGestaoExames />} />
+
           </Route>
 
           <Route
