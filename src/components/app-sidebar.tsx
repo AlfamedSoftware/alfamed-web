@@ -158,18 +158,12 @@ function AssistantSidebarMenu({ unitId, isMenuItemActive }: MenuPropsWithUnit) {
             />
 
             {modulo1GestaoExames ? (
-                <SidebarMenuItem>
-                    <SidebarMenuButton
-                        asChild
-                        isActive={isMenuItemActive({ title: "Exames", icon: FlaskConical, url: "/gestao-exames" })}
-                        tooltip="Exames"
-                    >
-                        <Link to="/gestao-exames/listar-pendentes">
-                            <FlaskConical className="h-4 w-4" />
-                            <span>Exames</span>
-                        </Link>
-                    </SidebarMenuButton>
-                </SidebarMenuItem>
+                <MenuItemList
+                    items={[
+                        { title: "Liberação de exames", icon: FlaskConical, url: "/gestao-exames/listar-pendentes" },
+                    ]}
+                    isMenuItemActive={isMenuItemActive}
+                />
             ) : null}
         </>
     )
@@ -201,8 +195,9 @@ function TechnicalExecutorSidebarMenu({ unitId, isMenuItemActive }: MenuPropsWit
     return (
         <MenuItemList
             items={[
-                { title: "Início",        icon: HomeIcon,     url: "/home" },
-                { title: "Atendimentos?", icon: CalendarDays, url: "/atendimentosgestao" },
+                { title: "Início",          icon: HomeIcon,     url: "/home" },
+                { title: "Execução de exames", icon: FlaskConical,  url: "/gestao-exames/listar" },
+                { title: "Análise de exames",  icon: ClipboardList, url: "/gestao-exames/listar-analise" },
             ]}
             isMenuItemActive={isMenuItemActive}
         />

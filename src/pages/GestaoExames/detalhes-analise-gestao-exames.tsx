@@ -1,12 +1,17 @@
 import { useEffect, useReducer, useState } from "react"
 import { useNavigate, useParams } from "react-router"
 import {
-    Calendar, Clock, Phone, Mail, Stethoscope, FlaskConical, CheckCircle, User, ClipboardList, Hash, PersonStanding, CalendarDays,
+    Calendar, Clock, Phone, Mail, Stethoscope, FlaskConical,
+    User, ClipboardList, Hash, PersonStanding, CalendarDays, FileText,
 } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
 import { fetchWithAuth } from "@/lib/api-client"
 import { authBaseUrl } from "@/lib/auth"
 import { BackButton, SaveButton } from "@/components/ui/buttons"
+import { Button } from "@/components/ui/button"
+import {
+    Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter,
+} from "@/components/ui/sheet"
 
 // --- Types ---
 
@@ -21,15 +26,8 @@ interface ExamDetail {
         date: string
         startTime: string
         endTime: string
-        procedures: {
-            id: string
-            description: string
-            code: string
-        }
-        specialties: {
-            id: string
-            name: string
-        }
+        procedures: { id: string; description: string; code: string }
+        specialties: { id: string; name: string }
     }
     schedules_slots: {
         id: string
@@ -51,10 +49,7 @@ interface ExamDetail {
         professional: {
             id: string
             crm: string
-            user: {
-                id: string
-                name: string
-            }
+            user: { id: string; name: string }
         }
     }
     requests: {
@@ -76,9 +71,17 @@ interface ExamDetail {
     }[]
 }
 
+// --- Status config ---
+
+const STATUS_CONFIG: Record<number, { label: string; badgeClass: string }> = {
+    4: { label: "Aguardando análise", badgeClass: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300" },
+    5: { label: "Laudo em análise",   badgeClass: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300" },
+    6: { label: "Laudo liberado",     badgeClass: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"    },
+}
+
 // --- Fetch reducer ---
 
-type FetchState = { data: ExamDetail | null; isLoading: boolean; error: string | null }
+type FetchState  = { data: ExamDetail | null; isLoading: boolean; error: string | null }
 type FetchAction =
     | { type: "loading" }
     | { type: "success"; data: ExamDetail }
@@ -86,9 +89,9 @@ type FetchAction =
 
 function fetchReducer(_: FetchState, action: FetchAction): FetchState {
     switch (action.type) {
-        case "loading": return { data: null, isLoading: true, error: null }
+        case "loading": return { data: null,        isLoading: true,  error: null }
         case "success": return { data: action.data, isLoading: false, error: null }
-        case "error":   return { data: null, isLoading: false, error: action.message }
+        case "error":   return { data: null,        isLoading: false, error: action.message }
     }
 }
 
@@ -175,18 +178,20 @@ function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label:
     )
 }
 
-// --- Main Component ---
+// --- Main component ---
 
-export function DetalhesPendentesGestaoExames() {
+export function DetalhesAnaliseGestaoExames() {
     const navigate = useNavigate()
     const { appointmentId } = useParams<{ appointmentId: string }>()
-    const [isConfirming, setIsConfirming] = useState(false)
 
     const [{ data, isLoading, error }, dispatch] = useReducer(fetchReducer, {
-        data: null,
-        isLoading: false,
-        error: null,
+        data: null, isLoading: false, error: null,
     })
+
+    const [isSubmitting,  setIsSubmitting]  = useState(false)
+    const [sheetOpen,     setSheetOpen]     = useState(false)
+    const [attachmentUrl, setAttachmentUrl] = useState("")
+    const [laudoInfo,     setLaudoInfo]     = useState("")
 
     useEffect(() => {
         if (!appointmentId) return
@@ -198,25 +203,37 @@ export function DetalhesPendentesGestaoExames() {
             )
     }, [appointmentId])
 
-    const total =
-        data?.requests.reduce((sum, r) => {
-            const price = parseFloat(r.procedures?.price ?? "0")
-            return sum + (isNaN(price) ? 0 : price)
-        }, 0) ?? 0
+    const currentStatus = data?.requests[0]?.statusCode ?? null
+    const statusCfg     = currentStatus !== null ? STATUS_CONFIG[currentStatus] : null
 
-    const handleConfirmar = async () => {
+    const total = data?.requests.reduce((sum, r) => {
+        const price = parseFloat(r.procedures?.price ?? "0")
+        return sum + (isNaN(price) ? 0 : price)
+    }, 0) ?? 0
+
+    const callPatch = async (path: string, body?: unknown) => {
         if (!appointmentId) return
-        setIsConfirming(true)
+        setIsSubmitting(true)
         try {
-            await fetchWithAuth(`${authBaseUrl}/exam-management/${appointmentId}/liberar`, {
+            await fetchWithAuth(`${authBaseUrl}/exam-management/${appointmentId}/${path}`, {
                 method: "PATCH",
+                ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
             })
             navigate(-1)
         } catch (err) {
             console.error(err)
         } finally {
-            setIsConfirming(false)
+            setIsSubmitting(false)
         }
+    }
+
+    const handleIniciarLaudo = () => void callPatch("iniciar-laudo")
+
+    const handleFinalizarLaudo = () => {
+        void callPatch("finalizar-laudo", {
+            attachmentUrl: attachmentUrl.trim(),
+            ...(laudoInfo.trim() ? { complementaryInfo: laudoInfo.trim() } : {}),
+        })
     }
 
     const patientDisplayName = data?.patients?.socialName || data?.patients?.name || "—"
@@ -241,6 +258,15 @@ export function DetalhesPendentesGestaoExames() {
 
                 {!isLoading && data && (
                     <>
+                        {/* Status badge */}
+                        {statusCfg && (
+                            <div>
+                                <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${statusCfg.badgeClass}`}>
+                                    {statusCfg.label}
+                                </span>
+                            </div>
+                        )}
+
                         <div className="grid grid-cols-2 gap-6">
                             {/* Paciente */}
                             <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
@@ -280,7 +306,6 @@ export function DetalhesPendentesGestaoExames() {
                                     {data.requests.length} {data.requests.length === 1 ? "exame" : "exames"}
                                 </span>
                             </div>
-
                             <div className="p-4">
                                 {data.requests.length === 0 ? (
                                     <p className="py-4 text-center text-sm text-muted-foreground">Nenhum exame solicitado.</p>
@@ -315,19 +340,94 @@ export function DetalhesPendentesGestaoExames() {
                     </>
                 )}
 
+                {/* Footer */}
                 <div className="mt-auto flex items-center justify-end gap-2 border-t pt-5">
                     <BackButton onClick={() => navigate(-1)} />
-                    <SaveButton
-                        type="button"
-                        label="Confirmar"
-                        savingLabel="Confirmando..."
-                        isSaving={isConfirming}
-                        disabled={!data || isLoading}
-                        icon={<CheckCircle className="w-4 h-4" />}
-                        onClick={() => void handleConfirmar()}
-                    />
+
+                    {currentStatus === 4 && (
+                        <SaveButton
+                            type="button"
+                            label="Iniciar Laudo"
+                            savingLabel="Iniciando..."
+                            isSaving={isSubmitting}
+                            disabled={!data || isLoading}
+                            icon={<FileText className="w-4 h-4" />}
+                            onClick={handleIniciarLaudo}
+                        />
+                    )}
+
+                    {currentStatus === 5 && (
+                        <SaveButton
+                            type="button"
+                            label="Finalizar Laudo"
+                            savingLabel="Liberando..."
+                            isSaving={isSubmitting}
+                            disabled={!data || isLoading}
+                            icon={<FileText className="w-4 h-4" />}
+                            onClick={() => setSheetOpen(true)}
+                        />
+                    )}
+
+                    {currentStatus === 6 && (
+                        <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${STATUS_CONFIG[6].badgeClass}`}>
+                            Laudo liberado
+                        </span>
+                    )}
                 </div>
             </main>
+
+            {/* Sheet — Finalizar laudo (5 → 6) */}
+            <Sheet open={sheetOpen} onOpenChange={(open) => { if (!open) setSheetOpen(false) }}>
+                <SheetContent side="right" className="flex flex-col gap-0 p-0">
+                    <SheetHeader className="p-6 pb-4 border-b">
+                        <SheetTitle>Finalizar laudo</SheetTitle>
+                        <SheetDescription>
+                            Informe a URL do laudo para liberá-lo no prontuário do paciente.
+                        </SheetDescription>
+                    </SheetHeader>
+                    <div className="flex flex-col gap-4 p-6 flex-1">
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-sm font-medium text-foreground">
+                                URL do laudo (PDF ou imagem) <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="url"
+                                value={attachmentUrl}
+                                onChange={(e) => setAttachmentUrl(e.target.value)}
+                                placeholder="https://..."
+                                className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 placeholder:text-muted-foreground"
+                            />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-sm font-medium text-foreground">
+                                Informações complementares{" "}
+                                <span className="text-muted-foreground font-normal">(opcional)</span>
+                            </label>
+                            <textarea
+                                value={laudoInfo}
+                                onChange={(e) => setLaudoInfo(e.target.value)}
+                                rows={4}
+                                placeholder="Observações sobre o resultado..."
+                                className="rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 placeholder:text-muted-foreground"
+                            />
+                        </div>
+                    </div>
+                    <SheetFooter className="border-t px-6 py-4 flex flex-row justify-end gap-2">
+                        <Button type="button" variant="outline" size="lg" onClick={() => setSheetOpen(false)} className="cursor-pointer">
+                            Cancelar
+                        </Button>
+                        <SaveButton
+                            type="button"
+                            label="Liberar laudo"
+                            savingLabel="Liberando..."
+                            isSaving={isSubmitting}
+                            disabled={!attachmentUrl.trim()}
+                            icon={<FileText className="w-4 h-4" />}
+                            onClick={handleFinalizarLaudo}
+                        />
+                    </SheetFooter>
+                </SheetContent>
+            </Sheet>
         </div>
     )
 }

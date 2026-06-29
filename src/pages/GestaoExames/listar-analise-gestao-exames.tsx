@@ -33,8 +33,9 @@ interface ExamRequest {
 // --- Section config ---
 
 const SECTIONS = [
-    { statusId: 2, label: "Aguardando realização", headerClass: "bg-yellow-500", requiresProfessional: false },
-    { statusId: 3, label: "Paciente em exame",     headerClass: "bg-blue-500",   requiresProfessional: true  },
+    { statusId: 4, label: "Aguardando análise", headerClass: "bg-orange-500", requiresProfessional: false },
+    { statusId: 5, label: "Laudo em análise",   headerClass: "bg-purple-500", requiresProfessional: true  },
+    { statusId: 6, label: "Laudo liberado",      headerClass: "bg-green-500",  requiresProfessional: false },
 ] as const
 
 // --- Helpers ---
@@ -119,7 +120,7 @@ function useSectionFetch(statusId: number, date: string, professionalUnitId?: st
 
 // --- Main component ---
 
-export function ListarGestaoExames() {
+export function ListarAnaliseGestaoExames() {
     const navigate = useNavigate()
     const [searchParams, setSearchParams] = useSearchParams()
     const { sessionUnit } = useSessionUnit()
@@ -138,12 +139,14 @@ export function ListarGestaoExames() {
 
     const professionalUnitId = sessionUnit?.selectedProfessionalUnitId
 
-    const section2 = useSectionFetch(2, dateInput)
-    const section3 = useSectionFetch(3, dateInput, professionalUnitId, true)
+    const section4 = useSectionFetch(4, dateInput)
+    const section5 = useSectionFetch(5, dateInput, professionalUnitId, true)
+    const section6 = useSectionFetch(6, dateInput)
 
     const allSections = [
-        { ...SECTIONS[0], ...section2 },
-        { ...SECTIONS[1], ...section3 },
+        { ...SECTIONS[0], ...section4 },
+        { ...SECTIONS[1], ...section5 },
+        { ...SECTIONS[2], ...section6 },
     ]
 
     const visibleSections = statusFilter
@@ -152,7 +155,7 @@ export function ListarGestaoExames() {
 
     return (
         <div className="flex flex-col h-full min-h-screen bg-background">
-            <PageHeader title="Gestão de Exames" />
+            <PageHeader title="Análise de Laudos" />
 
             {/* Filters */}
             <div className="flex flex-wrap items-end gap-3 px-6 py-4">
@@ -209,7 +212,7 @@ export function ListarGestaoExames() {
                         items={section.items}
                         isLoading={section.isLoading}
                         error={section.error}
-                        onCardClick={(id) => navigate(`/gestao-exames/detalhes/${id}`)}
+                        onCardClick={(id) => navigate(`/gestao-exames/detalhes-analise/${id}`)}
                     />
                 ))}
             </main>
