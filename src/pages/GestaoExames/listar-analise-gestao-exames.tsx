@@ -37,8 +37,8 @@ interface ExamRequest {
 // --- Section config ---
 
 const SECTIONS = [
-    { statusCode: 2, label: "Aguardando realização", headerClass: "bg-yellow-500", requiresProfessional: false },
-    { statusCode: 3, label: "Paciente em exame",     headerClass: "bg-blue-500",   requiresProfessional: true  },
+    { statusCode: 4, label: "Aguardando análise", headerClass: "bg-orange-500", requiresProfessional: false },
+    { statusCode: 5, label: "Laudo em análise",   headerClass: "bg-purple-500", requiresProfessional: true  },
 ] as const
 
 // --- Helpers ---
@@ -123,7 +123,7 @@ function useSectionFetch(statusCode: number, date: string, professionalUnitId?: 
 
 // --- Main component ---
 
-export function ListarGestaoExames() {
+export function ListarAnaliseGestaoExames() {
     const navigate = useNavigate()
     const [searchParams, setSearchParams] = useSearchParams()
     const { sessionUnit } = useSessionUnit()
@@ -142,12 +142,12 @@ export function ListarGestaoExames() {
 
     const professionalUnitId = sessionUnit?.selectedProfessionalUnitId
 
-    const section2 = useSectionFetch(2, dateInput)
-    const section3 = useSectionFetch(3, dateInput, professionalUnitId, true)
+    const section4 = useSectionFetch(4, dateInput)
+    const section5 = useSectionFetch(5, dateInput, professionalUnitId, true)
 
     const allSections = [
-        { ...SECTIONS[0], ...section2 },
-        { ...SECTIONS[1], ...section3 },
+        { ...SECTIONS[0], ...section4 },
+        { ...SECTIONS[1], ...section5 },
     ]
 
     const visibleSections = statusFilter
@@ -156,7 +156,7 @@ export function ListarGestaoExames() {
 
     return (
         <div className="flex flex-col h-full min-h-screen bg-background">
-            <PageHeader title="Gestão de Exames" />
+            <PageHeader title="Análise de Laudos" />
 
             {/* Filters */}
             <div className="flex flex-wrap items-end gap-3 px-6 py-4">
@@ -213,7 +213,7 @@ export function ListarGestaoExames() {
                         items={section.items}
                         isLoading={section.isLoading}
                         error={section.error}
-                        onCardClick={(id) => navigate(`/gestao-exames/detalhes/${id}`)}
+                        onCardClick={(id) => navigate(`/gestao-exames/detalhes-analise/${id}`)}
                     />
                 ))}
             </main>
@@ -277,7 +277,7 @@ function SectionBlock({ label, headerClass, items, isLoading, error, onCardClick
 function ExamCard({ exam, onClick }: { exam: ExamRequest; onClick: () => void }) {
     const displayName = exam.patients?.socialName || exam.patients?.name || "?"
     const initial     = displayName.charAt(0).toUpperCase()
-    const count       = exam.requestCount ?? 0
+    const count       = exam.requestCount
 
     return (
         <button

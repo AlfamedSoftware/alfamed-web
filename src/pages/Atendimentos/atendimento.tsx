@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import {
-    Mail, Phone, Stethoscope, Clock, Calendar, User, Lock,
+    PersonStanding, Phone, Stethoscope, Clock, Calendar, CalendarDays, User, Lock,
     NotebookPen, ClipboardList, BookOpen, ScrollText, FileCheck,
     Microscope, PlayCircle, UserX,
 } from "lucide-react"
@@ -223,9 +223,13 @@ function formatPhone(value: string) {
 
 function formatScheduleDate(dateStr: string) {
     const [year, month, day] = dateStr.split("-").map(Number)
-    return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "long", year: "numeric" }).format(
-        new Date(year, month - 1, day)
-    )
+    return `${String(day).padStart(2, "0")}/${String(month).padStart(2, "0")}/${year}`
+}
+
+function getDayOfWeek(dateStr: string): string {
+    const [year, month, day] = dateStr.split("-").map(Number)
+    const d = new Date(year, month - 1, day).toLocaleDateString("pt-BR", { weekday: "long", timeZone: "America/Sao_Paulo" })
+    return d.charAt(0).toUpperCase() + d.slice(1)
 }
 
 function formatSlotTime(timeStr: string) {
@@ -238,15 +242,6 @@ function slotDurationMinutes(start: string, end: string) {
     return Math.max(0, eh * 60 + em - (sh * 60 + sm))
 }
 
-function statusBadgeClass(statusCode: number): string {
-    switch (statusCode) {
-        case 1: return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-        case 2: return "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
-        case 3: return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
-        case 4: return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-        default: return "bg-muted text-muted-foreground"
-    }
-}
 
 // ─── Shared UI ────────────────────────────────────────────────────────────────
 
@@ -635,19 +630,15 @@ export function Atendimento() {
         return (
             <div className="flex min-h-0 flex-1 flex-col bg-background">
                 <PageHeader title="Atendimento" />
-                <main className="flex flex-1 min-h-0 flex-col gap-4 p-4 overflow-hidden">
+                <main className="flex flex-1 min-h-0 flex-col gap-6 px-4 py-6 md:px-6 md:py-8 overflow-hidden">
                     {/* Info cards */}
-                    <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="grid gap-6 sm:grid-cols-2">
                         {/* Patient card skeleton */}
-                        <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-sm">
-                            <div className="flex items-center gap-2 border-b border-border pb-3">
-                                <Skeleton className="size-8 rounded-full" />
-                                <div className="flex flex-col gap-1.5">
-                                    <Skeleton className="h-3 w-16 rounded" />
-                                    <Skeleton className="h-4 w-36 rounded" />
-                                </div>
+                        <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
+                            <div className="px-4 py-3 bg-primary">
+                                <Skeleton className="h-4 w-20 rounded" />
                             </div>
-                            <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                            <div className="p-4 grid grid-cols-2 gap-x-4 gap-y-3">
                                 {Array.from({ length: 4 }).map((_, i) => (
                                     <div key={i} className="flex items-start gap-3">
                                         <Skeleton className="mt-0.5 size-7 rounded-lg shrink-0" />
@@ -660,18 +651,18 @@ export function Atendimento() {
                             </div>
                         </div>
                         {/* Appointment card skeleton */}
-                        <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-sm">
-                            <div className="flex items-center justify-between border-b border-border pb-3">
-                                <Skeleton className="h-3 w-24 rounded" />
+                        <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
+                            <div className="px-4 py-3 bg-primary flex items-center justify-between">
+                                <Skeleton className="h-4 w-28 rounded" />
                                 <Skeleton className="h-5 w-20 rounded-full" />
                             </div>
-                            <div className="flex flex-col gap-2.5">
-                                {Array.from({ length: 2 }).map((_, i) => (
+                            <div className="p-4 grid grid-cols-2 gap-x-4 gap-y-3">
+                                {Array.from({ length: 4 }).map((_, i) => (
                                     <div key={i} className="flex items-start gap-3">
                                         <Skeleton className="mt-0.5 size-7 rounded-lg shrink-0" />
                                         <div className="flex flex-col gap-1.5">
-                                            <Skeleton className="h-3 w-28 rounded" />
-                                            <Skeleton className="h-4 w-44 rounded" />
+                                            <Skeleton className="h-3 w-20 rounded" />
+                                            <Skeleton className="h-4 w-32 rounded" />
                                         </div>
                                     </div>
                                 ))}
@@ -710,7 +701,7 @@ export function Atendimento() {
         return (
             <div className="flex min-h-0 flex-1 flex-col bg-background">
                 <PageHeader title="Atendimento" />
-                <main className="flex flex-1 flex-col gap-4 p-4">
+                <main className="flex flex-1 flex-col gap-6 px-4 py-6 md:px-6 md:py-8">
                     <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                         {error ?? "Atendimento não encontrado"}
                     </div>
@@ -732,7 +723,7 @@ export function Atendimento() {
         <div className="flex min-h-0 flex-1 flex-col bg-background">
             <PageHeader title="Atendimento" />
 
-            <main className="flex flex-1 min-h-0 flex-col gap-4 p-4 overflow-hidden">
+            <main className="flex flex-1 min-h-0 flex-col gap-6 px-4 py-6 md:px-6 md:py-8 overflow-hidden">
                 {updateError ? (
                     <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{updateError}</div>
                 ) : null}
@@ -741,47 +732,39 @@ export function Atendimento() {
                 ) : null}
 
                 {/* Info cards */}
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-6 sm:grid-cols-2">
                     {/* Patient */}
-                    <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-sm">
-                        <div className="flex items-center gap-2 border-b border-border pb-3">
-                            <div className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                                {patientName.charAt(0).toUpperCase()}
-                            </div>
-                            <div>
-                                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Paciente</p>
-                                <p className="text-sm font-semibold text-foreground capitalize">{patientName}</p>
-                            </div>
+                    <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
+                        <div className="px-4 py-3 bg-primary">
+                            <p className="text-base font-semibold text-white">Paciente</p>
                         </div>
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                        <div className="p-4 grid grid-cols-2 gap-x-4 gap-y-3">
+                            <InfoRow icon={User} label="Nome" value={patientName} />
+                            <InfoRow icon={Phone} label="Telefone" value={formatPhone(schedule.users.phone)} />
                             <InfoRow
                                 icon={Calendar}
-                                label="Data de nascimento"
+                                label="Nascimento"
                                 value={schedule.users.birthdate
                                     ? `${formatBirthdate(schedule.users.birthdate)} · ${calcAge(schedule.users.birthdate)} anos`
                                     : "—"}
                             />
-                            <InfoRow icon={User} label="Sexo" value={formatSex(schedule.users.sex)} />
-                            <InfoRow icon={Phone} label="Telefone" value={formatPhone(schedule.users.phone)} />
-                            <InfoRow icon={Mail} label="E-mail" value={schedule.users.email || "—"} />
+                            <InfoRow icon={PersonStanding} label="Sexo" value={formatSex(schedule.users.sex)} />
                         </div>
                     </div>
 
                     {/* Appointment */}
-                    <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-sm">
-                        <div className="flex items-center justify-between border-b border-border pb-3">
-                            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Agendamento</p>
-                            <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-medium", statusBadgeClass(schedule.appointment_status.code))}>
+                    <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
+                        <div className="px-4 py-3 bg-primary flex items-center justify-between">
+                            <p className="text-base font-semibold text-white">Agendamento</p>
+                            <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-medium bg-white/20 text-white")}>
                                 {schedule.appointment_status.description}
                             </span>
                         </div>
-                        <div className="flex flex-col gap-2.5">
-                            <InfoRow icon={Stethoscope} label="Especialidade / Procedimento" value={`${schedule.specialties.name} · ${schedule.procedures.description}`} />
-                            <InfoRow
-                                icon={Clock}
-                                label="Horário"
-                                value={`${startTime} – ${endTime} (${duration} min) · ${apptDate}`}
-                            />
+                        <div className="p-4 grid grid-cols-2 gap-x-4 gap-y-3">
+                            <InfoRow icon={Stethoscope} label="Especialidade" value={schedule.specialties.name} />
+                            <InfoRow icon={ClipboardList} label="Procedimento" value={schedule.procedures.description} />
+                            <InfoRow icon={CalendarDays} label="Data" value={schedule.schedules.date ? `${apptDate} · ${getDayOfWeek(schedule.schedules.date)}` : "—"} />
+                            <InfoRow icon={Clock} label="Horário" value={`${startTime} – ${endTime} · ${duration} min`} />
                         </div>
                     </div>
                 </div>

@@ -46,6 +46,13 @@ import { Atendimento } from "@/pages/Atendimentos/atendimento"
 
 import { Prontuario } from "@/pages/Prontuario/prontuario"
 
+import { ListarPendentesGestaoExames } from "@/pages/GestaoExames/listar-pendentes-gestao-exames"
+import { DetalhesPendentesGestaoExames } from "@/pages/GestaoExames/detalhes-pendentes-gestao-exames"
+import { ListarGestaoExames } from "@/pages/GestaoExames/listar-gestao-exames"
+import { DetalhesGestaoExames } from "@/pages/GestaoExames/detalhes-gestao-exames"
+import { ListarAnaliseGestaoExames } from "@/pages/GestaoExames/listar-analise-gestao-exames"
+import { DetalhesAnaliseGestaoExames } from "@/pages/GestaoExames/detalhes-analise-gestao-exames"
+
 export function App() {
   return (
     <DefaultLayout>
@@ -104,7 +111,14 @@ export function App() {
             <Route path="atendimentos/:appointmentId" element={<Atendimento />} />
 
             <Route path="prontuario" element={<Prontuario />} />
-            
+
+            <Route path="gestao-exames/listar-pendentes" element={<ListarPendentesGestaoExames />} />
+            <Route path="gestao-exames/detalhes-pendentes/:appointmentId" element={<DetalhesPendentesGestaoExames />} />
+            <Route path="gestao-exames/listar" element={<ListarGestaoExames />} />
+            <Route path="gestao-exames/detalhes/:appointmentId" element={<DetalhesGestaoExames />} />
+            <Route path="gestao-exames/listar-analise" element={<ListarAnaliseGestaoExames />} />
+            <Route path="gestao-exames/detalhes-analise/:appointmentId" element={<DetalhesAnaliseGestaoExames />} />
+
           </Route>
 
           <Route

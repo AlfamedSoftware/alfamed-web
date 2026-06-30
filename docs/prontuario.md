@@ -92,13 +92,23 @@ Os atendimentos são exibidos na ordem retornada pela API:
 
 **`schedules.date DESC + schedule_slots.startTime DESC`** — mais recente primeiro.
 
-Numerados como **Atendimento 1** (index 0, mais recente) até **Atendimento N** (mais antigo).
+Numerados de forma **invertida**: o atendimento mais recente (index 0) recebe o número **N** (total), o mais antigo recebe **1** — leitura cronológica ascendente na numeração.
 
 ### Card de Atendimento
 
 - **Borda esquerda primária** (`border-l-4 border-l-primary`) — separação visual estilo timeline
-- **Cabeçalho** (`bg-muted/40`): título "Atendimento N" em cor primária + badge de status
-- **Grid 3×2** com ícones: Unidade · Data · Horário / Profissional · Especialidade · Procedimento
+- **Sem cabeçalho separado**: título "Atendimento N" + badge de status compõem a primeira linha do grid (span `col-span-3`)
+- **Grid 3 colunas** com InfoRows padrão (`size-7 bg-muted rounded-lg`):
+
+| InfoRow       | Ícone          |
+|---------------|----------------|
+| Unidade       | `Building2`    |
+| Data          | `CalendarDays` |
+| Horário       | `Clock`        |
+| Profissional  | `User`         |
+| Especialidade | `Stethoscope`  |
+| Procedimento  | `ClipboardList`|
+
 - **Registros clínicos colapsáveis**: botão `▾ Ver registros clínicos` visível quando há ao menos um campo; expande diagnóstico, evolução, notas clínicas, procedimentos internos e externos
 
 #### Cores de status (`appointment_status.code`)
@@ -224,5 +234,5 @@ A função `formatDate` trata dois formatos:
 
 O skeleton replica fielmente a estrutura do card real:
 
-- **Seção paciente** (na página `Prontuario`): círculo de avatar + duas linhas (nome/CPF) + grid 4 colunas com label e valor
-- **Seção atendimentos** (`PatientMedicalRecords`): 3 cards com cabeçalho (título + badge) e grid 3×2 com label e valor; borda esquerda em `border-l-primary/30`
+- **Seção paciente** (na página `Prontuario`): 3 colunas — (1) avatar circle + nome + CPF, (2) nascimento + sexo, (3) telefone + e-mail; cada campo com caixinha de ícone `size-7 rounded-lg`
+- **Seção atendimentos** (`PatientMedicalRecords`): 3 cards com título + badge na primeira linha do grid (sem cabeçalho separado) e 6 InfoRow skeletons em grid 3 colunas; borda esquerda em `border-l-primary/30`

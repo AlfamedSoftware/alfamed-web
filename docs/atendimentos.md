@@ -58,10 +58,18 @@ Os cards são exibidos em grid responsivo: 2 colunas em telas `sm`, **4 colunas*
 
 ### Card de Agendamento
 
-Cada card exibe:
-- Horário do slot (`scheduleSlotStartTime – scheduleSlotEndTime`)
-- Badge de status com cor por `statusCode`
-- Inicial e nome do paciente
+Cada card exibe em duas seções separadas por divisor:
+
+1. **Header** — avatar com inicial do paciente (círculo azul `bg-blue-100`) + nome completo + CPF com máscara `XXX.XXX.XXX-XX`
+2. **Corpo** — badge de status, procedimento (ícone `ClipboardList`, opcional) e horário com duração
+
+| Campo          | Detalhe                                                                   |
+|----------------|---------------------------------------------------------------------------|
+| Avatar         | Inicial do nome, círculo `bg-blue-100 text-blue-600`                      |
+| CPF            | `patientCpf` formatado como `XXX.XXX.XXX-XX` (exibido se presente)        |
+| Badge status   | Acima do procedimento no corpo do card                                    |
+| Procedimento   | `scheduleProcedureName`, ícone `ClipboardList` em caixinha `bg-muted`     |
+| Horário        | `startTime – endTime · N min` (duração calculada por `calcDuration`)      |
 
 | `statusCode` | Cor      | Descrição esperada |
 |--------------|----------|--------------------|
@@ -69,6 +77,15 @@ Cada card exibe:
 | 2            | Âmbar    | Em andamento       |
 | 3            | Verde    | Finalizado         |
 | 4            | Vermelho | Cancelado / Falta  |
+
+#### Interface `Appointment`
+
+Campos relevantes adicionados à interface:
+
+```ts
+patientCpf?: string               // CPF do paciente (máscara aplicada no card)
+scheduleProcedureName?: string    // Nome do procedimento do agendamento
+```
 
 ### API
 
@@ -99,11 +116,12 @@ O `appointmentId` é passado via URL ao clicar em um card na listagem.
 
 ```
 PageHeader ("Atendimento")
-├── Card Paciente                   Card Agendamento
-│   ├── Nascimento · Idade          ├── Status badge
-│   ├── Sexo                        ├── Especialidade / Procedimento
-│   ├── Telefone                    └── Horário (hh:mm – hh:mm · data)
-│   └── E-mail
+├── Card Paciente (bg-primary header)    Card Agendamento (bg-primary header)
+│   ├── [header] "Paciente"              ├── [header] "Agendamento" + badge status
+│   ├── Nome                             ├── Especialidade
+│   ├── Telefone                         ├── Procedimento
+│   ├── Nascimento · Idade               ├── Data · Dia da semana
+│   └── Sexo                             └── Horário · Duração
 │
 ├── Abas do Prontuário (flex-1, preenche até o footer)
 │
@@ -113,25 +131,39 @@ PageHeader ("Atendimento")
     └── Iniciar Atendimento | Finalizar  (conforme status)
 ```
 
+Ambos os cards seguem o padrão: `overflow-hidden` + header `bg-primary` + corpo `p-4` em grid 2×2.
+
 ---
 
 ### Cards de Informação
 
 #### Card Paciente
 
-| Campo              | Fonte                              | Formato                                              |
-|--------------------|------------------------------------|------------------------------------------------------|
-| Nome               | `users.socialName` ou `users.name` | Capitalizado                                         |
-| Data de nascimento | `users.birthdate`                  | DD/MM/AAAA · N anos                                  |
-| Sexo               | `users.sex`                        | `M` → Masculino · `F` → Feminino · outros → Outro    |
-| Telefone           | `users.phone`                      | `(DDD) XXXXX-XXXX`                                   |
-| E-mail             | `users.email`                      | Exibição direta                                      |
+Header `bg-primary` com título "Paciente" em `text-white`. Corpo em grid 2 colunas com InfoRows padrão (`size-7 bg-muted rounded-lg`):
+
+| Campo      | Ícone            | Fonte                              | Formato                                           |
+|------------|------------------|------------------------------------|---------------------------------------------------|
+| Nome       | `User`           | `users.socialName` ou `users.name` | Capitalizado                                      |
+| Telefone   | `Phone`          | `users.phone`                      | `(DDD) XXXXX-XXXX`                                |
+| Nascimento | `Calendar`       | `users.birthdate`                  | `DD/MM/AAAA · N anos`                             |
+| Sexo       | `PersonStanding` | `users.sex`                        | `M` → Masculino · `F` → Feminino · outros → Outro |
 
 #### Card Agendamento
 
+Header `bg-primary` com título "Agendamento" em `text-white` e badge de status em `bg-white/20 text-white`. Corpo em grid 2 colunas:
+
+| Campo        | Ícone          | Fonte                                                           | Formato                                         |
+|--------------|----------------|-----------------------------------------------------------------|-------------------------------------------------|
+| Especialidade| `Stethoscope`  | `specialties.name`                                              | Exibição direta                                 |
+| Procedimento | `ClipboardList`| `procedures.description`                                        | Exibição direta                                 |
+| Data         | `CalendarDays` | `schedules.date`                                                | `DD/MM/AAAA · Dia da semana` (capitalizado)     |
+| Horário      | `Clock`        | `schedules_slots.startTime/endTime`                             | `HH:MM – HH:MM · N min`                         |
+
+O badge de status no header usa sempre `bg-white/20 text-white` (sem variação por código de status).
+
 | Campo                 | Fonte                                                           |
 |-----------------------|-----------------------------------------------------------------|
-| Status                | `appointment_status.description` com cor por `code`             |
+| Status                | `appointment_status.description`                                |
 | Especialidade / Proc. | `specialties.name · procedures.description`                     |
 | Horário               | `schedules_slots.startTime – endTime (N min) · schedules.date`  |
 

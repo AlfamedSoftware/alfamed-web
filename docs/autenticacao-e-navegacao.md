@@ -33,7 +33,8 @@ src/
 │   ├── session-unit-context.tsx                 # Estado global de unidade e papel
 │   └── sidebar-menu-context.tsx                 # Estado dos papéis do menu
 ├── hooks/
-│   └── use-session.tsx                          # Hook de leitura da sessão
+│   ├── use-session.tsx                          # Hook de leitura da sessão
+│   └── use-unit-parameters.ts                  # Hook de parâmetros de módulos da unidade
 └── lib/
     ├── auth.ts                                  # Configuração do cliente Better Auth
     └── api-client.ts                            # Wrapper de fetch autenticado
@@ -184,7 +185,10 @@ Executada imediatamente após o login, antes do acesso às funcionalidades.
                                                  ├── /profissionais (+ CRUD)
                                                  ├── /procedimentos (+ CRUD)
                                                  ├── /especialidades (+ CRUD)
-                                                 └── /agendas (+ agendamentos)
+                                                 ├── /agendas (+ agendamentos)
+                                                 ├── /atendimentos (+ detalhes)
+                                                 ├── /prontuario
+                                                 └── /gestao-exames/listar-pendentes (+ detalhes)
 
 /admin                         → ProtectedRoute
                                      └── InternalProtectedRoute
@@ -199,34 +203,67 @@ Executada imediatamente após o login, antes do acesso às funcionalidades.
 
 ## Sidebar (`app-sidebar.tsx`)
 
-### Papéis e Itens do Menu
+### Comportamento de Loading
 
-| Papel (`roleKey`)       | Itens visíveis                                              |
-|-------------------------|-------------------------------------------------------------|
-| `administrative`        | Início, Unidade, Profissionais, Especialidades, Procedimentos, Agendas |
-| `administrative_assistant` | Início, Agendas                                        |
-| `medic`                 | Início, Agendas, Atendimentos (Listar Agendas)             |
-| `internal_alfamed`      | Todos os itens administrativos + Central de Unidades + UPM |
+Enquanto qualquer um destes estados estiver carregando — sessão do usuário (`isLoading`), unidade da sessão (`isSessionUnitLoading`) ou papéis do menu (`isMenuRolesLoading`) — o sidebar exibe skeletons: **3 itens** no menu e um footer customizado (círculo pulsante + 2 linhas de texto + ícone de chevron). O conteúdo real substitui os skeletons assim que todos os dados estão prontos.
 
-Variantes normalizadas para `internal_alfamed`: `"alfamed"`, `"alfamed interno"`, `"alfamed_interno"`.
+### Arquitetura dos Menus
+
+Cada contexto tem seu próprio componente, todos com a mesma interface `{ isMenuItemActive }`. Os itens do menu ficam definidos dentro de cada componente:
+
+| Componente                    | Quando é renderizado                                    |
+|-------------------------------|---------------------------------------------------------|
+| `AdminSidebarMenu`            | URL começa com `/admin/` (detecção por rota)            |
+| `AdministrativeSidebarMenu`   | `menuRoles` contém `"administrative"` ou `"internal_alfamed"` |
+| `MedicSidebarMenu`            | `menuRoles` contém `"medic"`                            |
+| `AssistantSidebarMenu`        | `menuRoles` contém `"administrative_assistant"`         |
+| `TechnicalExecutorSidebarMenu`| `menuRoles` contém `"technical_executor"`               |
+| Mensagem "Nenhum cargo"       | Nenhum role reconhecido                                 |
+
+> A área `/admin/*` é protegida por `InternalProtectedRoute` e o `SidebarBootstrap` define `menuRoles = []` nela — por isso a seleção do menu admin é feita via URL, não via role.
+
+### Itens por Papel
+
+| Papel / Contexto           | Itens                                                                        |
+|----------------------------|------------------------------------------------------------------------------|
+| Admin (`/admin/*`)         | Central de Unidades, UPM                                                     |
+| `administrative`           | Início, Unidade, Profissionais, Especialidades, Procedimentos, Agendas       |
+| `medic`                    | Início, Agendas, Atendimentos, Prontuário                                    |
+| `administrative_assistant` | Início, Agendas + **Exames** _(condicional, rota `/gestao-exames/listar-pendentes`)_ |
+| `technical_executor`       | **Todos os itens condicionais** — dependem de `modulo1GestaoExames`. Quando ativo: Início, Atendimentos _(em desenvolvimento, rota `/atendimentosgestao`)_ |
+
+### Menus Condicionais por Parâmetro de Unidade
+
+`AssistantSidebarMenu` e `TechnicalExecutorSidebarMenu` consultam `GET /unit-parameters/get-parameters/:unitId` via `useUnitParameters` ao montar, verificando `modulo1GestaoExames`.
+
+| Papel                      | Carregando   | `modulo1GestaoExames = true`                             | `modulo1GestaoExames = false`                                                                                |
+|----------------------------|--------------|----------------------------------------------------------|--------------------------------------------------------------------------------------------------------------|
+| `administrative_assistant` | 3 skeletons  | Itens base + **Exames** (`/gestao-exames/listar-pendentes`) | Apenas itens base (Início, Agendas)                                                                       |
+| `technical_executor`       | 3 skeletons  | **Início**, **Atendimentos** _(em desenvolvimento)_      | Mensagem: _"O módulo de Gestão de Exames está desativado. Para contratar, entre em contato com a Alfamed."_ |
+
+> Para `technical_executor`, **todos** os itens do menu dependem do parâmetro — nada é exibido enquanto carrega, e nenhum item aparece se o módulo estiver desativado.
+
+- Os demais componentes (`AdminSidebarMenu`, `AdministrativeSidebarMenu`, `MedicSidebarMenu`) não consultam esse endpoint.
 
 ### Lógica de Item Ativo
 
-- Rota de vínculo de especialidade com profissional: ativo em `/especialidades/vinculo-listagem-profissionais`.
-- Rota de listagem de agendas: ativo em `/listar-agendas`.
-- Especialidades: correspondência exata.
-- Demais rotas: correspondência exata ou prefixo (`startsWith`).
+- Correspondência exata ou por prefixo (`startsWith`) usando `location.pathname`.
+- Rota de vínculo de especialidade com profissional (`?isSpecialtyLink=true`) → ativo em `/profissionais`.
 
 ### Rodapé do Sidebar
 
-Exibe:
-- Avatar com inicial do nome do usuário.
-- Nome da unidade selecionada (fallback: "Unidade selecionada").
-- Papel atual (fallback: "Cargo: Não definido").
+Exibe um botão que abre um `DropdownMenu`:
+- Avatar com inicial do nome do usuário (círculo com cor `sidebar-primary`).
+- Nome completo do usuário (fallback: "Usuário").
+- Nome da unidade selecionada (fallback: "Unidade selecionada") — ou "ServiceDesk" na área admin.
+
+O dropdown exibe nome + unidade + cargo (`Cargo: <label>`) e as ações abaixo.
+
+**Durante o loading inicial**, o footer exibe um skeleton customizado: círculo pulsante + duas linhas de texto + ícone de chevron.
 
 Dropdown com ações:
 - **Perfil** → `/perfil` (apenas área não-admin).
-- **Trocar unidade** → `/session`.
+- **Trocar unidade** → `/session` (apenas área não-admin).
 - **Sair** → `auth.signOut()`.
 
 ---
@@ -298,3 +335,4 @@ Wrapper sobre `fetch` que:
 | `GET /session/list-units-acessable-by-professional`          | Seleção de unidade + bootstrap do menu |
 | `POST /session/select-unit`                                  | Confirmar unidade selecionada   |
 | `GET /session/get-session-unit`                              | Carregar contexto de unidade    |
+| `GET /unit-parameters/get-parameters/:unitId`               | Parâmetros de módulos da unidade (sidebar `assistant` e `technical_executor`) |
