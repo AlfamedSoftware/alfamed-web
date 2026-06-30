@@ -127,15 +127,6 @@ function formatSex(sex: string): string {
     return sex || "Não informado"
 }
 
-function formatPrice(price: string): string {
-    const num = parseFloat(price)
-    if (isNaN(num)) return "—"
-    return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(num)
-}
-
-function formatBRL(value: number): string {
-    return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value)
-}
 
 function getDayOfWeek(yyyymmdd: string): string {
     if (!yyyymmdd) return ""
@@ -180,7 +171,7 @@ function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label:
 
 // --- Sheet type ---
 
-type ActiveSheet = "finalizar" | "encerrar" | null
+type ActiveSheet = "encerrar" | null
 
 // --- Main component ---
 
@@ -196,6 +187,15 @@ export function DetalhesGestaoExames() {
     const [activeSheet,       setActiveSheet]       = useState<ActiveSheet>(null)
     const [complementaryInfo, setComplementaryInfo] = useState("")
     const [justification,     setJustification]     = useState("")
+    const [executados,               setExecutados]               = useState<Set<string>>(new Set())
+    const [nonExecutedJustification, setNonExecutedJustification] = useState("")
+
+    const toggleExecutado = (id: string) =>
+        setExecutados((prev) => {
+            const next = new Set(prev)
+            if (next.has(id)) { next.delete(id) } else { next.add(id) }
+            return next
+        })
 
     useEffect(() => {
         if (!appointmentId) return
@@ -209,11 +209,6 @@ export function DetalhesGestaoExames() {
 
     const currentStatus = data?.requests[0]?.statusCode ?? null
     const statusCfg     = currentStatus !== null ? STATUS_CONFIG[currentStatus] : null
-
-    const total = data?.requests.reduce((sum, r) => {
-        const price = parseFloat(r.procedures?.price ?? "0")
-        return sum + (isNaN(price) ? 0 : price)
-    }, 0) ?? 0
 
     const callPatch = async (path: string, body?: unknown) => {
         if (!appointmentId) return
@@ -249,7 +244,7 @@ export function DetalhesGestaoExames() {
 
     return (
         <div className="flex min-h-screen flex-col bg-background text-foreground">
-            <PageHeader title="Detalhes do Exame" />
+            <PageHeader title="Execução de Exames" />
 
             <main className="flex-1 flex flex-col px-4 py-6 md:px-6 md:py-8 gap-6">
                 {error && (
@@ -267,15 +262,6 @@ export function DetalhesGestaoExames() {
 
                 {!isLoading && data && (
                     <>
-                        {/* Status badge */}
-                        {statusCfg && (
-                            <div>
-                                <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${statusCfg.badgeClass}`}>
-                                    {statusCfg.label}
-                                </span>
-                            </div>
-                        )}
-
                         <div className="grid grid-cols-2 gap-6">
                             {/* Paciente */}
                             <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
@@ -294,8 +280,13 @@ export function DetalhesGestaoExames() {
 
                             {/* Atendimento */}
                             <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
-                                <div className="px-4 py-3 bg-primary">
+                                <div className="px-4 py-3 bg-primary flex items-center justify-between">
                                     <p className="text-base font-semibold text-white">Atendimento</p>
+                                    {statusCfg && (
+                                        <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${statusCfg.badgeClass}`}>
+                                            {statusCfg.label}
+                                        </span>
+                                    )}
                                 </div>
                                 <div className="p-4 flex flex-col gap-3">
                                     <InfoRow icon={User}          label="Profissional"  value={data.professional_units?.professional?.user?.name ?? "—"} />
@@ -333,19 +324,69 @@ export function DetalhesGestaoExames() {
                                                         )}
                                                     </div>
                                                 </div>
-                                                <span className="text-sm font-semibold text-foreground shrink-0">
-                                                    {formatPrice(req.procedures?.price)}
-                                                </span>
+                                                {currentStatus === 3 && (
+                                                    <div className="flex items-center gap-3 shrink-0">
+                                                        <div className="text-right">
+                                                            <p className="text-xs font-medium text-foreground">Executado</p>
+                                                            <p className="text-xs text-muted-foreground">{executados.has(req.id) ? "Sim" : "Não"}</p>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => toggleExecutado(req.id)}
+                                                            className={`relative inline-flex h-8 w-14 shrink-0 items-center rounded-full p-1 transition-colors cursor-pointer ${executados.has(req.id) ? "bg-primary" : "bg-muted"}`}
+                                                            aria-pressed={executados.has(req.id)}
+                                                        >
+                                                            <span className={`h-6 w-6 rounded-full bg-background shadow-sm transition-transform duration-200 ${executados.has(req.id) ? "translate-x-6" : "translate-x-0"}`} />
+                                                        </button>
+                                                    </div>
+                                                )}
                                             </div>
                                         ))}
-                                        <div className="flex items-center justify-between pt-4">
-                                            <p className="text-base font-semibold text-foreground">Total</p>
-                                            <p className="text-base font-semibold text-foreground">{formatBRL(total)}</p>
-                                        </div>
                                     </div>
                                 )}
                             </div>
                         </div>
+
+                        {/* Campos de finalização — visíveis apenas no status 3 */}
+                        {currentStatus === 3 && (
+                            <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
+                                <div className="px-4 py-3 bg-primary">
+                                    <p className="text-base font-semibold text-white">Finalização</p>
+                                </div>
+                                <div className="p-4 flex flex-col gap-4">
+                                    <div className="flex flex-col gap-1.5">
+                                        <label className="text-sm font-medium text-foreground">
+                                            Informações complementares{" "}
+                                            <span className="text-muted-foreground font-normal">(opcional)</span>
+                                        </label>
+                                        <textarea
+                                            value={complementaryInfo}
+                                            onChange={(e) => setComplementaryInfo(e.target.value)}
+                                            rows={3}
+                                            placeholder="Observações sobre a execução dos exames..."
+                                            className="rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 placeholder:text-muted-foreground"
+                                        />
+                                    </div>
+                                    {data.requests.some((r) => !executados.has(r.id)) && (
+                                        <div className="flex flex-col gap-1.5">
+                                            <label className="text-sm font-medium text-foreground">
+                                                Justificativa <span className="text-red-500">*</span>
+                                            </label>
+                                            <p className="text-xs text-muted-foreground -mt-1">
+                                                Justifique os exames que não foram executados.
+                                            </p>
+                                            <textarea
+                                                value={nonExecutedJustification}
+                                                onChange={(e) => setNonExecutedJustification(e.target.value)}
+                                                rows={3}
+                                                placeholder="Descreva o motivo pelo qual um ou mais exames não foram realizados..."
+                                                className="rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 placeholder:text-muted-foreground"
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </>
                 )}
 
@@ -379,72 +420,21 @@ export function DetalhesGestaoExames() {
                     )}
 
                     {currentStatus === 3 && (
-                        <>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="lg"
-                                disabled={isSubmitting}
-                                onClick={() => setActiveSheet("encerrar")}
-                                className="border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20 cursor-pointer"
-                            >
-                                <AlertTriangle className="w-4 h-4" />
-                                Encerrar
-                            </Button>
-                            <SaveButton
-                                type="button"
-                                label="Finalizar Exame"
-                                savingLabel="Finalizando..."
-                                isSaving={isSubmitting}
-                                disabled={!data || isLoading}
-                                icon={<CheckCircle className="w-4 h-4" />}
-                                onClick={() => setActiveSheet("finalizar")}
-                            />
-                        </>
+                        <SaveButton
+                            type="button"
+                            label="Finalizar Exame"
+                            savingLabel="Finalizando..."
+                            isSaving={isSubmitting}
+                            disabled={!data || isLoading || (data.requests.some((r) => !executados.has(r.id)) && !nonExecutedJustification.trim())}
+                            icon={<CheckCircle className="w-4 h-4" />}
+                            onClick={handleFinalizar}
+                        />
                     )}
 
                 </div>
             </main>
 
-            {/* Sheet — Finalizar exame (3 → 4) */}
-            <Sheet open={activeSheet === "finalizar"} onOpenChange={(open) => { if (!open) closeSheet() }}>
-                <SheetContent side="right" className="flex flex-col gap-0 p-0">
-                    <SheetHeader className="p-6 pb-4 border-b">
-                        <SheetTitle>Finalizar exame</SheetTitle>
-                        <SheetDescription>
-                            Confirme a conclusão do exame. Informações complementares são opcionais.
-                        </SheetDescription>
-                    </SheetHeader>
-                    <div className="flex flex-col gap-4 p-6 flex-1">
-                        <div className="flex flex-col gap-1.5">
-                            <label className="text-sm font-medium text-foreground">
-                                Informações complementares{" "}
-                                <span className="text-muted-foreground font-normal">(opcional)</span>
-                            </label>
-                            <textarea
-                                value={complementaryInfo}
-                                onChange={(e) => setComplementaryInfo(e.target.value)}
-                                rows={5}
-                                placeholder="Observações sobre o exame..."
-                                className="rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 placeholder:text-muted-foreground"
-                            />
-                        </div>
-                    </div>
-                    <SheetFooter className="border-t px-6 py-4 flex flex-row justify-end gap-2">
-                        <Button type="button" variant="outline" size="lg" onClick={closeSheet} className="cursor-pointer">
-                            Cancelar
-                        </Button>
-                        <SaveButton
-                            type="button"
-                            label="Confirmar finalização"
-                            savingLabel="Finalizando..."
-                            isSaving={isSubmitting}
-                            icon={<CheckCircle className="w-4 h-4" />}
-                            onClick={handleFinalizar}
-                        />
-                    </SheetFooter>
-                </SheetContent>
-            </Sheet>
+
 
             {/* Sheet — Encerrar (2 → 8 | 3 → 7) */}
             <Sheet open={activeSheet === "encerrar"} onOpenChange={(open) => { if (!open) closeSheet() }}>

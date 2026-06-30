@@ -11,43 +11,26 @@ import { authBaseUrl } from "@/lib/auth"
 interface ExamRequest {
     id: string
     patients: {
-        id: string
         name: string
         socialName: string
         cpf: string
-        email: string
-        phone: string
     }
     professional_units: {
-        id: string
         professional: {
-            id: string
-            crm: string
             user: {
-                id: string
                 name: string
             }
         }
     }
     schedules: {
-        id: string
-        date: string
-        startTime: string
-        endTime: string
-        procedures: {
-            id: string
-            description: string
-            code: string
-        }
         specialties: {
-            id: string
             name: string
         }
+        procedures: {
+            description: string
+        }
     }
-    date: string
-    statusId: number
-    statusDescription: string
-    requests: unknown[]
+    requestCount: number
 }
 
 // --- Helpers ---
@@ -139,12 +122,12 @@ export function ListarPendentesGestaoExames() {
 
         const params = new URLSearchParams({
             date: dateInputToApiFormat(dateInput),
-            statusId: "1",
+            statusCode: "1",
         })
 
         dispatch({ type: "loading" })
 
-        fetchWithAuth<ExamRequest[]>(`${authBaseUrl}/exam-management/?${params.toString()}`)
+        fetchWithAuth<ExamRequest[]>(`${authBaseUrl}/exam-management/list-exams?${params.toString()}`)
             .then((data) => dispatch({ type: "success", data: Array.isArray(data) ? data : [] }))
             .catch((err) => dispatch({ type: "error", message: err instanceof Error ? err.message : "Erro ao carregar exames" }))
     }, [dateInput])
@@ -245,7 +228,7 @@ export function ListarPendentesGestaoExames() {
 function ExamCard({ exam, onClick }: { exam: ExamRequest; onClick: () => void }) {
     const displayName = exam.patients?.socialName || exam.patients?.name || "?"
     const initial = displayName.charAt(0).toUpperCase()
-    const count = exam.requests.length ?? 0
+    const count = exam.requestCount ?? 0
 
     return (
         <button type="button" onClick={onClick} className="w-full text-left rounded-xl border border-border bg-card overflow-hidden shadow-sm hover:border-primary/40 hover:shadow-md transition-all cursor-pointer active:scale-[0.99]">
