@@ -635,7 +635,7 @@ export function Atendimento() {
                     <div className="grid gap-6 sm:grid-cols-2">
                         {/* Patient card skeleton */}
                         <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
-                            <div className="px-4 py-3 bg-primary/20">
+                            <div className="px-4 py-3 bg-primary">
                                 <Skeleton className="h-4 w-20 rounded" />
                             </div>
                             <div className="p-4 grid grid-cols-2 gap-x-4 gap-y-3">
@@ -652,7 +652,7 @@ export function Atendimento() {
                         </div>
                         {/* Appointment card skeleton */}
                         <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
-                            <div className="px-4 py-3 bg-primary/20 flex items-center justify-between">
+                            <div className="px-4 py-3 bg-primary flex items-center justify-between">
                                 <Skeleton className="h-4 w-28 rounded" />
                                 <Skeleton className="h-5 w-20 rounded-full" />
                             </div>
