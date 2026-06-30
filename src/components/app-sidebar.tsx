@@ -44,6 +44,7 @@ type SidebarMenuItemConfig = {
     title: string
     icon: LucideIcon
     url: string
+    activeFor?: string[]
 }
 
 const MENU_ROLE_KEYS = {
@@ -160,7 +161,7 @@ function AssistantSidebarMenu({ unitId, isMenuItemActive }: MenuPropsWithUnit) {
             {modulo1GestaoExames ? (
                 <MenuItemList
                     items={[
-                        { title: "Liberação de exames", icon: FlaskConical, url: "/gestao-exames/listar-pendentes" },
+                        { title: "Liberação de exames", icon: FlaskConical, url: "/gestao-exames/listar-pendentes", activeFor: ["/gestao-exames/detalhes-pendentes/"] },
                     ]}
                     isMenuItemActive={isMenuItemActive}
                 />
@@ -195,9 +196,9 @@ function TechnicalExecutorSidebarMenu({ unitId, isMenuItemActive }: MenuPropsWit
     return (
         <MenuItemList
             items={[
-                { title: "Início",          icon: HomeIcon,     url: "/home" },
-                { title: "Execução de exames", icon: FlaskConical,  url: "/gestao-exames/listar" },
-                { title: "Análise de exames",  icon: ClipboardList, url: "/gestao-exames/listar-analise" },
+                { title: "Início",             icon: HomeIcon,      url: "/home" },
+                { title: "Execução de exames", icon: FlaskConical,  url: "/gestao-exames/listar",         activeFor: ["/gestao-exames/detalhes/"] },
+                { title: "Análise de exames",  icon: ClipboardList, url: "/gestao-exames/listar-analise", activeFor: ["/gestao-exames/detalhes-analise/"] },
             ]}
             isMenuItemActive={isMenuItemActive}
         />
@@ -356,7 +357,8 @@ export function AppSidebar() {
 
     const isMenuItemActive = (item: SidebarMenuItemConfig) => {
         if (isProfessionalSpecialtyLinkRoute) return item.url === "/profissionais"
-        return location.pathname === item.url || location.pathname.startsWith(`${item.url}/`)
+        if (location.pathname === item.url || location.pathname.startsWith(`${item.url}/`)) return true
+        return item.activeFor?.some((prefix) => location.pathname.startsWith(prefix)) ?? false
     }
 
     function renderMenu() {

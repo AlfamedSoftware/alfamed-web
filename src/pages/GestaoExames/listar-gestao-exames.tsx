@@ -12,29 +12,33 @@ import { useSessionUnit } from "@/contexts/session-unit-context"
 interface ExamRequest {
     id: string
     patients: {
-        id: string
         name: string
         socialName: string
         cpf: string
     }
     professional_units: {
-        id: string
         professional: {
-            user: { id: string; name: string }
+            user: {
+                name: string
+            }
         }
     }
     schedules: {
-        procedures: { description: string }
-        specialties: { name: string }
+        specialties: {
+            name: string
+        }
+        procedures: {
+            description: string
+        }
     }
-    requests: unknown[]
+    requestCount: number
 }
 
 // --- Section config ---
 
 const SECTIONS = [
-    { statusId: 2, label: "Aguardando realização", headerClass: "bg-yellow-500", requiresProfessional: false },
-    { statusId: 3, label: "Paciente em exame",     headerClass: "bg-blue-500",   requiresProfessional: true  },
+    { statusCode: 2, label: "Aguardando realização", headerClass: "bg-yellow-500", requiresProfessional: false },
+    { statusCode: 3, label: "Paciente em exame",     headerClass: "bg-blue-500",   requiresProfessional: true  },
 ] as const
 
 // --- Helpers ---
@@ -98,21 +102,21 @@ function sectionReducer(_: SectionState, action: SectionAction): SectionState {
 
 // --- Section hook ---
 
-function useSectionFetch(statusId: number, date: string, professionalUnitId?: string, waitForProfessional = false) {
+function useSectionFetch(statusCode: number, date: string, professionalUnitId?: string, waitForProfessional = false) {
     const [state, dispatch] = useReducer(sectionReducer, { items: [], isLoading: false, error: null })
 
     useEffect(() => {
         if (!isValidDateFormat(date)) return
         if (waitForProfessional && !professionalUnitId) return
 
-        const params = new URLSearchParams({ date: dateInputToApiFormat(date), statusId: String(statusId) })
+        const params = new URLSearchParams({ date: dateInputToApiFormat(date), statusCode: String(statusCode) })
         if (professionalUnitId) params.set("professionalUnitId", professionalUnitId)
 
         dispatch({ type: "loading" })
-        fetchWithAuth<ExamRequest[]>(`${authBaseUrl}/exam-management/?${params.toString()}`)
+        fetchWithAuth<ExamRequest[]>(`${authBaseUrl}/exam-management/list-exams?${params.toString()}`)
             .then((data) => dispatch({ type: "success", data: Array.isArray(data) ? data : [] }))
             .catch((err) => dispatch({ type: "error", message: err instanceof Error ? err.message : "Erro ao carregar" }))
-    }, [statusId, date, professionalUnitId, waitForProfessional])
+    }, [statusCode, date, professionalUnitId, waitForProfessional])
 
     return state
 }
@@ -147,7 +151,7 @@ export function ListarGestaoExames() {
     ]
 
     const visibleSections = statusFilter
-        ? allSections.filter((s) => String(s.statusId) === statusFilter)
+        ? allSections.filter((s) => String(s.statusCode) === statusFilter)
         : allSections
 
     return (
@@ -194,7 +198,7 @@ export function ListarGestaoExames() {
                     >
                         <option value="">Todos</option>
                         {SECTIONS.map((s) => (
-                            <option key={s.statusId} value={String(s.statusId)}>{s.label}</option>
+                            <option key={s.statusCode} value={String(s.statusCode)}>{s.label}</option>
                         ))}
                     </select>
                 </div>
@@ -203,7 +207,7 @@ export function ListarGestaoExames() {
             <main className="flex-1 px-6 pb-6 flex flex-col gap-6">
                 {visibleSections.map((section) => (
                     <SectionBlock
-                        key={section.statusId}
+                        key={section.statusCode}
                         label={section.label}
                         headerClass={section.headerClass}
                         items={section.items}
@@ -273,7 +277,7 @@ function SectionBlock({ label, headerClass, items, isLoading, error, onCardClick
 function ExamCard({ exam, onClick }: { exam: ExamRequest; onClick: () => void }) {
     const displayName = exam.patients?.socialName || exam.patients?.name || "?"
     const initial     = displayName.charAt(0).toUpperCase()
-    const count       = exam.requests.length ?? 0
+    const count       = exam.requestCount ?? 0
 
     return (
         <button

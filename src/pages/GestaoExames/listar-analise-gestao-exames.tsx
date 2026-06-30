@@ -12,30 +12,33 @@ import { useSessionUnit } from "@/contexts/session-unit-context"
 interface ExamRequest {
     id: string
     patients: {
-        id: string
         name: string
         socialName: string
         cpf: string
     }
     professional_units: {
-        id: string
         professional: {
-            user: { id: string; name: string }
+            user: {
+                name: string
+            }
         }
     }
     schedules: {
-        procedures: { description: string }
-        specialties: { name: string }
+        specialties: {
+            name: string
+        }
+        procedures: {
+            description: string
+        }
     }
-    requests: unknown[]
+    requestCount: number
 }
 
 // --- Section config ---
 
 const SECTIONS = [
-    { statusId: 4, label: "Aguardando análise", headerClass: "bg-orange-500", requiresProfessional: false },
-    { statusId: 5, label: "Laudo em análise",   headerClass: "bg-purple-500", requiresProfessional: true  },
-    { statusId: 6, label: "Laudo liberado",      headerClass: "bg-green-500",  requiresProfessional: false },
+    { statusCode: 4, label: "Aguardando análise", headerClass: "bg-orange-500", requiresProfessional: false },
+    { statusCode: 5, label: "Laudo em análise",   headerClass: "bg-purple-500", requiresProfessional: true  },
 ] as const
 
 // --- Helpers ---
@@ -99,21 +102,21 @@ function sectionReducer(_: SectionState, action: SectionAction): SectionState {
 
 // --- Section hook ---
 
-function useSectionFetch(statusId: number, date: string, professionalUnitId?: string, waitForProfessional = false) {
+function useSectionFetch(statusCode: number, date: string, professionalUnitId?: string, waitForProfessional = false) {
     const [state, dispatch] = useReducer(sectionReducer, { items: [], isLoading: false, error: null })
 
     useEffect(() => {
         if (!isValidDateFormat(date)) return
         if (waitForProfessional && !professionalUnitId) return
 
-        const params = new URLSearchParams({ date: dateInputToApiFormat(date), statusId: String(statusId) })
+        const params = new URLSearchParams({ date: dateInputToApiFormat(date), statusCode: String(statusCode) })
         if (professionalUnitId) params.set("professionalUnitId", professionalUnitId)
 
         dispatch({ type: "loading" })
-        fetchWithAuth<ExamRequest[]>(`${authBaseUrl}/exam-management/?${params.toString()}`)
+        fetchWithAuth<ExamRequest[]>(`${authBaseUrl}/exam-management/list-exams?${params.toString()}`)
             .then((data) => dispatch({ type: "success", data: Array.isArray(data) ? data : [] }))
             .catch((err) => dispatch({ type: "error", message: err instanceof Error ? err.message : "Erro ao carregar" }))
-    }, [statusId, date, professionalUnitId, waitForProfessional])
+    }, [statusCode, date, professionalUnitId, waitForProfessional])
 
     return state
 }
@@ -141,16 +144,14 @@ export function ListarAnaliseGestaoExames() {
 
     const section4 = useSectionFetch(4, dateInput)
     const section5 = useSectionFetch(5, dateInput, professionalUnitId, true)
-    const section6 = useSectionFetch(6, dateInput)
 
     const allSections = [
         { ...SECTIONS[0], ...section4 },
         { ...SECTIONS[1], ...section5 },
-        { ...SECTIONS[2], ...section6 },
     ]
 
     const visibleSections = statusFilter
-        ? allSections.filter((s) => String(s.statusId) === statusFilter)
+        ? allSections.filter((s) => String(s.statusCode) === statusFilter)
         : allSections
 
     return (
@@ -197,7 +198,7 @@ export function ListarAnaliseGestaoExames() {
                     >
                         <option value="">Todos</option>
                         {SECTIONS.map((s) => (
-                            <option key={s.statusId} value={String(s.statusId)}>{s.label}</option>
+                            <option key={s.statusCode} value={String(s.statusCode)}>{s.label}</option>
                         ))}
                     </select>
                 </div>
@@ -206,7 +207,7 @@ export function ListarAnaliseGestaoExames() {
             <main className="flex-1 px-6 pb-6 flex flex-col gap-6">
                 {visibleSections.map((section) => (
                     <SectionBlock
-                        key={section.statusId}
+                        key={section.statusCode}
                         label={section.label}
                         headerClass={section.headerClass}
                         items={section.items}
@@ -276,7 +277,7 @@ function SectionBlock({ label, headerClass, items, isLoading, error, onCardClick
 function ExamCard({ exam, onClick }: { exam: ExamRequest; onClick: () => void }) {
     const displayName = exam.patients?.socialName || exam.patients?.name || "?"
     const initial     = displayName.charAt(0).toUpperCase()
-    const count       = exam.requests.length ?? 0
+    const count       = exam.requestCount
 
     return (
         <button
