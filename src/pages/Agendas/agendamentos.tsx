@@ -394,7 +394,10 @@ export function Agendamentos() {
                     {/* Card paciente */}
                     <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
                         <div className="px-4 py-3 bg-primary">
-                            <p className="text-base font-semibold text-white">Paciente</p>
+                            {isSlotLoading
+                                ? <div className="h-5 w-24 rounded bg-white/20 animate-pulse" />
+                                : <p className="text-base font-semibold text-white">Paciente</p>
+                            }
                         </div>
                         <div className="p-4">
                             {patient ? (
@@ -407,9 +410,18 @@ export function Agendamentos() {
                                     <InfoRow icon={Mail}           label="E-mail"     value={patient.email} />
                                 </div>
                             ) : (
+                                
                                 <div className="flex flex-col items-center justify-center gap-3 py-10 text-muted-foreground">
-                                    <User className="h-10 w-10 opacity-20" />
-                                    <p className="text-sm">Busque um paciente para continuar</p>
+                                    {isSlotLoading ? (
+                                        <div className="h-10 w-10 rounded-full bg-muted animate-pulse" />
+                                    ) : (
+                                        <User className="h-10 w-10 opacity-20" />
+                                    )}
+                                    {isSlotLoading ? (
+                                        <div className="h-4 w-48 rounded bg-muted animate-pulse" />
+                                    ) : (
+                                        <p className="text-sm">Busque um paciente para continuar</p>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -418,7 +430,10 @@ export function Agendamentos() {
                     {/* Card resumo da consulta */}
                     <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
                         <div className="px-4 py-3 bg-primary">
-                            <p className="text-base font-semibold text-white">Resumo do Agendamento</p>
+                            {isSlotLoading
+                                ? <div className="h-5 w-48 rounded bg-white/20 animate-pulse" />
+                                : <p className="text-base font-semibold text-white">Resumo do Agendamento</p>
+                            }
                         </div>
                         <div className="p-4">
                             {isSlotLoading ? (

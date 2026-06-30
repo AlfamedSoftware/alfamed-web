@@ -758,7 +758,10 @@ export function Prontuario() {
                 {userId && (
                     <div className="rounded-xl border border-border bg-card overflow-hidden">
                         <div className="px-6 py-4 bg-primary">
-                            <h2 className="text-base font-semibold text-white">Prontuário do Paciente</h2>
+                            {isLoadingRecords
+                                ? <div className="h-5 w-48 rounded bg-white/20 animate-pulse" />
+                                : <h2 className="text-base font-semibold text-white">Prontuário do Paciente</h2>
+                            }
                         </div>
 
                         {/* Dados do paciente */}
